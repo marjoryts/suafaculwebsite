@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/pages/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% set active_page = 'home' %}
+    {% include 'partials/_header.html' %}
+
+    <main>
+        <section class="hero">
+            <h1>Seu <em><strong>futuro</strong></em> em um só lugar!</h1>
+            <div class="container">
+                <div class="container-input">
+                    <div class="card">
+                        <label for="curso"> Qual curso deseja estudar?</label>
+                        <input type="text" class="text-input" placeholder="Digite o curso">
+                        <div class="filtros1">
+                            <label><input type="checkbox"> Presencial</label>
+                            <label><input type="checkbox"> Híbrido</label>
+                            <label><input type="checkbox"> EaD</label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <label for="faculdade"> Em qual faculdade?</label>
+                        <input type="text" class="text-input" placeholder="Digite a faculdade">
+                        <div class="filtros">
+                            <label><input type="radio">Pública</label>
+                            <label><input type="radio">Particular</label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <label for="cidade">Em que cidade quer estudar?</label>
+                        <input type="text" class="text-input" placeholder="Digite a cidade">
+                        <div class="filtros">
+                            <button class="btn-buscar">Buscar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-filtros">
+                <div class="filtros">
+                </div>
+            </div>
+        </section>
+
+        <section class="faculdades">
+            <h2>Faculdades em destaque</h2>
+            <div class="faculdades-lista">
+                <div class="faculdade">
+                    <img src="/static/imagens/usp.jpg">
+                    <h3>USP (Universidade de São Paulo)</h3>
+                    <p>Butantã - SP</p>
+                    <a href="https://www5.usp.br/">Saiba Mais</a>
+                </div>
+
+                <div class="faculdade">
+                    <img src="/static/imagens/fatecfv.jpeg">
+                    <h3>FATEC (Faculdade de Tecnologia)</h3>
+                    <p>Ferraz de Vasconcelos - SP </p>
+                    <a href="https://fatecferraz.edu.br/">Saiba Mais</a>
+                </div>
+                
+                <div class="faculdade">
+                    <img src="/static/imagens/unicamp.jpg">
+                    <h3>UNICAMP (Universidade de Campinas)</h3>
+                    <p>Campinas - SP</p>
+                    <a href="https://www.unicamp.br/">Saiba Mais</a>
+                </div>
+
+                <div class="faculdade">
+                    <img src="/static/imagens/unifesp.jpg">
+                    <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
+                    <p> São Paulo - SP</p>
+                    <a href="https://www.unifesp.br/">Saiba Mais</a>
+                </div>    
+            </div>    
+        </section>
+
+        <section class="vestibulares">
+            <h2>Próximos vestibulares</h2>
+            <div class="vestibulares-lista">
+                <div class="vestibular">
+                    <h3>Fuvest</h3>
+                    <p>23/11</p>
+                    <p>Universidade de São Paulo</p>
+                    <a href="https://www.fuvest.br/vestibular-da-usp">Saiba mais</a>
+                </div>
+
+                <div class="vestibular">
+                    <h3>Comvest</h3>
+                    <p>Em espera</p>
+                    <p>Universidade Estadual de Campinas</p>
+                    <a href="https://www.comvest.unicamp.br/">Saiba mais</a>
+                </div>
+
+                <div class="vestibular">
+                    <h3>FATEC</h3>
+                    <p>29/06</p>
+                    <p>Faculdade de Tecnologia do Estado de São Paulo</p>
+                    <a href="https://vestibular.fatec.sp.gov.br/home/">Saiba mais</a>
+                </div>
+                
+                <div class="vestibular">
+                    <h3>UNESP</h3>
+                    <p>02/11</p>
+                    <p>Universidade Estadual Paulista</p>
+                    <a href="https://vestibular.unesp.br/portal#!/">Saiba mais</a>
+                </div>
+            </div>
+        </section>
+        
+        <div class="container-curso">
+            <h1>Cursos</h1>
+            
+            <div>
+                <div class="pesquisa-container">
+                    <div class="pesquisa-titulo">Pesquise o curso</div>
+                    <input type="text" placeholder="Digite o curso">
+                </div>
+
+                <div class="cursos-lista" id="cursos-lista-home">
+                    <p class="loading">Carregando cursos...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-about">
+                <h3>SuaFacul</h3>
+                <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
+            </div>
+            
+            <div class="footer-links">
+                <h4>Links Úteis</h4>
+                <ul>
+                    <li><a href="/vestibulares">Vestibulares</a></li>
+                    <li><a href="/testevocacional">Teste Vocacional</a></li>
+                    <li><a href="/faculdades">Faculdades</a></li>
+                    <li><a href="/cursos">Cursos</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-help">
+                <h4>Ajuda</h4>
+                <ul>
+                    <li><a href="/ajuda">FAQ</a></li>
+                    <li><a href="#">Contato</a></li>
+                    <li><a href="#">Termos de Uso</a></li>
+                    <li><a href="#">Política de Privacidade</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-social">
+                <h4>Redes Sociais</h4>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024 SuaFacul. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Modal de Cursos -->
+    <div id="courseSearchModal" class="course-modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="modal-close">&times;</span>
+            <div class="modal-header">
+                <h2 id="modal-course-title">Cursos encontrados</h2>
+            </div>
+            <div class="modal-body">
+                <div id="modal-courses-grid" class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                    <!-- Cursos serão carregados aqui -->
+                </div>
+                <div id="modal-loading" style="text-align: center; padding: 2rem;">
+                    <p>Buscando cursos...</p>
+                </div>
+                <div id="modal-no-results" style="text-align: center; padding: 2rem; display: none;">
+                    <i class="fas fa-search" style="font-size: 3rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                    <p>Nenhum curso encontrado com esse nome.</p>
+                    <a href="/cursos" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">Ver todos os cursos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/header.js"></script>
+    <script src="/static/js/favoritos.js"></script>
+    <script src="/static/js/home-cursos.js"></script>
+    <script src="/static/js/home-search.js"></script>
+    
+</body>
+</html> 

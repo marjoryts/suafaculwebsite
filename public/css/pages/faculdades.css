@@ -1,0 +1,493 @@
+/* Tokens de marca, reset, body, scrollbar e header agora vivem em
+   /static/css/base.css e /static/css/components/header.css */
+
+.hero {
+
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--second-color);     
+    text-align: center;
+    padding: 4rem 1rem;    
+    position: relative;
+    overflow: hidden;
+}
+
+/* Título principal */
+.hero h1 {
+    color: var(--second-color);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 600;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+}
+
+/* Destaque no futuro */
+.hero h1 em {
+    font-style: normal;
+    color: var(--accent-color); 
+}
+
+/* 9. CONTAINER PRINCIPAL */
+.container {
+    background: var(--second-color); 
+    width: min(90%, 55rem);
+    margin: 2rem auto;              
+    border-radius: var(--radius-md); 
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);  
+}
+
+/* FORMULÁRIO DE PESQUISA */
+.container-input {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.5rem;                    
+}
+
+/* Cards do formulário */
+.card {
+    padding: 1rem;                
+    margin-top: 1rem;
+}
+
+/* Rótulos dos campos */
+.card label {
+    display: flex;                 
+    color: var(--primary-color);    
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    position: left;
+}
+
+/* Campos de texto */
+.text-input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition); /*transição fofinha*/
+}
+
+/* Efeito do campo de texto */
+.text-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+}
+
+/*FILTROS */
+.filtros, .filtros1 {
+    display: flex;
+    flex-wrap: wrap;                
+    gap: 1rem;                     
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.filtros {
+    justify-content: space-between; 
+}
+
+/* Estilo dos rótulos dos filtros */
+.filtros label, .filtros1 label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;                   
+    cursor: pointer;              
+    font-size: 0.9rem;
+}
+
+/* 12. BOTÃO BUSCAR */
+.btn-buscar {
+    background: var(--accent-color); 
+    color: var(--second-color);     
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    margin-left: 9.2rem;
+}
+
+/* Efeito hover do botão */
+.btn-buscar:hover {
+    background: var(--accent-dark);  
+    transform: translateY(-2px);     
+    box-shadow: var(--shadow-md);    
+}
+
+footer {
+    background-color: var(--primary-dark);
+    color: var(--second-color);
+    padding: 3rem 0;
+}
+ 
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding: 1rem 0 0 3rem;
+}
+ 
+.footer-about h3,
+.footer-links h4,
+.footer-help h4,
+.footer-social h4 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+ 
+.footer-about p {
+    color: var(--second-color);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    opacity: 0.8;
+}
+ 
+.footer-links ul,
+.footer-help ul {
+    list-style: none;
+}
+ 
+.footer-links li,
+.footer-help li {
+    margin-bottom: 0.7rem;
+}
+ 
+.footer-links a,
+.footer-help a {
+    color: var(--second-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    opacity: 0.8;
+    transition: var(--transition);
+}
+ 
+.footer-links a:hover,
+.footer-help a:hover {
+    opacity: 1;
+    color: var(--accent-color);
+}
+ 
+.social-icons {
+    display: flex;
+    gap: 1rem;
+}
+ 
+.social-icons a {
+    color: var(--second-color);
+    font-size: 1.5rem;
+    transition: var(--transition);
+}
+ 
+.social-icons a:hover {
+    color: var(--accent-color);
+    transform: translateY(-3px);
+}
+ 
+.footer-copyright p {
+    color: var(--second-color);
+}
+
+.footer-copyright {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+ 
+/* SEÇÃO DE RESULTADOS */
+.results-section {
+    padding: 3rem 1rem;
+    background: var(--light-bg);
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.results-header h2 {
+    font-size: 1.8rem;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.results-count {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* GRADE DE CURSOS */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.course-card {
+    background: var(--second-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+.course-header h3 {
+    font-size: 1.2rem;
+    color: var(--primary-dark);
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.course-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.tag {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+
+.tag.presencial {
+    background: #E3F2FD;
+    color: #1976D2;
+}
+
+.tag.ead {
+    background: #F3E5F5;
+    color: #7B1FA2;
+}
+
+.tag.semipresencial {
+    background: #FFF3E0;
+    color: #F57C00;
+}
+
+.tag.publica {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.tag.privada {
+    background: #FCE4EC;
+    color: #AD1457;
+}
+
+.institution {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.description {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    flex: 1;
+}
+
+.course-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.course-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.course-info span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.course-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: var(--transition);
+}
+
+.course-link:hover {
+    color: var(--primary-dark);
+    gap: 0.5rem;
+}
+
+/* PAGINAÇÃO */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.pagination a {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--primary-color);
+    background: var(--second-color);
+    border: 1px solid #ddd;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+}
+
+.pagination a:hover:not(.disabled) {
+    background: var(--primary-color);
+    color: var(--second-color);
+    border-color: var(--primary-color);
+}
+
+.pagination a.active {
+    background: var(--primary-color);
+    color: var(--second-color);
+    border-color: var(--primary-color);
+}
+
+.pagination a.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* MENSAGENS */
+.no-results,
+.loading,
+.error {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-light);
+    font-size: 1.1rem;
+    grid-column: 1 / -1;
+}
+
+.error {
+    color: #d32f2f;
+}
+
+/* responsividade*/
+
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr; 
+        text-align: center;
+    }
+ 
+    .footer-links ul,
+    .footer-help ul {
+        padding: 0;
+    }
+ 
+    .footer-social .social-icons {
+        justify-content: center;
+    }
+
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Botão de Favorito */
+.btn-favorito {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    color: var(--text-light);
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+}
+
+.btn-favorito:hover {
+    background-color: var(--light-bg);
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.btn-favorito.favoritado {
+    color: #e74c3c;
+}
+
+.btn-favorito.favoritado:hover {
+    color: #c0392b;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.btn-favorito i {
+    transition: var(--transition);
+}
+
+.btn-favorito:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+}

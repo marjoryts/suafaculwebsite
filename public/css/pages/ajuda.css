@@ -1,0 +1,135 @@
+/* Tokens de marca, reset, scrollbar e header agora vivem em
+   /static/css/base.css e /static/css/components/header.css */
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.hero {
+    background: linear-gradient(135deg,  var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--second-color);
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.hero-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.hero-content span {
+    color: var(--accent-color);
+}
+
+.hero-content p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.search-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--second-color);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-md);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-box input {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    padding: 0.5rem;
+    color: var(--text-color);
+}
+
+.search-box .btn-search  {
+    background: var(--primary-color);
+    color: var(--second-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-box .btn-search:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.search-box input:focus {
+    border-color: var(--primary-color);
+}
+
+
+.help-content-section {
+    padding: 60px 20px;
+}
+
+.help-sections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.faq-section {
+    background-color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 30px;
+    transition: var(--transition);
+}
+
+.faq-section:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-5px);
+}
+
+.faq-section h2 {
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    margin-bottom: 15px;
+}
+
+.faq-section i {
+    color: var(--accent-color);
+    margin-right: 8px;
+}
+
+.faq-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.faq-list li {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: var(--text-light);
+}
+
+.faq-list a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.faq-list a:hover {
+    text-decoration: underline;
+}

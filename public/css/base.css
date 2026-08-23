@@ -1,0 +1,323 @@
+/* ==========================================================================
+   SuaFacul — Base do Design System
+   Carregado em TODAS as páginas, antes do CSS específico de cada página.
+   Contém: tokens de marca, reset, tipografia base e utilitários
+   compartilhados (botões, badges, alerts, cards) para que os componentes
+   tenham a mesma cara em qualquer página do site.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root {
+    /* ---- Cores de marca (paleta roxa + laranja) ---- */
+    --primary-color: #5A189A;
+    --primary-dark: #30045c;
+    --primary-light: #9D4EDD;
+
+    --second-color: #ffffff;
+    --accent-color: #FF9100;
+    --accent-dark: #E65100;
+    --light-bg: #FCFBFF;
+
+    --text-color: #404040;
+    --text-light: #7A7A7A;
+
+    /* ---- Estados semânticos ---- */
+    --success-color: #2e7d32;
+    --success-bg: #d4edda;
+    --error-color: #c0392b;
+    --error-bg: #f8d7da;
+    --warning-color: #8a6d1a;
+    --warning-bg: #fff3cd;
+
+    /* ---- Sombras ---- */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* ---- Bordas ---- */
+    --radius-sm: 5px;   /* botões, inputs, badges */
+    --radius-md: 10px;  /* cards */
+    --radius-lg: 20px;  /* containers, heros */
+    --radius-pill: 999px; /* tags, chips */
+
+    /* ---- Escala de espaçamento (múltiplos de 4px) ---- */
+    --space-1: 0.25rem;  /* 4px */
+    --space-2: 0.5rem;   /* 8px */
+    --space-3: 0.75rem;  /* 12px */
+    --space-4: 1rem;     /* 16px */
+    --space-5: 1.5rem;   /* 24px */
+    --space-6: 2rem;     /* 32px */
+    --space-7: 3rem;     /* 48px */
+    --space-8: 4rem;     /* 64px */
+
+    /* ---- Escala tipográfica ---- */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 2rem;
+    --text-3xl: 2.5rem;
+
+    /* ---- Layout ---- */
+    --container-max: 1200px;
+    --header-height: 88px;
+
+    /* ---- Transições ---- */
+    --transition: all 0.3s ease;
+}
+
+/* ---- Reset básico ---- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    background-color: var(--light-bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+/* ---- Scrollbar personalizada ---- */
+body::-webkit-scrollbar {
+    width: 0.8em;
+}
+body::-webkit-scrollbar-track {
+    background: var(--light-bg);
+}
+body::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    border: 2px solid var(--light-bg);
+}
+
+/* ---- Hierarquia tipográfica base ---- */
+h1, h2, h3, h4 {
+    color: var(--primary-dark);
+    line-height: 1.25;
+}
+
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+
+p { color: var(--text-color); }
+
+/* ---- Container padrão ---- */
+.page-container {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* ==========================================================================
+   Sistema de botões compartilhado
+   Classes específicas de cada página (.btn-admin, .btn-buscar etc.) continuam
+   funcionando; estas classes utilitárias existem para uso em elementos novos
+   ou compartilhados (como o header) e seguem o mesmo padrão visual.
+   ========================================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.5rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-weight: 600;
+    font-size: var(--text-base);
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: var(--second-color);
+    box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover {
+    background: var(--accent-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+.btn-outline:hover {
+    background: var(--primary-color);
+    color: var(--second-color);
+}
+
+/* ---- Badges / status pills ---- */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.7rem;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+.badge-ok, .badge-success { background: var(--success-bg); color: var(--success-color); }
+.badge-pendente, .badge-warning { background: var(--warning-bg); color: var(--warning-color); }
+.badge-error { background: var(--error-bg); color: var(--error-color); }
+
+/* ---- Alerts ---- */
+.alert {
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+}
+.alert.success { background: var(--success-bg); color: var(--success-color); border: 1px solid #c3e6cb; }
+.alert.error { background: var(--error-bg); color: var(--error-color); border: 1px solid #f5c6cb; }
+
+/* ==========================================================================
+   Modal, formulários e loading — componentes compartilhados
+   Usados por qualquer página com um modal (editar perfil, adicionar
+   usuário/faculdade, etc.) — uma única definição para todo o site.
+   ========================================================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: var(--second-color);
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: var(--radius-md);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close {
+    color: var(--primary-dark);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1em;
+    font-family: inherit;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+}
+
+.form-group small {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-light);
+    font-size: var(--text-xs);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-light);
+}
+
+@media (max-width: 576px) {
+    .modal-content {
+        margin: 15% auto;
+        padding: 1.5rem;
+    }
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---- Foco visível (acessibilidade) ---- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

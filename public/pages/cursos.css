@@ -1,0 +1,1128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root {
+    --primary-color: #5A189A;
+    --primary-dark: #30045c;
+    --primary-light: #9D4EDD;
+
+    --second-color: #ffffff;
+    --accent-color: #FF9100;
+    --accent-dark: #E65100;
+    --light-bg: #FCFBFF;
+
+    --text-color: #404040;
+    --text-light: #7A7A7A;
+
+    /* Sombras efeitos visuais */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /*borda */
+    --radius-sm: 5px;
+    /* (botões) */
+    --radius-md: 10px;
+    /* (cards) */
+    --radius-lg: 20px;
+    /* (containers) */
+
+
+    --transition: all 0.3s ease;
+}
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* Faz padding e border fazerem parte da largura */
+}
+
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    background-color: var(--light-bg);
+    line-height: 1.6;
+    scroll-behavior: smooth;
+}
+
+/* 5. SCROLLBAR PERSONALIZADA */
+body::-webkit-scrollbar {
+    width: 0.8em;
+}
+
+body::-webkit-scrollbar-track {
+    background: var(--light-bg);
+}
+
+body::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    border: 2px solid var(--light-bg);
+}
+
+/* --- */
+
+
+header {
+    background: var(--second-color);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    /* fixa no topo */
+    top: 0;
+    z-index: 100;
+    /* pra ficar em cima mesmo que mexa no scrollbar */
+}
+
+/* Container for header content (logo + nav) */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    /* Space between logo and nav */
+    align-items: center;
+    padding: 1rem 0;
+    /* Padding inside the header-content */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo h1 {
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.navbar {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Estilo dos links */
+.navbar a {
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+    position: relative;
+    transition: var(--transition);
+    padding: 4px 0;
+    margin: 0 5px;
+    display: inline-block;
+}
+
+/* Active link style */
+.navbar a.active {
+    color: var(--primary-dark);
+}
+
+.navbar a.active::after {
+    width: 100%;
+}
+
+
+/* efeito hover nos links */
+.navbar a:hover {
+    color: var(--primary-dark);
+}
+
+/* Efeito de sublinhado animado */
+.navbar a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    /* Começa invisível */
+    height: 2px;
+    background: var(--primary-color);
+    transition: var(--transition);
+}
+
+.navbar a:hover::after {
+    width: 100%;
+}
+
+/* BOTÃO ENTRAR */
+.btn-login {
+    padding: 0.7rem 1.4rem;
+    background: var(--accent-color);
+    color: var(--second-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+/* Efeito hover do botão */
+.btn-login:hover {
+    background: var(--accent-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.mobile-menu {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* SEÇÃO HERO (PRINCIPAL) */
+.hero {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--second-color);
+    text-align: center;
+    padding: 4rem 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Título principal */
+.hero h1 {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+/* Destaque no futuro */
+.hero h1 strong {
+    font-style: normal;
+    color: var(--accent-color);
+}
+
+.hero p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* Search Box */
+.search-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--second-color);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-md);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-box input {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    padding: 0.5rem;
+    color: var(--text-color);
+}
+
+.search-box i {
+    color: var(--light-bg);
+    align-items: center;
+
+}
+
+.btn-search {
+    background: var(--primary-color);
+    color: var(--second-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-search:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Wave Divider */
+.wave {
+    background-color: var(--light-bg);
+    height: 100px;
+    position: relative;
+    overflow: hidden;
+    margin-top: -1px;
+}
+
+/* CONTAINER PRINCIPAL */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.courses-section {
+    padding: 3rem 0;
+    background-color: var(--light-bg);
+}
+
+.courses-container {
+    display: flex;
+    gap: 2rem;
+}
+
+.filters {
+    flex: 0 0 280px;
+    background-color: var(--second-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    align-self: flex-start;
+}
+
+.filters-content h3 {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1.5rem;
+}
+
+.filter-group:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.filter-group h4 {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.filter-options button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.5rem;
+    background-color: var(--light-bg);
+    border: 1px solid #eee;
+    border-radius: var(--radius-sm);
+    color: var(--text-color);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-options button:hover {
+    background-color: #f0f0f0;
+    border-color: var(--primary-light);
+}
+
+.filter-options button.active {
+    background-color: var(--primary-color);
+    color: var(--second-color);
+    border-color: var(--primary-color);
+}
+
+.filter-options button.active i {
+    color: var(--second-color);
+}
+
+.filter-options label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.filter-options input[type="checkbox"] {
+    margin-right: 0.5rem;
+    accent-color: var(--primary-color);
+}
+
+.btn-apply {
+    width: 100%;
+    padding: 0.8rem 1.5rem;
+    background: var(--accent-color);
+    color: var(--second-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    margin-top: 1rem;
+}
+
+.btn-apply:hover {
+    background: var(--accent-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.courses-list {
+    flex-grow: 1;
+}
+
+.courses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.courses-header h2 {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.courses-count {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.course-card {
+    background-color: var(--second-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+}
+
+.course-header h3 {
+    font-size: 1.25rem;
+    color: var(--primary-dark);
+    margin: 0;
+    flex: 1;
+}
+
+.course-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tag {
+    display: inline-block;
+    padding: 0.3em 0.8em;
+    border-radius: var(--radius-sm);
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--second-color);
+}
+
+.tag.presencial {
+    background-color: #28a745;
+}
+
+.tag.ead {
+    background-color: #007bff;
+}
+
+.tag.semipresencial {
+    background-color: #fd7e14;
+}
+
+.institution {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.description {
+    font-size: 0.95rem;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.course-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+.course-info span {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-right: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.course-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.course-link:hover {
+    color: var(--primary-dark);
+}
+
+/* Paginação */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2.5rem;
+    gap: 0.5rem;
+}
+
+.pagination a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--second-color);
+    border: 1px solid #eee;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.pagination a:hover {
+    background-color: var(--primary-light);
+    color: var(--second-color);
+    border-color: var(--primary-light);
+}
+
+.pagination a.active {
+    background-color: var(--primary-color);
+    color: var(--second-color);
+    border-color: var(--primary-color);
+}
+
+.vocational-test {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
+    color: var(--second-color);
+    text-align: center;
+    padding: 4rem 1rem;
+}
+
+.vocational-test h2 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+.test-container {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(5px);
+}
+
+.test-container h3 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 1rem;
+    color: var(--second-color);
+}
+
+.test-container p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.btn-test {
+    background: var(--second-color);
+    color: var(--accent-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.9rem 2rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.btn-test:hover {
+    background: #f0f0f0;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+footer {
+    background-color: var(--primary-dark);
+    color: var(--second-color);
+    padding: 3rem 0;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.footer-about h3,
+.footer-links h4,
+.footer-help h4,
+.footer-social h4 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.footer-about p {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    opacity: 0.8;
+}
+
+.footer-links ul,
+.footer-help ul {
+    list-style: none;
+}
+
+.footer-links li,
+.footer-help li {
+    margin-bottom: 0.7rem;
+}
+
+.footer-links a,
+.footer-help a {
+    color: var(--second-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    opacity: 0.8;
+    transition: var(--transition);
+}
+
+.footer-links a:hover,
+.footer-help a:hover {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.social-icons {
+    display: flex;
+    gap: 1rem;
+}
+
+.social-icons a {
+    color: var(--second-color);
+    font-size: 1.5rem;
+    transition: var(--transition);
+}
+
+.social-icons a:hover {
+    color: var(--accent-color);
+    transform: translateY(-3px);
+}
+
+.footer-copyright {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+/* Seção do Media Query para o rodapé */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        /* Colunas empilhadas */
+        text-align: center;
+    }
+
+    .footer-links ul,
+    .footer-help ul {
+        padding: 0;
+    }
+
+    .footer-social .social-icons {
+        justify-content: center;
+    }
+}
+
+/* No seu CSS existente, adicione ou modifique estas regras */
+
+/* MOBILE MENU */
+.mobile-menu {
+    display: none;
+    /* Esconde por padrão em telas maiores */
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Responsividade do Header e Navbar */
+@media (max-width: 768px) {
+    .navbar {
+        display: none;
+        /* Esconde a navbar padrão */
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        /* Abaixo do header */
+        left: 0;
+        width: 100%;
+        background-color: var(--second-color);
+        box-shadow: var(--shadow-md);
+        padding: 1rem 0;
+        border-top: 1px solid #eee;
+        z-index: 99;
+        /* Abaixo do header fixo */
+    }
+
+    .navbar.active {
+        display: flex;
+        /* Mostra a navbar quando a classe 'active' é adicionada */
+    }
+
+    .navbar a {
+        padding: 0.8rem 1.5rem;
+        width: 100%;
+        text-align: center;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .navbar a:last-child {
+        border-bottom: none;
+    }
+
+    .navbar .btn-login {
+        width: calc(100% - 3rem);
+        /* Ajuste para o padding */
+        margin: 1rem 1.5rem 0;
+        /* Centraliza o botão */
+    }
+
+    .mobile-menu {
+        display: block;
+        /* Mostra o botão de menu mobile */
+    }
+
+    /* Ajustes para o hero section em telas pequenas */
+    .hero {
+        padding: 3rem 1rem;
+    }
+
+    .hero h1 {
+        font-size: clamp(1.8rem, 8vw, 2.5rem);
+        /* Ajusta tamanho do texto */
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .search-box {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .search-box input {
+        width: 100%;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .btn-search {
+        width: 100%;
+        justify-content: center;
+        /* Centraliza o texto do botão */
+    }
+}
+
+/* Responsividade para a seção de cursos */
+@media (max-width: 992px) {
+    .courses-container {
+        flex-direction: column;
+        /* Empilha filtros e lista de cursos */
+    }
+
+    .filters {
+        flex: auto;
+        /* Permite que o filtro ocupe a largura total */
+        width: 100%;
+        margin-bottom: 2rem;
+        /* Espaço entre filtros e cursos */
+    }
+
+    .filters-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        /* Colunas flexíveis */
+        gap: 1.5rem;
+    }
+
+    .filter-group {
+        border-bottom: none;
+        /* Remove bordas de grupos quando empilhados */
+        padding-bottom: 0;
+    }
+
+    .filter-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        /* Espaçamento entre os botões de filtro */
+    }
+
+    .filter-options button {
+        width: auto;
+        /* Largura automática para os botões */
+        flex-grow: 1;
+        /* Permite que cresçam para preencher espaço */
+    }
+
+    .btn-apply {
+        margin-top: 1.5rem;
+        grid-column: 1 / -1;
+        /* Ocupa todas as colunas */
+    }
+
+    .courses-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        /* Ajusta grid de cursos */
+    }
+}
+
+/* Ajuste para telas muito pequenas */
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 1.8rem;
+    }
+
+    .test-container {
+        padding: 1.5rem;
+    }
+
+    .test-container h3 {
+        font-size: 1.3rem;
+    }
+
+    .test-container p {
+        font-size: 0.95rem;
+    }
+
+    .btn-test {
+        padding: 0.7rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
+/* Botão de Favorito */
+.btn-favorito {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    color: var(--text-light);
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+}
+
+.btn-favorito:hover {
+    background-color: var(--light-bg);
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.btn-favorito.favoritado {
+    color: #e74c3c;
+}
+
+.btn-favorito.favoritado:hover {
+    color: #c0392b;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.btn-favorito i {
+    transition: var(--transition);
+}
+
+.btn-favorito:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+}
+
+/* Modal de Detalhes do Curso */
+.course-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background-color: var(--second-color);
+    margin: 2rem auto;
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    max-width: 700px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+    line-height: 1;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.modal-close:hover {
+    color: var(--primary-color);
+    background-color: var(--light-bg);
+    transform: rotate(90deg);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--light-bg);
+    gap: 1rem;
+}
+
+.modal-header h2 {
+    color: var(--primary-dark);
+    font-size: 1.8rem;
+    margin: 0;
+    flex: 1;
+    line-height: 1.3;
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.modal-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--light-bg);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.modal-info-item:hover {
+    background-color: #f5f5f5;
+    transform: translateX(5px);
+}
+
+.modal-info-item i {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    margin-top: 0.2rem;
+    min-width: 24px;
+}
+
+.modal-info-item strong {
+    display: block;
+    color: var(--primary-dark);
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-info-item p {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.modal-description {
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--light-bg);
+}
+
+.modal-description h3 {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-description h3::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background-color: var(--accent-color);
+    border-radius: 2px;
+}
+
+.modal-description p {
+    color: var(--text-color);
+    font-size: 1rem;
+    line-height: 1.8;
+    text-align: justify;
+}
+
+/* Responsividade do Modal */
+@media (max-width: 768px) {
+    .course-modal {
+        padding: 1rem 0.5rem;
+    }
+
+    .modal-content {
+        padding: 2rem 1.5rem;
+        margin: 1rem auto;
+    }
+
+    .modal-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .modal-close {
+        top: 1rem;
+        right: 1rem;
+        font-size: 1.8rem;
+    }
+
+    .modal-info-item {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .modal-info-item i {
+        align-self: flex-start;
+    }
+}

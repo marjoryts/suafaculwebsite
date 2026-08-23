@@ -1,0 +1,48 @@
+{# ==========================================================================
+   Header padrão do SuaFacul — usado por todas as páginas com header.
+   Cada template define, antes do include:
+     {% set nav_variant = 'public' | 'favoritos' | 'dashboard' | 'admin' %}
+     {% set active_page = 'cursos' %}  (opcional, usado para marcar o link atual)
+   ========================================================================== #}
+<header>
+    <div class="header-content">
+        <a href="/" class="logo">
+            <img src="/static/imagens/suafacul_icon.png" alt="Logo SuaFacul" width="80" height="60">
+        </a>
+        <nav class="navbar" id="main-nav">
+            {% if nav_variant == 'dashboard' %}
+                <a href="/" {% if active_page == 'home' %}class="active"{% endif %}>Início</a>
+                <a href="/cursos" {% if active_page == 'cursos' %}class="active"{% endif %}>Cursos</a>
+                <a href="/faculdades" {% if active_page == 'faculdades' %}class="active"{% endif %}>Faculdades</a>
+                <a href="/vestibulares" {% if active_page == 'vestibulares' %}class="active"{% endif %}>Vestibulares</a>
+                {% if usuario and usuario.tipo == 'admin' %}
+                <a href="/admin" {% if active_page == 'admin' %}class="active"{% endif %}>Admin</a>
+                {% endif %}
+                <a href="/logout" class="btn-nav btn-nav-outline">Sair</a>
+            {% elif nav_variant == 'admin' %}
+                <a href="/dashboard" {% if active_page == 'dashboard' %}class="active"{% endif %}>Perfil</a>
+                <a href="/cursos" {% if active_page == 'cursos' %}class="active"{% endif %}>Cursos</a>
+                <a href="/faculdades" {% if active_page == 'faculdades' %}class="active"{% endif %}>Faculdades</a>
+                <a href="/vestibulares" {% if active_page == 'vestibulares' %}class="active"{% endif %}>Vestibulares</a>
+                <a href="/admin" {% if active_page == 'admin' %}class="active"{% endif %}>Admin</a>
+                <a href="/logout" class="btn-nav btn-nav-outline">Sair</a>
+            {% else %}
+                <a href="/vestibulares" {% if active_page == 'vestibulares' %}class="active"{% endif %}>Vestibulares</a>
+                <a href="/testevocacional" {% if active_page == 'testevocacional' %}class="active"{% endif %}>Teste Vocacional</a>
+                <a href="/faculdades" {% if active_page == 'faculdades' %}class="active"{% endif %}>Faculdades</a>
+                <a href="/cursos" {% if active_page == 'cursos' %}class="active"{% endif %}>Cursos</a>
+                <a href="/ajuda" {% if active_page == 'ajuda' %}class="active"{% endif %}>Ajuda</a>
+                <a href="/sobrenos" {% if active_page == 'sobrenos' %}class="active"{% endif %}>Sobre nós</a>
+                {% if nav_variant == 'favoritos' %}
+                    <a href="/favoritos" {% if active_page == 'favoritos' %}class="active"{% endif %}>Meus Favoritos</a>
+                    <a href="/dashboard" class="btn-nav">Dashboard</a>
+                {% else %}
+                    <a href="/login" class="btn-nav">Entrar</a>
+                {% endif %}
+            {% endif %}
+        </nav>
+        <button class="mobile-menu" id="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</header>
