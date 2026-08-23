@@ -1,7 +1,4 @@
-/* Tokens de marca, reset, body, scrollbar, header e mobile-menu agora vivem
-   em /static/css/base.css e /static/css/components/header.css */
 
-/* SEÇÃO HERO (PRINCIPAL) */
 .hero {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--second-color);
@@ -215,6 +212,8 @@
 
 .courses-list {
     flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
 }
 
 .courses-header {

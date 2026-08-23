@@ -1,7 +1,4 @@
-/* Tokens de marca, reset, body e scrollbar agora vivem em /static/css/base.css
-   Header/navbar agora vivem em /static/css/components/header.css */
 
-/* 8. SEÇÃO HERO (PRINCIPAL) */
 .hero {
 
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);

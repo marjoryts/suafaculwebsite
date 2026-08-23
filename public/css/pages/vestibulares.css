@@ -256,6 +256,8 @@
 
 .vestibulares-list {
     flex-grow: 1; /* Permite que a lista de vestibulares ocupe o espaço restante */
+    flex-basis: 0;
+    min-width: 0; /* Evita que o grid interno force quebra de linha do painel de filtros */
 }
 
 .vestibulares-header {

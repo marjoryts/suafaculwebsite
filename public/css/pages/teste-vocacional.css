@@ -1,8 +1,4 @@
-/* Fonte, tokens de marca, reset e header agora vivem em
-   /static/css/base.css e /static/css/components/header.css.
-   As variáveis abaixo mantêm os NOMES antigos usados no resto deste arquivo,
-   mas agora apontam para os tokens de marca padrão do site (antes esta
-   página tinha uma paleta e fonte próprias, divergentes do resto do site). */
+
 :root {
     --secondary-color: var(--accent-color);
     --bg-light: var(--light-bg);
@@ -346,9 +342,9 @@ a {
 
 /* --- FOOTER --- */
 footer {
-    background-color: #212121;
-    color: #e0e0e0;
-    padding: 60px 0 20px;
+    background-color: var(--primary-dark);
+    color: var(--second-color);
+    padding: 3rem 0;
 }
 
 .footer-grid {
