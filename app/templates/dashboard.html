@@ -6,9 +6,11 @@
     <title>Perfil - SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
     <link rel="stylesheet" href="/static/css/pages/style.css">
     <link rel="stylesheet" href="/static/css/pages/dashboard.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/pages/cursos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
     {% set nav_variant = 'dashboard' %}
@@ -40,53 +42,84 @@
                 </div>
             </div>
 
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-graduation-cap"></i> Meus Cursos</h3>
-                    <p>Gerencie seus cursos favoritos e acompanhe suas preferências de estudo.</p>
-                    <a href="/cursos" class="btn-dashboard">Ver Cursos</a>
+            <div class="dashboard-tabs">
+                <button class="dashboard-tab-button active" data-dash-tab="visao-geral">
+                    <i class="fas fa-th-large"></i> Visão Geral
+                </button>
+                <button class="dashboard-tab-button" data-dash-tab="favoritos">
+                    <i class="fas fa-heart"></i> Meus Favoritos
+                </button>
+            </div>
+
+            <div id="visao-geral-tab" class="dashboard-tab-content active">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-graduation-cap"></i> Meus Cursos</h3>
+                        <p>Gerencie seus cursos favoritos e acompanhe suas preferências de estudo.</p>
+                        <a href="/cursos" class="btn-dashboard">Ver Cursos</a>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-university"></i> Minhas Faculdades</h3>
+                        <p>Visualize as faculdades que você salvou e compare opções.</p>
+                        <a href="/faculdades" class="btn-dashboard">Ver Faculdades</a>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-calendar-alt"></i> Vestibulares</h3>
+                        <p>Acompanhe as datas dos vestibulares e prepare-se para as provas.</p>
+                        <a href="/vestibulares" class="btn-dashboard">Ver Vestibulares</a>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-chart-line"></i> Teste Vocacional</h3>
+                        <p>Faça o teste vocacional e descubra qual curso combina mais com você.</p>
+                        <a href="/testevocacional" class="btn-dashboard">Fazer Teste</a>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-cog"></i> Configurações</h3>
+                        <p>Atualize suas informações pessoais e preferências da conta.</p>
+                        <button class="btn-dashboard" onclick="editarPerfil()">Editar Perfil</button>
+                    </div>
+
+                    {% if usuario and usuario.tipo == 'admin' %}
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-shield-alt"></i> Área Administrativa</h3>
+                        <p>Acesse ferramentas administrativas para gerenciar usuários e conteúdo.</p>
+                        <a href="/admin" class="btn-dashboard">Acessar Admin</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="favoritos-tab" class="dashboard-tab-content">
+                <div class="favorites-subtabs">
+                    <button class="subtab-button active" data-favtipo="curso">
+                        <i class="fas fa-book"></i> Cursos
+                    </button>
+                    <button class="subtab-button" data-favtipo="vestibular">
+                        <i class="fas fa-clipboard-list"></i> Vestibulares
+                    </button>
+                    <button class="subtab-button" data-favtipo="faculdade">
+                        <i class="fas fa-university"></i> Faculdades
+                    </button>
                 </div>
 
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-university"></i> Minhas Faculdades</h3>
-                    <p>Visualize as faculdades que você salvou e compare opções.</p>
-                    <a href="/faculdades" class="btn-dashboard">Ver Faculdades</a>
+                <div id="dash-curso-content" class="favorites-subcontent active">
+                    <div class="courses-grid" id="dash-curso-grid"></div>
                 </div>
-
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-calendar-alt"></i> Vestibulares</h3>
-                    <p>Acompanhe as datas dos vestibulares e prepare-se para as provas.</p>
-                    <a href="/vestibulares" class="btn-dashboard">Ver Vestibulares</a>
+                <div id="dash-vestibular-content" class="favorites-subcontent">
+                    <div class="courses-grid" id="dash-vestibular-grid"></div>
                 </div>
-
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-chart-line"></i> Teste Vocacional</h3>
-                    <p>Faça o teste vocacional e descubra qual curso combina mais com você.</p>
-                    <a href="/testevocacional" class="btn-dashboard">Fazer Teste</a>
+                <div id="dash-faculdade-content" class="favorites-subcontent">
+                    <div class="courses-grid" id="dash-faculdade-grid"></div>
                 </div>
-
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-cog"></i> Configurações</h3>
-                    <p>Atualize suas informações pessoais e preferências da conta.</p>
-                    <button class="btn-dashboard" onclick="editarPerfil()">Editar Perfil</button>
-                </div>
-
-                {% if usuario and usuario.tipo == 'admin' %}
-                <div class="dashboard-card">
-                    <h3><i class="fas fa-shield-alt"></i> Área Administrativa</h3>
-                    <p>Acesse ferramentas administrativas para gerenciar usuários e conteúdo.</p>
-                    <a href="/admin" class="btn-dashboard">Acessar Admin</a>
-                </div>
-                {% endif %}
             </div>
         </div>
     </main>
 
-    <footer>
-        <div class="footer-content">
-            <p>&copy; 2024 SuaFacul. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+    {% include 'partials/_footer.html' %}
     
     <!-- Modal Editar Perfil -->
     <div id="perfil-modal" class="modal">
@@ -120,6 +153,7 @@
 
     <script src="/static/js/header.js"></script>
     <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/dashboard-favoritos.js"></script>
     <script>
     window._usuario_nome = '{{ usuario.nome_usuario }}'; window._usuario_email = '{{ usuario.email }}'; window._usuario_id = {{ usuario.id }};
     window.editarPerfil = function() {

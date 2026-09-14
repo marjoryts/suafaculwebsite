@@ -12,6 +12,25 @@ let currentFilters = {
     tipo_instituicao: null
 };
 
+// Evita race condition: se duas buscas saírem quase juntas (ex.: usuário
+// muda dois filtros rápido), só a resposta da requisição mais recente é
+// renderizada — uma resposta antiga que chegue depois é descartada.
+let requestSequence = 0;
+
+// Debounce genérico — atrasa a chamada de `fn` até `delay`ms sem novas
+// chamadas, pra não disparar uma busca a cada tecla digitada. Expõe
+// `.cancel()` pra descartar uma chamada pendente (usado quando o Enter
+// já disparou a busca na hora, pra não duplicar).
+function debounce(fn, delay) {
+    let timeoutId;
+    const debounced = (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+    debounced.cancel = () => clearTimeout(timeoutId);
+    return debounced;
+}
+
 // Referências aos elementos HTML
 const searchButton = document.querySelector('.btn-buscar');
 const cursoInput = document.querySelector('input[placeholder*="curso"]');
@@ -73,8 +92,15 @@ async function fetchFaculdades(filters = {}, page = 1) {
 function showResultsSection() {
     const resultsSection = document.querySelector('.results-section');
     if (resultsSection) {
+        const jaEstavaVisivel = resultsSection.style.display === 'block';
         resultsSection.style.display = 'block';
-        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Só rola a página na primeira vez que os resultados aparecem —
+        // com a busca dinâmica (digitar/marcar filtro), repetir o scroll
+        // a cada busca ficaria incômodo enquanto o usuário ainda ajusta
+        // os filtros.
+        if (!jaEstavaVisivel) {
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 }
 
@@ -191,6 +217,7 @@ function renderPagination(totalPages) {
 }
 
 async function loadFaculdades() {
+    const requestId = ++requestSequence;
     try {
         showResultsSection();
 
@@ -198,6 +225,11 @@ async function loadFaculdades() {
         if (grid) grid.innerHTML = '<p class="loading">Carregando faculdades...</p>';
 
         const data = await fetchFaculdades(currentFilters, currentPage);
+
+        // Uma busca mais nova já foi disparada enquanto esta esperava a
+        // resposta — descarta esta (evita sobrescrever resultado atual
+        // com um desatualizado).
+        if (requestId !== requestSequence) return;
 
         renderFaculdades(data.faculdades);
 
@@ -211,6 +243,7 @@ async function loadFaculdades() {
             await inicializarFavoritos('faculdade');
         }
     } catch (error) {
+        if (requestId !== requestSequence) return;
         console.error('Erro ao carregar faculdades:', error);
         const grid = document.querySelector('.courses-grid');
         if (grid) grid.innerHTML = '<p class="error">Erro ao carregar faculdades. Tente novamente mais tarde.</p>';
@@ -248,9 +281,22 @@ function applyFilters() {
 }
 
 // --- Event Listeners ---
+// Pesquisa dinâmica: digitar nos campos de texto dispara a busca sozinho
+// depois de uma pausa (debounce), sem precisar de Enter/clique.
+const applyFiltersDebounced = debounce(applyFilters, 450);
+[cursoInput, faculdadeInput, cidadeInput].forEach(input => {
+    if (input) {
+        input.addEventListener('input', applyFiltersDebounced);
+    }
+});
+
+// Clique no botão e Enter disparam na hora (comportamento original
+// preservado) — cancelam qualquer chamada debounced pendente pra não
+// rodar a busca duas vezes (uma na hora + uma pelo debounce atrasado).
 if (searchButton) {
     searchButton.addEventListener('click', (e) => {
         e.preventDefault();
+        applyFiltersDebounced.cancel();
         applyFilters();
     });
 }
@@ -260,10 +306,20 @@ if (searchButton) {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                applyFiltersDebounced.cancel();
                 applyFilters();
             }
         });
     }
+});
+
+// Pesquisa dinâmica: marcar/desmarcar modalidade ou tipo de instituição
+// dispara a busca na hora (ação discreta, sem precisar de debounce).
+modalidadeCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', applyFilters);
+});
+tipoInstituicaoRadios.forEach(radio => {
+    radio.addEventListener('change', applyFilters);
 });
 
 // --- Inicialização ---

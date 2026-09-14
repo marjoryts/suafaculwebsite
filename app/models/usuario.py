@@ -1,9 +1,91 @@
-import sys, os, re, secrets
+import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config.database import get_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class Usuario:
+    # ── Suporte a login com Google (OIDC) ──────────────────────────────
+    def buscar_por_email(self, email):
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "SELECT id, nome_usuario, email, tipo, google_id, auth_provider, avatar_url "
+                "FROM usuarios WHERE email=?", (email,)
+            )
+            row = c.fetchone()
+            conn.close()
+            return dict(row) if row else None
+        except Exception:
+            return None
+
+    def buscar_por_google_id(self, google_id):
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "SELECT id, nome_usuario, email, tipo, google_id, auth_provider, avatar_url "
+                "FROM usuarios WHERE google_id=?", (google_id,)
+            )
+            row = c.fetchone()
+            conn.close()
+            return dict(row) if row else None
+        except Exception:
+            return None
+
+    def _gerar_username_disponivel(self, base):
+        base = (base or 'usuario').strip().lower().replace(' ', '.') or 'usuario'
+        conn = get_connection()
+        c = conn.cursor()
+        candidato = base
+        sufixo = 0
+        while True:
+            c.execute("SELECT 1 FROM usuarios WHERE nome_usuario=?", (candidato,))
+            if not c.fetchone():
+                conn.close()
+                return candidato
+            sufixo += 1
+            candidato = f"{base}{sufixo}"
+
+    def criar_via_google(self, google_id, email, nome, avatar_url=None):
+        """Cria uma conta nova associada a um login do Google.
+        A senha é preenchida com um hash aleatório inutilizável, já que o
+        login desse usuário sempre passará pelo Google."""
+        try:
+            username = self._gerar_username_disponivel(nome or email.split('@')[0])
+            senha_inutilizavel = generate_password_hash(os.urandom(32).hex())
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "INSERT INTO usuarios (nome_usuario, email, senha, tipo, google_id, auth_provider, avatar_url) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (username, email, senha_inutilizavel, 'aluno', google_id, 'google', avatar_url)
+            )
+            conn.commit()
+            novo_id = c.lastrowid
+            conn.close()
+            return {'success': True, 'user': {'id': novo_id, 'nome_usuario': username, 'email': email, 'tipo': 'aluno', 'avatar_url': avatar_url}}
+        except Exception as e:
+            return {'success': False, 'message': f'Erro: {str(e)}'}
+
+    def vincular_google(self, user_id, google_id, avatar_url=None):
+        """Associa um google_id a uma conta local já existente (mesmo e-mail
+        verificado pelo Google) e retorna o usuário atualizado."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "UPDATE usuarios SET google_id=?, avatar_url=COALESCE(?, avatar_url) WHERE id=?",
+                (google_id, avatar_url, user_id)
+            )
+            conn.commit()
+            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url FROM usuarios WHERE id=?", (user_id,))
+            row = c.fetchone()
+            conn.close()
+            return {'success': True, 'user': dict(row) if row else None}
+        except Exception as e:
+            return {'success': False, 'message': f'Erro: {str(e)}'}
+
     def criar(self, username, email, password, tipo='aluno'):
         try:
             if tipo not in ('aluno', 'admin'):
@@ -26,7 +108,7 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, senha, tipo, foto_url FROM usuarios WHERE nome_usuario=? OR email=?", (username, username))
+            c.execute("SELECT id, nome_usuario, email, senha, tipo, avatar_url FROM usuarios WHERE nome_usuario=? OR email=?", (username, username))
             row = c.fetchone()
             conn.close()
             if row:
@@ -56,7 +138,7 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, foto_url FROM usuarios WHERE id=?", (id,))
+            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url FROM usuarios WHERE id=?", (id,))
             row = c.fetchone()
             conn.close()
             return dict(row) if row else None
@@ -105,75 +187,3 @@ class Usuario:
             return {'success': True, 'message': 'Usuário deletado com sucesso!'}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
-
-    def buscar_por_google_id(self, google_id):
-        try:
-            conn = get_connection()
-            c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, foto_url FROM usuarios WHERE google_id=?", (google_id,))
-            row = c.fetchone()
-            conn.close()
-            return dict(row) if row else None
-        except Exception:
-            return None
-
-    def buscar_por_email(self, email):
-        try:
-            conn = get_connection()
-            c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, foto_url FROM usuarios WHERE email=?", (email,))
-            row = c.fetchone()
-            conn.close()
-            return dict(row) if row else None
-        except Exception:
-            return None
-
-    def vincular_google(self, id, google_id, foto_url):
-        """Vincula uma conta google_id a um usuário já existente (encontrado
-        por e-mail verificado). Não sobrescreve a foto atual se o Google não
-        mandar uma (foto_url=None)."""
-        try:
-            conn = get_connection()
-            c = conn.cursor()
-            c.execute("UPDATE usuarios SET google_id=?, foto_url=COALESCE(?, foto_url) WHERE id=?", (google_id, foto_url, id))
-            conn.commit()
-            c.execute("SELECT id, nome_usuario, email, tipo, foto_url FROM usuarios WHERE id=?", (id,))
-            row = c.fetchone()
-            conn.close()
-            if not row:
-                return {'success': False, 'message': 'Usuário não encontrado.'}
-            return {'success': True, 'user': dict(row)}
-        except Exception as e:
-            return {'success': False, 'message': f'Erro: {str(e)}'}
-
-    def criar_via_google(self, google_id, email, nome, foto_url):
-        """Cria uma conta nova (tipo 'aluno') a partir de um login Google
-        sem conta local prévia. A senha é um hash aleatório e inutilizável —
-        essa conta só pode entrar via Google."""
-        try:
-            conn = get_connection()
-            c = conn.cursor()
-            username = self._gerar_username_unico(c, nome or email.split('@')[0])
-            senha_hash = generate_password_hash(secrets.token_hex(32))
-            c.execute(
-                "INSERT INTO usuarios (nome_usuario, email, senha, tipo, google_id, foto_url) VALUES (?,?,?,?,?,?)",
-                (username, email, senha_hash, 'aluno', google_id, foto_url)
-            )
-            conn.commit()
-            novo_id = c.lastrowid
-            conn.close()
-            return {'success': True, 'user': {'id': novo_id, 'nome_usuario': username, 'email': email, 'tipo': 'aluno', 'foto_url': foto_url}}
-        except Exception as e:
-            return {'success': False, 'message': f'Erro: {str(e)}'}
-
-    def _gerar_username_unico(self, cursor, base):
-        base = re.sub(r'[^a-zA-Z0-9_.]', '', base.strip().replace(' ', '_')) or 'usuario'
-        base = base[:40] or 'usuario'
-        candidato = base
-        sufixo = 1
-        while True:
-            cursor.execute("SELECT id FROM usuarios WHERE nome_usuario=?", (candidato,))
-            if not cursor.fetchone():
-                return candidato
-            sufixo += 1
-            candidato = f"{base}{sufixo}"

@@ -25,12 +25,27 @@ import re
 import sys
 import os
 import time
+import logging
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from app.models.faculdade import Faculdade
 from app.models.curso import Curso
 
+logger = logging.getLogger('suafacul.emec')
+
 EMEC_BASE_URL = "https://emec.mec.gov.br/emec/consulta-ies/index/perfil/{codigo}"
+EMEC_LISTAGEM_URL = "https://emec.mec.gov.br/emec/nova-index/listar-consulta-avancada/list/1000"
+EMEC_CONSULTA_AVANCADA_PAGE = "https://emec.mec.gov.br/emec/nova-index/consulta-avancada"
+
+# Cabeçalhos de um navegador real. O e-MEC (como a maioria dos sites
+# gov.br) fica atrás de um WAF que bloqueia com 403 requisições que se
+# identificam como bot (ex.: 'SuaFaculBot/1.0' no User-Agent antigo) ou que
+# não trazem os cabeçalhos que um navegador normalmente envia.
+_BROWSER_HEADERS = {
+    'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'),
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+}
 
 try:
     import requests
@@ -53,8 +68,7 @@ def _buscar_html_emec(codigo_emec):
             "Rode: pip install requests beautifulsoup4"
         )
     url = EMEC_BASE_URL.format(codigo=codigo_emec)
-    headers = {'User-Agent': 'Mozilla/5.0 (compatible; SuaFaculBot/1.0)'}
-    resp = requests.get(url, headers=headers, timeout=20)
+    resp = requests.get(url, headers=_BROWSER_HEADERS, timeout=20)
     resp.raise_for_status()
     return resp.text
 
@@ -125,6 +139,7 @@ def importar_faculdade_por_codigo(codigo_emec):
     try:
         html = _buscar_html_emec(codigo_emec)
     except Exception as e:
+        logger.warning("[emec] Falha ao buscar código %s: %s", codigo_emec, e)
         return {'success': False, 'message': f'Falha ao acessar o e-MEC: {e}'}
 
     dados = _parsear_instituicao(html, codigo_emec)
@@ -186,8 +201,6 @@ def importar_faculdades_em_lote(codigos_emec):
 # layout com frequência e costuma ficar instável.
 # ──────────────────────────────────────────────────────────────────────────
 
-EMEC_LISTAGEM_URL = "https://emec.mec.gov.br/emec/nova-index/listar-consulta-avancada/list/1000"
-
 UFS_BRASIL = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
               'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
 
@@ -229,12 +242,186 @@ def _montar_payload_listagem(uf, municipio_codigo=''):
 
 
 def listar_instituicoes_emec_por_uf(uf):
-    """Lista (best-effort) as instituições de ensino superior em atividade
-    numa UF, usando o endpoint interno de consulta avançada do e-MEC.
+    """Lista as instituições de ensino superior de uma UF.
+
+    Fonte primária: o CSV oficial do Portal de Dados Abertos do MEC
+    (dadosabertos.mec.gov.br) — arquivo estático, publicado oficialmente
+    pelo MEC, sem sessão/JS/proteção anti-bot. É mais estável do que
+    fazer scraping da consulta avançada do e-MEC (que fica atrás de um
+    WAF que costuma bloquear com 403 requisições automatizadas — ver
+    listar_instituicoes_emec_por_uf_via_scraping abaixo, mantida apenas
+    como fallback caso o CSV também fique indisponível).
+
     Retorna lista de dicts: codigo_emec, nome, organizacao_academica,
     tipo_instituicao, situacao. NÃO inclui endereço/telefone (ver
     importar_faculdade_por_codigo para completar esses dados por instituição).
     """
+    uf = uf.upper().strip()
+    if uf not in UFS_BRASIL:
+        raise ValueError(f"UF inválida: {uf}")
+
+    try:
+        return _listar_instituicoes_via_dados_abertos(uf)
+    except Exception as erro_csv:
+        logger.warning("[emec] Dados Abertos MEC falhou para %s (%s), tentando scraping do e-MEC como fallback...", uf, erro_csv)
+        try:
+            return listar_instituicoes_emec_por_uf_via_scraping(uf)
+        except Exception as erro_scraping:
+            # Nenhuma das duas fontes funcionou — mostra os DOIS motivos
+            # (em vez de só o erro do scraping), pra dar contexto suficiente
+            # sem precisar caçar nos logs do servidor.
+            raise RuntimeError(
+                f"CSV oficial do MEC falhou ({erro_csv}); scraping do e-MEC também falhou ({erro_scraping})"
+            ) from erro_scraping
+
+
+# URL do CSV oficial de instituições de ensino superior no Portal de Dados
+# Abertos do MEC. O caminho inclui o ano da última atualização do dataset
+# (ex.: "2022") — se este endpoint passar a retornar 404, acesse
+# https://dadosabertos.mec.gov.br/indicadores-sobre-ensino-superior e
+# copie o link do arquivo "Instituições de Educação Superior do Brasil"
+# atualizado, trocando apenas esta constante.
+DADOS_ABERTOS_IES_CSV_URL = "https://dadosabertos.mec.gov.br/images/conteudo/Ind-ensino-superior/2022/PDA_Lista_Instituicoes_Ensino_Superior_do_Brasil_EMEC.csv"
+
+_cache_dados_abertos = {'instituicoes': None, 'buscado_em': None}
+
+
+def _parsear_csv_dados_abertos(bruto):
+    """Recebe os bytes crus do CSV oficial (baixado via HTTP ou enviado por
+    upload manual do admin) e devolve a lista de instituições. Compartilhado
+    pelos dois caminhos — nenhuma lógica de parsing duplicada entre eles."""
+    import csv
+    import io
+
+    # CSVs do MEC costumam vir em latin-1/cp1252 (exportados de planilhas),
+    # mas alguns datasets já saem em UTF-8 — tenta os dois.
+    for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+        try:
+            texto = bruto.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise RuntimeError("Não foi possível decodificar o CSV do MEC (encoding desconhecido).")
+
+    amostra = texto[:2048]
+    try:
+        delimitador = csv.Sniffer().sniff(amostra, delimiters=',;\t').delimiter
+    except csv.Error:
+        delimitador = ';' if amostra.count(';') > amostra.count(',') else ','
+
+    leitor = csv.DictReader(io.StringIO(texto), delimiter=delimitador)
+    instituicoes = []
+    for linha in leitor:
+        # csv.DictReader guarda colunas extras (linha com mais campos que o
+        # cabeçalho) sob a chave None, como lista — normaliza tudo pra string
+        # antes de usar, senão .strip() quebra nesses casos.
+        linha_normalizada = {}
+        for k, v in linha.items():
+            chave = (k or '').strip().upper()
+            if isinstance(v, list):
+                v = v[0] if v else ''
+            linha_normalizada[chave] = (v or '').strip()
+        linha = linha_normalizada
+        codigo = linha.get('CODIGO_DA_IES') or linha.get('CODIGO_IES') or linha.get('CO_IES')
+        nome = linha.get('NOME_DA_IES') or linha.get('NOME_IES') or linha.get('NO_IES')
+        if not codigo or not nome:
+            continue
+        categoria = (linha.get('CATEGORIA_DA_IES') or linha.get('CATEGORIA_ADMINISTRATIVA') or '')
+        instituicoes.append({
+            'codigo_emec': codigo,
+            'nome': nome,
+            'sigla': linha.get('SIGLA') or None,
+            'organizacao_academica': linha.get('ORGANIZACAO_ACADEMICA') or '',
+            'tipo_instituicao': 'Pública' if 'públic' in categoria.lower() else 'Privada',
+            'situacao': linha.get('SITUACAO_IES') or linha.get('SITUACAO') or 'ativa',
+            'uf': linha.get('UF') or '',
+            'cidade': linha.get('MUNICIPIO') or '',
+        })
+
+    if not instituicoes:
+        raise RuntimeError("CSV do MEC lido, mas nenhuma linha reconhecida — o layout do arquivo pode ter mudado.")
+    return instituicoes
+
+
+def _baixar_csv_dados_abertos():
+    """Baixa (via HTTP, servidor->MEC) e faz cache em memória (por processo)
+    do CSV de instituições. Se o servidor do e-MEC bloquear a chamada
+    automatizada (comum em WAFs de sites gov.br — costuma responder 403
+    mesmo com headers de navegador, por fingerprint de TLS), use
+    importar_instituicoes_de_csv_upload() como alternativa: o admin baixa
+    o arquivo pelo próprio navegador (que não sofre esse bloqueio) e sobe
+    pro sistema."""
+    if _cache_dados_abertos['instituicoes'] is not None:
+        return _cache_dados_abertos['instituicoes']
+
+    resp = requests.get(DADOS_ABERTOS_IES_CSV_URL, headers=_BROWSER_HEADERS, timeout=60)
+    resp.raise_for_status()
+
+    instituicoes = _parsear_csv_dados_abertos(resp.content)
+    from datetime import datetime as _dt
+    _cache_dados_abertos['instituicoes'] = instituicoes
+    _cache_dados_abertos['buscado_em'] = _dt.now()
+    logger.info("[emec] %d instituições carregadas do CSV de Dados Abertos do MEC (download automático).", len(instituicoes))
+    return instituicoes
+
+
+def importar_instituicoes_de_csv_upload(bytes_arquivo):
+    """Recebe o CSV oficial de Dados Abertos do MEC enviado manualmente
+    (upload no admin) e importa todas as instituições pra tabela
+    `faculdades`, usando o mesmo upsert (evita duplicar) já usado pela
+    importação automática. Também alimenta o cache em memória, então
+    buscas por UF na mesma execução do processo usam esses dados sem
+    precisar de um novo upload."""
+    instituicoes = _parsear_csv_dados_abertos(bytes_arquivo)
+
+    from datetime import datetime as _dt
+    _cache_dados_abertos['instituicoes'] = instituicoes
+    _cache_dados_abertos['buscado_em'] = _dt.now()
+
+    faculdade_model = Faculdade()
+    criadas, atualizadas, falhas = 0, 0, 0
+    erros = []
+    for inst in instituicoes:
+        try:
+            dados = {
+                'codigo_emec': inst['codigo_emec'], 'nome': inst['nome'], 'sigla': inst.get('sigla'),
+                'organizacao_academica': inst['organizacao_academica'], 'tipo_instituicao': inst['tipo_instituicao'],
+                'url': '', 'endereco': '', 'cidade': inst.get('cidade', ''), 'uf': inst['uf'],
+                'telefone': '', 'email': '', 'situacao': inst['situacao'], 'fonte': 'emec_csv_upload',
+            }
+            resultado = faculdade_model.upsert_por_codigo_emec(dados)
+            if resultado.get('success'):
+                criadas += 1 if resultado.get('acao') == 'criada' else 0
+                atualizadas += 1 if resultado.get('acao') == 'atualizada' else 0
+            else:
+                falhas += 1
+                erros.append({'codigo_emec': inst.get('codigo_emec'), 'erro': resultado.get('message')})
+        except Exception as e:
+            falhas += 1
+            erros.append({'codigo_emec': inst.get('codigo_emec'), 'erro': str(e)})
+            continue
+
+    return {
+        'success': True, 'total_no_arquivo': len(instituicoes),
+        'criadas': criadas, 'atualizadas': atualizadas, 'falhas': falhas, 'erros': erros[:20],
+    }
+
+
+def _listar_instituicoes_via_dados_abertos(uf):
+    todas = _baixar_csv_dados_abertos()
+    situacoes_ativas = ('ativa', 'em atividade')
+    return [
+        i for i in todas
+        if i['uf'].upper() == uf and (i['situacao'] or '').strip().lower() in situacoes_ativas
+    ]
+
+
+def listar_instituicoes_emec_por_uf_via_scraping(uf):
+    """Fallback: tenta a consulta avançada do e-MEC diretamente (scraping).
+    Mantida por completude, mas o e-MEC fica atrás de um WAF que costuma
+    responder 403 a requisições automatizadas — não é a via recomendada.
+    Ver listar_instituicoes_emec_por_uf (usa o CSV oficial primeiro)."""
     if not _DEPENDENCIAS_OK:
         raise RuntimeError("Dependências 'requests'/'beautifulsoup4' não instaladas.")
     uf = uf.upper().strip()
@@ -242,12 +429,28 @@ def listar_instituicoes_emec_por_uf(uf):
         raise ValueError(f"UF inválida: {uf}")
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (compatible; SuaFaculBot/1.0)',
-        'Content-Type': 'application/x-www-form-urlencoded',
+        **_BROWSER_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',  # este endpoint só responde a chamadas AJAX da própria página
+        'Referer': EMEC_CONSULTA_AVANCADA_PAGE,
+        'Origin': 'https://emec.mec.gov.br',
     }
     payload = _montar_payload_listagem(uf)
-    resp = requests.post(EMEC_LISTAGEM_URL, headers=headers, data=payload.encode(), timeout=60)
-    resp.raise_for_status()
+
+    # Alguns WAFs de sites gov.br só liberam a chamada AJAX se o cliente
+    # já tiver uma sessão válida (cookie) obtida ao carregar a página de
+    # busca normalmente — como faria um navegador. Por isso usamos uma
+    # Session: primeiro um GET na página de consulta avançada (para pegar
+    # o cookie de sessão), só então o POST no endpoint de listagem.
+    with requests.Session() as sessao:
+        sessao.headers.update(_BROWSER_HEADERS)
+        try:
+            sessao.get(EMEC_CONSULTA_AVANCADA_PAGE, timeout=20)
+        except Exception as e:
+            logger.warning("[emec] Não foi possível carregar a página de consulta avançada antes da busca (seguindo mesmo assim): %s", e)
+
+        resp = sessao.post(EMEC_LISTAGEM_URL, headers=headers, data=payload.encode(), timeout=60)
+        resp.raise_for_status()
 
     soup = BeautifulSoup(resp.text, 'html.parser')
     instituicoes = []
@@ -286,6 +489,7 @@ def importar_todas_faculdades_por_uf(uf, incluir_endereco=False, limite=None):
     try:
         instituicoes = listar_instituicoes_emec_por_uf(uf)
     except Exception as e:
+        logger.warning("[emec] Falha ao listar instituições de %s: %s", uf, e)
         return {'success': False, 'message': f'Falha ao listar instituições do e-MEC para {uf}: {e}'}
 
     if limite:
@@ -293,32 +497,43 @@ def importar_todas_faculdades_por_uf(uf, incluir_endereco=False, limite=None):
 
     faculdade_model = Faculdade()
     criadas, atualizadas, falhas = 0, 0, 0
+    erros = []
     for inst in instituicoes:
-        dados = {
-            'codigo_emec': inst['codigo_emec'],
-            'nome': inst['nome'],
-            'sigla': None,
-            'organizacao_academica': inst['organizacao_academica'],
-            'tipo_instituicao': inst['tipo_instituicao'],
-            'url': '', 'endereco': '', 'cidade': '', 'uf': inst['uf'],
-            'telefone': '', 'email': '',
-            'situacao': inst['situacao'],
-            'fonte': 'emec',
-        }
-        resultado = faculdade_model.upsert_por_codigo_emec(dados)
-        if resultado.get('success'):
-            if resultado.get('acao') == 'criada':
-                criadas += 1
+        # Cada instituição é isolada: uma falha (ex.: dado inesperado do
+        # e-MEC para aquela IES) não pode interromper o processamento das
+        # demais instituições da UF.
+        try:
+            dados = {
+                'codigo_emec': inst['codigo_emec'],
+                'nome': inst['nome'],
+                'sigla': None,
+                'organizacao_academica': inst['organizacao_academica'],
+                'tipo_instituicao': inst['tipo_instituicao'],
+                'url': '', 'endereco': '', 'cidade': '', 'uf': inst['uf'],
+                'telefone': '', 'email': '',
+                'situacao': inst['situacao'],
+                'fonte': 'emec',
+            }
+            resultado = faculdade_model.upsert_por_codigo_emec(dados)
+            if resultado.get('success'):
+                if resultado.get('acao') == 'criada':
+                    criadas += 1
+                else:
+                    atualizadas += 1
+                if incluir_endereco:
+                    time.sleep(1.5)  # não sobrecarregar o e-MEC
+                    try:
+                        importar_faculdade_por_codigo(inst['codigo_emec'])
+                    except Exception as e:
+                        logger.warning("[emec] Falha ao completar endereço de %s: %s", inst.get('codigo_emec'), e)
             else:
-                atualizadas += 1
-            if incluir_endereco:
-                time.sleep(1.5)  # não sobrecarregar o e-MEC
-                try:
-                    importar_faculdade_por_codigo(inst['codigo_emec'])
-                except Exception:
-                    pass
-        else:
+                falhas += 1
+                erros.append({'codigo_emec': inst.get('codigo_emec'), 'erro': resultado.get('message')})
+        except Exception as e:
             falhas += 1
+            erros.append({'codigo_emec': inst.get('codigo_emec'), 'erro': str(e)})
+            logger.warning("[emec] Falha ao importar instituição %s (%s): %s", inst.get('nome'), inst.get('codigo_emec'), e)
+            continue
 
     return {
         'success': True,
@@ -327,6 +542,7 @@ def importar_todas_faculdades_por_uf(uf, incluir_endereco=False, limite=None):
         'criadas': criadas,
         'atualizadas': atualizadas,
         'falhas': falhas,
+        'erros': erros,
     }
 
 

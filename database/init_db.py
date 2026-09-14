@@ -120,14 +120,40 @@ def init_db():
             c.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
     _add_column_if_missing('usuarios', 'tipo', "tipo TEXT NOT NULL DEFAULT 'aluno'")
-    _add_column_if_missing('usuarios', 'google_id', "google_id TEXT")
-    _add_column_if_missing('usuarios', 'foto_url', "foto_url TEXT")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios(google_id) WHERE google_id IS NOT NULL")
     _add_column_if_missing('cursos', 'faculdade_id', "faculdade_id INTEGER")
     _add_column_if_missing('vestibulares', 'faculdade_id', "faculdade_id INTEGER")
     _add_column_if_missing('vestibulares', 'status_validacao', "status_validacao TEXT DEFAULT 'nao_validado'")
     _add_column_if_missing('vestibulares', 'cadastrado_ok', "cadastrado_ok INTEGER DEFAULT 0")
     _add_column_if_missing('vestibulares', 'ultima_validacao', "ultima_validacao TIMESTAMP")
+
+    # ── Importação de cursos via Censo da Educação Superior (INEP) ──
+    _add_column_if_missing('cursos', 'codigo_inep_curso', "codigo_inep_curso TEXT")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_cursos_codigo_inep ON cursos(codigo_inep_curso) WHERE codigo_inep_curso IS NOT NULL")
+
+    # ── Autocomplete de nomes de curso (busca por prefixo) ──
+    c.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome COLLATE NOCASE)")
+
+    # ── Login com Google (OIDC) ──
+    # google_id fica NULL para contas locais; auth_provider indica a origem.
+    # senha continua NOT NULL na tabela (não alteramos a constraint em SQLite
+    # para não exigir reconstrução da tabela) — contas criadas via Google
+    # recebem um hash aleatório inutilizável em vez de senha real.
+    _add_column_if_missing('usuarios', 'google_id', "google_id TEXT")
+    _add_column_if_missing('usuarios', 'auth_provider', "auth_provider TEXT NOT NULL DEFAULT 'local'")
+    _add_column_if_missing('usuarios', 'avatar_url', "avatar_url TEXT")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios(google_id) WHERE google_id IS NOT NULL")
+
+    # ── Logs da automação diária (vestibulares, importação e-MEC, etc.) ──
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS automacao_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL,
+        executado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sucesso INTEGER NOT NULL DEFAULT 1,
+        resumo TEXT,
+        erro TEXT
+    )
+    """)
     conn.commit()
 
     # Garante que exista pelo menos um usuário admin.

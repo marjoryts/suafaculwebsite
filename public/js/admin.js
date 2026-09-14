@@ -407,6 +407,62 @@ function importarEmecPorUF() {
         });
 }
 
+function importarEmecCsv() {
+    const alertEl = document.getElementById('faculdades-alert');
+    const input = document.getElementById('emec-csv-file');
+    const arquivo = input.files[0];
+    if (!arquivo) {
+        alertEl.innerHTML = '<div class="alert error">Selecione o arquivo CSV baixado de dadosabertos.mec.gov.br.</div>';
+        return;
+    }
+    alertEl.innerHTML = '<div class="alert">Processando o CSV, isso pode levar um instante (o arquivo tem milhares de linhas)...</div>';
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+    fetch('/api/faculdades/emec/importar-csv', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alertEl.innerHTML = `<div class="alert success">CSV processado: ${data.total_no_arquivo} instituições no arquivo — ${data.criadas} criadas, ${data.atualizadas} atualizadas${data.falhas ? `, ${data.falhas} falharam` : ''}.</div>`;
+                input.value = '';
+                carregarFaculdades();
+                carregarStats();
+            } else {
+                alertEl.innerHTML = `<div class="alert error">${data.message || 'Falha ao processar o CSV.'}</div>`;
+            }
+        })
+        .catch(() => {
+            alertEl.innerHTML = '<div class="alert error">Erro ao enviar o arquivo CSV.</div>';
+        });
+}
+
+function importarCursosCenso() {
+    const alertEl = document.getElementById('faculdades-alert');
+    const input = document.getElementById('censo-cursos-file');
+    const arquivo = input.files[0];
+    if (!arquivo) {
+        alertEl.innerHTML = '<div class="alert error">Selecione o arquivo MICRODADOS_CADASTRO_CURSOS_&lt;ano&gt;.CSV do Censo INEP.</div>';
+        return;
+    }
+    alertEl.innerHTML = '<div class="alert">Processando o arquivo de cursos — pode levar alguns minutos (o arquivo é grande), não feche esta página...</div>';
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+    fetch('/api/cursos/censo/importar-csv', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alertEl.innerHTML = `<div class="alert success">Censo processado: ${data.cursos_no_arquivo} cursos únicos no arquivo — ${data.importados} vinculados a instituições cadastradas (${data.criados} criados, ${data.atualizados} atualizados). ${data.sem_faculdade_local} cursos pertencem a instituições ainda não cadastradas (importe-as primeiro).</div>`;
+                input.value = '';
+                carregarFaculdades();
+                carregarStats();
+            } else {
+                alertEl.innerHTML = `<div class="alert error">${data.message || 'Falha ao processar o CSV de cursos.'}</div>`;
+            }
+        })
+        .catch(() => {
+            alertEl.innerHTML = '<div class="alert error">Erro ao enviar o arquivo de cursos.</div>';
+        });
+}
+
 function importarEmecBrasil() {
     const alertEl = document.getElementById('faculdades-alert');
     if (!confirm('Isso vai importar as instituições de TODAS as 27 UFs do Brasil e pode levar vários minutos. Deseja continuar?')) {

@@ -81,19 +81,67 @@ class Curso:
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
 
+    def upsert_por_codigo_inep_lote(self, lista_dados):
+        """Insere/atualiza em massa uma lista de cursos vindos do Censo
+        INEP, identificados por `codigo_inep_curso` (evita duplicar em
+        reimportações do mesmo dataset ou de anos diferentes). Tudo numa
+        única transação — ou importa tudo, ou nada (evita ficar com o
+        banco pela metade se algo falhar no meio de 40 mil linhas)."""
+        conn = get_connection()
+        c = conn.cursor()
+        criados, atualizados = 0, 0
+        try:
+            for dados in lista_dados:
+                c.execute("SELECT id FROM cursos WHERE codigo_inep_curso=?", (dados['codigo_inep_curso'],))
+                existente = c.fetchone()
+                if existente:
+                    c.execute(
+                        """UPDATE cursos SET nome=?, instituicao=?, faculdade_id=?, modalidade=?,
+                           grau=?, area=?, tipo_instituicao=?, updated_at=CURRENT_TIMESTAMP
+                           WHERE codigo_inep_curso=?""",
+                        (dados['nome'], dados['instituicao'], dados['faculdade_id'], dados['modalidade'],
+                         dados['grau'], dados['area'], dados['tipo_instituicao'], dados['codigo_inep_curso'])
+                    )
+                    atualizados += 1
+                else:
+                    c.execute(
+                        """INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao,
+                           duracao, grau, area, tipo_instituicao, codigo_inep_curso)
+                           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        (dados['nome'], dados['instituicao'], dados['faculdade_id'], dados['modalidade'],
+                         dados.get('descricao'), dados.get('duracao'), dados['grau'], dados['area'],
+                         dados['tipo_instituicao'], dados['codigo_inep_curso'])
+                    )
+                    criados += 1
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+        return {'criados': criados, 'atualizados': atualizados}
+
     def sugestoes_por_nome(self, termo, limite=8):
-        """Autocomplete do campo 'curso': nomes já cadastrados que começam
-        com o termo digitado, sem repetir (mesmo curso pode existir em
-        várias instituições)."""
+        """Nomes de curso distintos que começam com `termo` (case-insensitive)
+        — usado pelo autocomplete do campo de busca de curso. Prefixo (não
+        'contém') para casar com o padrão de UX pedido: digitar 'Engenharia'
+        sugere 'Engenharia de Software', 'Engenharia Civil' etc., não
+        qualquer curso que tenha 'engenharia' em outra parte do nome."""
+        termo = (termo or '').strip()
+        if not termo:
+            return []
         try:
             conn = get_connection()
             c = conn.cursor()
+            termo_escapado = termo.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
             c.execute(
-                "SELECT DISTINCT nome FROM cursos WHERE nome LIKE ? ORDER BY nome ASC LIMIT ?",
-                (f"{termo}%", limite)
+                "SELECT DISTINCT nome FROM cursos WHERE nome LIKE ? ESCAPE '\\' COLLATE NOCASE "
+                "ORDER BY nome ASC LIMIT ?",
+                (termo_escapado + '%', limite)
             )
-            nomes = [row['nome'] for row in c.fetchall()]
+            nomes = [r['nome'] for r in c.fetchall()]
             conn.close()
             return nomes
         except Exception:
             return []
+

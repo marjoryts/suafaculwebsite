@@ -6,9 +6,10 @@
     <title>Admin - SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
     <link rel="stylesheet" href="/static/css/pages/style.css">
     <link rel="stylesheet" href="/static/css/pages/admin.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
     {% set nav_variant = 'admin' %}
@@ -125,6 +126,27 @@
                         <i class="fas fa-globe-americas"></i> Importar Brasil inteiro (27 UFs)
                     </button>
                     <small>Busca todas as instituições em atividade cadastradas no e-MEC para a UF (ou para todas as 27 UFs). Nome, organização acadêmica e tipo (pública/privada) vêm preenchidos; endereço/telefone/site ficam para completar depois — o e-MEC não os disponibiliza nessa listagem. A importação do Brasil inteiro pode levar vários minutos.</small>
+                </div>
+
+                <div class="import-bar">
+                    <input type="file" id="emec-csv-file" accept=".csv">
+                    <button class="btn-admin" onclick="importarEmecCsv()">
+                        <i class="fas fa-file-upload"></i> Importar CSV oficial (upload manual)
+                    </button>
+                    <small>Se os botões acima derem erro 403 (bloqueio do e-MEC a chamadas automatizadas), baixe o CSV oficial pelo seu navegador em
+                        <a href="https://dadosabertos.mec.gov.br/indicadores-sobre-ensino-superior" target="_blank" rel="noopener">dadosabertos.mec.gov.br</a>
+                        ("Instituições de Educação Superior do Brasil") e envie o arquivo aqui — importa o Brasil inteiro de uma vez, sem depender de nenhuma chamada ao e-MEC.</small>
+                </div>
+
+                <div class="import-bar">
+                    <input type="file" id="censo-cursos-file" accept=".csv">
+                    <button class="btn-admin" onclick="importarCursosCenso()">
+                        <i class="fas fa-graduation-cap"></i> Importar cursos (Censo INEP)
+                    </button>
+                    <small>Importa os cursos de graduação de <strong>todas as instituições já cadastradas</strong> (upload acima). Baixe o CSV
+                        "MICRODADOS_CADASTRO_CURSOS_&lt;ano&gt;.CSV" (dentro do ZIP do Censo) em
+                        <a href="https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/censo-da-educacao-superior" target="_blank" rel="noopener">gov.br/inep</a>.
+                        Arquivo grande (400+MB) — a importação pode levar um tempo, não feche a página.</small>
                 </div>
 
                 <div class="search-bar">
@@ -308,11 +330,7 @@
         </div>
     </div>
 
-    <footer>
-        <div class="footer-content">
-            <p>&copy; 2024 SuaFacul. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+    {% include 'partials/_footer.html' %}
     
     <script src="/static/js/header.js"></script>
     <script src="/static/js/admin.js"></script>

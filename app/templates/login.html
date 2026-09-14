@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SuaFacul - Login</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/pages/loginstyle.css">
 </head>
 <body>
@@ -31,7 +32,7 @@
                 <button type="submit" class="btn" id="login-btn">Entrar</button>
                 <p>Entrar com uma plataforma</p>
                 <div class="social-icons">
-                    <a href="/auth/google" title="Entrar com Google"><i class='bx bxl-google'></i></a>
+                    <a href="/auth/google" aria-label="Continuar com Google"><i class='bx bxl-google'></i></a>
                 </div>
             </form>
         </div>
@@ -56,7 +57,7 @@
                 <button type="submit" class="btn" id="register-btn">Registrar</button>
                 <p>Registrar com uma plataforma</p>
                 <div class="social-icons">
-                    <a href="/auth/google" title="Continuar com Google"><i class='bx bxl-google'></i></a>
+                    <a href="/auth/google" aria-label="Continuar com Google"><i class='bx bxl-google'></i></a>
                 </div>
             </form>
         </div>
@@ -77,24 +78,25 @@
     </div>
 
     <script>
-        // Mensagem de erro vinda do fluxo de login com Google (?oauth_error=...)
-        (function () {
-            const erro = new URLSearchParams(window.location.search).get('oauth_error');
+        // Mensagens amigáveis para erros vindos do fluxo de login com Google
+        // (redirecionado de volta para /login?oauth_error=...)
+        (function mostrarErroGoogleSeHouver() {
+            const params = new URLSearchParams(window.location.search);
+            const erro = params.get('oauth_error');
             if (!erro) return;
             const mensagens = {
-                nao_configurado: 'Login com Google indisponível no momento.',
                 cancelado: 'Login com Google cancelado.',
-                sessao_expirada: 'Sua sessão expirou antes de concluir o login. Tente novamente.',
-                comunicacao: 'Não foi possível se comunicar com o Google agora. Tente novamente.',
+                sessao_expirada: 'Sua sessão expirou antes de concluir o login com o Google. Tente novamente.',
+                comunicacao: 'Não foi possível se comunicar com o Google agora. Tente novamente em instantes.',
                 token_invalido: 'Não foi possível validar sua conta Google. Tente novamente.',
                 sem_email: 'Sua conta Google não retornou um e-mail utilizável.',
-                email_nao_verificado: 'Já existe uma conta com este e-mail. Entre com usuário e senha, ou verifique seu e-mail no Google antes de tentar de novo.',
-                erro_interno: 'Erro interno ao processar o login com Google. Tente novamente.',
+                email_nao_verificado: 'O e-mail da sua conta Google ainda não foi verificado pelo Google.',
+                nao_configurado: 'Login com Google está temporariamente indisponível.',
+                erro_interno: 'Ocorreu um erro ao processar seu login. Tente novamente.',
             };
+            const texto = mensagens[erro] || 'Não foi possível entrar com o Google.';
             const alertDiv = document.getElementById('login-alert');
-            if (alertDiv) {
-                alertDiv.innerHTML = `<div class="alert error">${mensagens[erro] || 'Não foi possível entrar com o Google.'}</div>`;
-            }
+            if (alertDiv) alertDiv.innerHTML = `<div class="alert error">${texto}</div>`;
         })();
 
         // Função para alternar entre formulários

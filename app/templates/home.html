@@ -6,8 +6,10 @@
     <title>SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link rel="stylesheet" href="/static/css/components/curso-autocomplete.css">
     <link rel="stylesheet" href="/static/css/pages/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 
 <body>
@@ -54,69 +56,86 @@
 
         <section class="faculdades">
             <h2>Faculdades em destaque</h2>
-            <div class="faculdades-lista">
-                <div class="faculdade">
-                    <img src="/static/imagens/usp.jpg">
-                    <h3>USP (Universidade de São Paulo)</h3>
-                    <p>Butantã - SP</p>
-                    <a href="https://www5.usp.br/">Saiba Mais</a>
-                </div>
+            <div class="carousel-wrapper">
+                <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="faculdades-lista">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="faculdades-lista" id="faculdades-lista">
+                    <div class="faculdade">
+                        <img src="/static/imagens/usp.jpg">
+                        <h3>USP (Universidade de São Paulo)</h3>
+                        <p>Butantã - SP</p>
+                        <a href="https://www5.usp.br/">Saiba Mais</a>
+                    </div>
 
-                <div class="faculdade">
-                    <img src="/static/imagens/fatecfv.jpeg">
-                    <h3>FATEC (Faculdade de Tecnologia)</h3>
-                    <p>Ferraz de Vasconcelos - SP </p>
-                    <a href="https://fatecferraz.edu.br/">Saiba Mais</a>
-                </div>
-                
-                <div class="faculdade">
-                    <img src="/static/imagens/unicamp.jpg">
-                    <h3>UNICAMP (Universidade de Campinas)</h3>
-                    <p>Campinas - SP</p>
-                    <a href="https://www.unicamp.br/">Saiba Mais</a>
-                </div>
+                    <div class="faculdade">
+                        <img src="/static/imagens/fatecfv.jpeg">
+                        <h3>FATEC (Faculdade de Tecnologia)</h3>
+                        <p>Ferraz de Vasconcelos - SP </p>
+                        <a href="https://fatecferraz.edu.br/">Saiba Mais</a>
+                    </div>
+                    
+                    <div class="faculdade">
+                        <img src="/static/imagens/unicamp.jpg">
+                        <h3>UNICAMP (Universidade de Campinas)</h3>
+                        <p>Campinas - SP</p>
+                        <a href="https://www.unicamp.br/">Saiba Mais</a>
+                    </div>
 
-                <div class="faculdade">
-                    <img src="/static/imagens/unifesp.jpg">
-                    <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
-                    <p> São Paulo - SP</p>
-                    <a href="https://www.unifesp.br/">Saiba Mais</a>
-                </div>    
-            </div>    
+                    <div class="faculdade">
+                        <img src="/static/imagens/unifesp.jpg">
+                        <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
+                        <p> São Paulo - SP</p>
+                        <a href="https://www.unifesp.br/">Saiba Mais</a>
+                    </div>
+                </div>
+                <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="faculdades-lista">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </section>
 
         <section class="vestibulares">
             <h2>Próximos vestibulares</h2>
-            <div class="vestibulares-lista">
-                <div class="vestibular">
-                    <h3>Fuvest</h3>
-                    <p>23/11</p>
-                    <p>Universidade de São Paulo</p>
-                    <a href="https://www.fuvest.br/vestibular-da-usp">Saiba mais</a>
-                </div>
+            <div class="carousel-wrapper">
+                <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="vestibulares-lista">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="vestibulares-lista" id="vestibulares-lista">
+                    <div class="vestibular">
+                        <h3>Fuvest</h3>
+                        <p>23/11</p>
+                        <p>Universidade de São Paulo</p>
+                        <a href="https://www.fuvest.br/vestibular-da-usp">Saiba mais</a>
+                    </div>
 
-                <div class="vestibular">
-                    <h3>Comvest</h3>
-                    <p>Em espera</p>
-                    <p>Universidade Estadual de Campinas</p>
-                    <a href="https://www.comvest.unicamp.br/">Saiba mais</a>
-                </div>
+                    <div class="vestibular">
+                        <h3>Comvest</h3>
+                        <p>Em espera</p>
+                        <p>Universidade Estadual de Campinas</p>
+                        <a href="https://www.comvest.unicamp.br/">Saiba mais</a>
+                    </div>
 
-                <div class="vestibular">
-                    <h3>FATEC</h3>
-                    <p>29/06</p>
-                    <p>Faculdade de Tecnologia do Estado de São Paulo</p>
-                    <a href="https://vestibular.fatec.sp.gov.br/home/">Saiba mais</a>
+                    <div class="vestibular">
+                        <h3>FATEC</h3>
+                        <p>29/06</p>
+                        <p>Faculdade de Tecnologia do Estado de São Paulo</p>
+                        <a href="https://vestibular.fatec.sp.gov.br/home/">Saiba mais</a>
+                    </div>
+                    
+                    <div class="vestibular">
+                        <h3>UNESP</h3>
+                        <p>02/11</p>
+                        <p>Universidade Estadual Paulista</p>
+                        <a href="https://vestibular.unesp.br/portal#!/">Saiba mais</a>
+                    </div>
                 </div>
-                
-                <div class="vestibular">
-                    <h3>UNESP</h3>
-                    <p>02/11</p>
-                    <p>Universidade Estadual Paulista</p>
-                    <a href="https://vestibular.unesp.br/portal#!/">Saiba mais</a>
-                </div>
+                <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="vestibulares-lista">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         </section>
+        
         
         <div class="container-curso">
             <h1>Cursos</h1>
@@ -134,48 +153,7 @@
         </div>
     </main>
 
-    <footer>
-        <div class="footer-grid">
-            <div class="footer-about">
-                <h3>SuaFacul</h3>
-                <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
-            </div>
-            
-            <div class="footer-links">
-                <h4>Links Úteis</h4>
-                <ul>
-                    <li><a href="/vestibulares">Vestibulares</a></li>
-                    <li><a href="/testevocacional">Teste Vocacional</a></li>
-                    <li><a href="/faculdades">Faculdades</a></li>
-                    <li><a href="/cursos">Cursos</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-help">
-                <h4>Ajuda</h4>
-                <ul>
-                    <li><a href="/ajuda">FAQ</a></li>
-                    <li><a href="#">Contato</a></li>
-                    <li><a href="#">Termos de Uso</a></li>
-                    <li><a href="#">Política de Privacidade</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-social">
-                <h4>Redes Sociais</h4>
-                <div class="social-icons">
-                    <a href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer-bottom">
-            <p>&copy; 2024 SuaFacul. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+    {% include 'partials/_footer.html' %}
 
     <!-- Modal de Cursos -->
     <div id="courseSearchModal" class="course-modal">
@@ -202,8 +180,10 @@
 
     <script src="/static/js/header.js"></script>
     <script src="/static/js/favoritos.js"></script>
+    <script src="/static/js/home-carousel.js"></script>
     <script src="/static/js/home-cursos.js"></script>
     <script src="/static/js/home-search.js"></script>
+    <script src="/static/js/curso-autocomplete.js"></script>
     
 </body>
 </html> 

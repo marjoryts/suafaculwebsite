@@ -6,6 +6,7 @@
     <title>Sobre Nós | SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
     <link rel="stylesheet" href="/static/css/pages/sobrenos.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -116,50 +117,7 @@
         </section>
     </main>
    
-    <footer>
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-about">
-                    <h3>SuaFacul</h3>
-                    <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
-                </div>
-               
-                <div class="footer-links">
-                    <h4>Links Úteis</h4>
-                    <ul>
-                        <li><a href="/vestibulares">Vestibulares</a></li>
-                        <li><a href="/testevocacional">Teste Vocacional</a></li>
-                        <li><a href="/faculdades">Faculdades</a></li>
-                        <li><a href="/cursos">Cursos</a></li>
-                    </ul>
-                </div>
-               
-                <div class="footer-help">
-                    <h4>Ajuda</h4>
-                    <ul>
-                        <li><a href="#">FAQ</a></li>
-                        <li><a href="#">Contato</a></li>
-                        <li><a href="#">Termos de Uso</a></li>
-                        <li><a href="#">Política de Privacidade</a></li>
-                    </ul>
-                </div>
-               
-                <div class="footer-social">
-                    <h4>Redes Sociais</h4>
-                    <div class="social-icons">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-            </div>
-           
-            <div class="footer-copyright">
-                <p>&copy; 2025 SuaFacul. Todos os direitos reservados.</p>
-            </div>
-        </div>
-    </footer>
+    {% include 'partials/_footer.html' %}
     <script src="/static/js/header.js"></script>
 </body>
 </html>

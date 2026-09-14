@@ -1,0 +1,117 @@
+/* ==========================================================================
+   SuaFacul — Rodapé (componente único, usado em todas as páginas com
+   rodapé). Substitui as versões duplicadas que existiam em
+   pages/style.css, pages/cursos.css, pages/faculdades.css,
+   pages/sobrenos.css, pages/teste-vocacional.css, pages/vestibulares.css,
+   além das páginas dashboard/admin que não tinham nenhum CSS de rodapé.
+   Usa os tokens de marca definidos em base.css (--primary-dark,
+   --accent-color, --second-color etc.) para ficar visualmente consistente
+   com o restante do site.
+   ========================================================================== */
+
+footer {
+    background-color: var(--primary-dark);
+    color: var(--second-color);
+    padding: 3rem 1.5rem 0;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto 2rem;
+    padding-top: 1rem;
+}
+
+.footer-about h3,
+.footer-links h4,
+.footer-help h4,
+.footer-social h4 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.footer-about p {
+    color: var(--second-color);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    opacity: 0.8;
+}
+
+.footer-links ul,
+.footer-help ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.footer-links li,
+.footer-help li {
+    margin-bottom: 0.7rem;
+}
+
+.footer-links a,
+.footer-help a {
+    color: var(--second-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    opacity: 0.8;
+    transition: var(--transition, color 0.2s ease);
+}
+
+.footer-links a:hover,
+.footer-help a:hover {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.footer-social .social-icons {
+    display: flex;
+    gap: 1rem;
+}
+
+.footer-social .social-icons a {
+    color: var(--second-color);
+    font-size: 1.5rem;
+    transition: var(--transition, color 0.2s ease);
+}
+
+.footer-social .social-icons a:hover {
+    color: var(--accent-color);
+    transform: translateY(-3px);
+}
+
+.footer-copyright {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.footer-copyright p {
+    color: var(--second-color);
+    margin: 0;
+}
+
+/* Responsivo: empilha as colunas em telas menores e evita que o rodapé
+   "quebre" (overflow horizontal) em telas de celular. */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .footer-links ul,
+    .footer-help ul {
+        padding: 0;
+    }
+
+    .footer-social .social-icons {
+        justify-content: center;
+    }
+}

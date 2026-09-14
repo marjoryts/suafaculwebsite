@@ -1,0 +1,45 @@
+{# ==========================================================================
+   Rodapé padrão do SuaFacul — usado por todas as páginas com rodapé.
+   Layout, espaçamento, tipografia e cores únicos (ver
+   components/footer.css), responsivo, sem conteúdo duplicado por página.
+   ========================================================================== #}
+<footer>
+    <div class="footer-grid">
+        <div class="footer-about">
+            <h3>SuaFacul</h3>
+            <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
+        </div>
+
+        <div class="footer-links">
+            <h4>Links Úteis</h4>
+            <ul>
+                <li><a href="/vestibulares">Vestibulares</a></li>
+                <li><a href="/testevocacional">Teste Vocacional</a></li>
+                <li><a href="/faculdades">Faculdades</a></li>
+                <li><a href="/cursos">Cursos</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-help">
+            <h4>Ajuda</h4>
+            <ul>
+                <li><a href="/ajuda">FAQ</a></li>
+                <li><a href="/sobrenos">Sobre nós</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-social">
+            <h4>Redes Sociais</h4>
+            <div class="social-icons">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-copyright">
+        <p>&copy; {{ current_year }} SuaFacul. Todos os direitos reservados.</p>
+    </div>
+</footer>

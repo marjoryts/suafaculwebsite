@@ -2,17 +2,16 @@
 import os
 import sys
 import math
-from datetime import timedelta
+import logging
 from dotenv import load_dotenv
+from flask import (Flask, render_template, request, session, redirect,
+                   url_for, jsonify, send_from_directory, abort)
 
 # Ensure project root is on path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
-
-from flask import (Flask, render_template, request, session, redirect,
-                   url_for, jsonify, send_from_directory, abort)
 
 from database.init_db import init_db
 from app.models.usuario import Usuario
@@ -24,6 +23,9 @@ from app.models.faculdade import Faculdade
 from app.services import emec_service
 from app.services import vestibular_service
 from app.services import oauth_service
+from app.services import scheduler_service
+from app.services import censo_service
+from app.services import seed_service
 from functools import wraps
 
 app = Flask(__name__,
@@ -41,24 +43,41 @@ if not _secret_key:
     _secret_key = 'suafacul_secret_key_change_in_production'
 app.secret_key = _secret_key
 
-# Sessões expiram após um período de inatividade (evita sessões "eternas" e
-# dá previsibilidade ao tratamento de "sessão expirada" no login OAuth).
+# Sessões expiram após um período de inatividade (evita sessões "eternas"
+# e dá previsibilidade ao tratamento de "sessão expirada" no login OAuth).
+from datetime import timedelta
 app.permanent_session_lifetime = timedelta(days=7)
-
-oauth_service.init_app(app)
 
 # Initialize DB on startup
 init_db()
 
-_debug_mode = os.environ.get('FLASK_DEBUG', '1') == '1'
-app.config['DEBUG'] = _debug_mode
+# Seed automático (instituições/cursos) se o banco estiver vazio e os
+# arquivos existirem em data/seeds/ — ver app/services/seed_service.py.
+# Idempotente (só age se a tabela estiver vazia), então é seguro rodar
+# toda vez que o processo sobe, mesmo com o reloader do Flask.
+seed_service.rodar_seed_automatico_se_necessario()
 
-# ──────────────────────────────────────────────
-# Usuário da sessão disponível em qualquer template (header com foto/nome)
-# ──────────────────────────────────────────────
+# Login com Google (fica desabilitado, sem quebrar o app, se não configurado)
+oauth_service.init_app(app)
+
+# Automação diária (vestibulares) — com debug=True o Flask sobe um processo
+# "pai" (watcher) e um processo "filho" (o que realmente serve requisições,
+# marcado por WERKZEUG_RUN_MAIN=true); sem essa checagem o scheduler
+# iniciaria duas vezes e a rotina diária rodaria em duplicidade.
+_debug_mode = os.environ.get('FLASK_DEBUG', '1') == '1'  # mesmo padrão usado no app.run() abaixo
+app.config['DEBUG'] = _debug_mode
+if not _debug_mode or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    scheduler_service.start(app)
+
 
 @app.context_processor
-def inject_usuario_sessao():
+def _injetar_ano_atual():
+    from datetime import date
+    return {'current_year': date.today().year}
+
+# Usuário da sessão disponível em qualquer template (header com foto/nome)
+@app.context_processor
+def _injetar_usuario_sessao():
     usuario_sessao = None
     if 'user_id' in session:
         usuario_sessao = {
@@ -66,14 +85,9 @@ def inject_usuario_sessao():
             'nome_usuario': session.get('username'),
             'email': session.get('email'),
             'tipo': session.get('tipo'),
-            'foto_url': session.get('foto_url'),
+            'avatar_url': session.get('avatar_url'),
         }
     return dict(usuario_sessao=usuario_sessao)
-
-@app.context_processor
-def inject_ano_atual():
-    from datetime import date
-    return {'current_year': date.today().year}
 
 # ──────────────────────────────────────────────
 # Controle de acesso
@@ -167,33 +181,6 @@ def logout():
     return redirect(url_for('login'))
 
 # ──────────────────────────────────────────────
-# API — Usuário
-# ──────────────────────────────────────────────
-
-@app.route('/api/usuario/registrar', methods=['POST'])
-def api_usuario_registrar():
-    username = request.form.get('username', '').strip()
-    email = request.form.get('email', '').strip()
-    password = request.form.get('password', '').strip()
-    if not username or not email or not password:
-        return jsonify({'success': False, 'message': 'Por favor, preencha todos os campos.'})
-    import re
-    if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
-        return jsonify({'success': False, 'message': 'Formato de e-mail inválido.'})
-    return jsonify(Usuario().criar(username, email, password))
-
-@app.route('/api/usuario/login', methods=['POST'])
-def api_usuario_login():
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
-    if not username or not password:
-        return jsonify({'success': False, 'message': 'Por favor, preencha todos os campos.'})
-    result = Usuario().autenticar(username, password)
-    if result['success']:
-        _login_usuario_na_sessao(result['user'])
-    return jsonify(result)
-
-# ──────────────────────────────────────────────
 # Login com Google (OAuth/OIDC)
 # ──────────────────────────────────────────────
 
@@ -203,7 +190,7 @@ def _login_usuario_na_sessao(user):
     session['username'] = user['nome_usuario']
     session['email'] = user['email']
     session['tipo'] = user.get('tipo', 'aluno')
-    session['foto_url'] = user.get('foto_url')
+    session['avatar_url'] = user.get('avatar_url')
 
 
 @app.route('/auth/google')
@@ -241,7 +228,7 @@ def auth_google_callback():
         return redirect(url_for('login', oauth_error=msg))
 
     try:
-        userinfo = token.get('userinfo') or google.userinfo(token=token)
+        userinfo = token.get('userinfo') or google.parse_id_token(token)
     except Exception:
         app.logger.exception("[auth] Falha ao validar id_token do Google")
         return redirect(url_for('login', oauth_error='token_invalido'))
@@ -286,6 +273,33 @@ def auth_google_callback():
         return redirect(url_for('login', oauth_error='erro_interno'))
     _login_usuario_na_sessao(resultado['user'])
     return redirect(url_for('dashboard'))
+
+# ──────────────────────────────────────────────
+# API — Usuário
+# ──────────────────────────────────────────────
+
+@app.route('/api/usuario/registrar', methods=['POST'])
+def api_usuario_registrar():
+    username = request.form.get('username', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '').strip()
+    if not username or not email or not password:
+        return jsonify({'success': False, 'message': 'Por favor, preencha todos os campos.'})
+    import re
+    if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+        return jsonify({'success': False, 'message': 'Formato de e-mail inválido.'})
+    return jsonify(Usuario().criar(username, email, password))
+
+@app.route('/api/usuario/login', methods=['POST'])
+def api_usuario_login():
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Por favor, preencha todos os campos.'})
+    result = Usuario().autenticar(username, password)
+    if result['success']:
+        _login_usuario_na_sessao(result['user'])
+    return jsonify(result)
 
 @app.route('/api/usuario/logout', methods=['POST', 'GET'])
 def api_usuario_logout():
@@ -442,7 +456,12 @@ def api_faculdades_listar():
 #
 # Substitui a dependência de consultar o e-MEC em tempo real: o site (e
 # qualquer consumidor externo) passa a consultar SEMPRE esta API, que lê
-# do banco local. Somente leitura, pública, sem autenticação.
+# do banco local. Os dados desse banco são alimentados periodicamente
+# (upload manual do CSV oficial do MEC no admin — ver /admin — já que o
+# e-MEC bloqueia downloads automatizados; ver README).
+#
+# Somente leitura, pública, sem autenticação — é um catálogo de dados
+# públicos (mesmas instituições que qualquer um vê no e-MEC).
 # ──────────────────────────────────────────────
 
 def _instituicao_para_api(f):
@@ -464,6 +483,7 @@ def _instituicao_para_api(f):
         'url': f.get('url') or None,
         'total_cursos_cadastrados': f.get('total_cursos', 0),
     }
+
 
 @app.route('/api/v1/instituicoes', methods=['GET'])
 def api_v1_instituicoes_listar():
@@ -499,6 +519,7 @@ def api_v1_instituicoes_listar():
         }
     })
 
+
 @app.route('/api/v1/instituicoes/<codigo_emec>', methods=['GET'])
 def api_v1_instituicao_detalhe(codigo_emec):
     """Detalhe de uma instituição pelo código e-MEC."""
@@ -506,6 +527,7 @@ def api_v1_instituicao_detalhe(codigo_emec):
     if not instituicao:
         return jsonify({'error': 'Instituição não encontrada para este código e-MEC.'}), 404
     return jsonify({'data': _instituicao_para_api(instituicao)})
+
 
 @app.route('/api/v1/instituicoes/<codigo_emec>/cursos', methods=['GET'])
 def api_v1_instituicao_cursos(codigo_emec):
@@ -587,6 +609,49 @@ def api_faculdades_emec_importar_uf():
     if uf not in emec_service.UFS_BRASIL:
         return jsonify({'success': False, 'message': f"UF inválida: {uf}"})
     return jsonify(emec_service.importar_todas_faculdades_por_uf(uf))
+
+@app.route('/api/faculdades/emec/importar-csv', methods=['POST'])
+@admin_required
+def api_faculdades_emec_importar_csv():
+    """Importa instituições a partir do CSV oficial de Dados Abertos do MEC
+    enviado manualmente pelo admin — alternativa quando o download
+    automático (servidor->MEC) é bloqueado pelo WAF do e-MEC."""
+    arquivo = request.files.get('arquivo')
+    if not arquivo or not arquivo.filename:
+        return jsonify({'success': False, 'message': 'Selecione o arquivo CSV.'})
+    if not arquivo.filename.lower().endswith('.csv'):
+        return jsonify({'success': False, 'message': 'Envie um arquivo .csv (baixado de dadosabertos.mec.gov.br).'})
+    try:
+        conteudo = arquivo.read()
+        tamanho_mb = len(conteudo) / (1024 * 1024)
+        if tamanho_mb > 300:  # margem generosa; o objetivo é só barrar upload do arquivo errado por engano
+            return jsonify({'success': False, 'message': f'Arquivo de {tamanho_mb:.1f}MB é maior do que o esperado — confirme que é o CSV de instituições (não outro dataset do INEP/MEC).'})
+        resultado = emec_service.importar_instituicoes_de_csv_upload(conteudo)
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.warning("[emec] Falha ao importar CSV enviado pelo admin: %s", e)
+        return jsonify({'success': False, 'message': f'Falha ao processar o CSV: {e}'})
+
+@app.route('/api/cursos/censo/importar-csv', methods=['POST'])
+@admin_required
+def api_cursos_censo_importar_csv():
+    """Importa cursos de graduação a partir do CSV oficial
+    MICRODADOS_CADASTRO_CURSOS_<ano>.CSV do Censo da Educação Superior
+    (INEP), enviado manualmente pelo admin. Só importa cursos cuja
+    instituição (CO_IES) já esteja cadastrada na base local — ver
+    'Importar CSV oficial' de instituições antes desta importação.
+    Arquivo pode ser grande (400+MB) — processado em streaming."""
+    arquivo = request.files.get('arquivo')
+    if not arquivo or not arquivo.filename:
+        return jsonify({'success': False, 'message': 'Selecione o arquivo CSV.'})
+    if not arquivo.filename.lower().endswith('.csv'):
+        return jsonify({'success': False, 'message': 'Envie o arquivo MICRODADOS_CADASTRO_CURSOS_<ano>.CSV.'})
+    try:
+        resultado = censo_service.importar_cursos_de_csv_upload(arquivo.stream)
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.warning("[censo] Falha ao importar cursos do Censo INEP: %s", e)
+        return jsonify({'success': False, 'message': f'Falha ao processar o CSV: {e}'})
 
 @app.route('/api/faculdades/emec/importar-brasil', methods=['POST'])
 @admin_required
@@ -773,6 +838,5 @@ def page_not_found(e):
 
 
 if __name__ == '__main__':
-    _port = int(os.environ.get('PORT', 5000))
-    print(f"SuaFacul rodando em http://localhost:{_port}")
-    app.run(debug=_debug_mode, port=_port)
+    print("SuaFacul rodando em http://localhost:5000")
+    app.run(debug=_debug_mode, port=int(os.environ.get('PORT', 5000)))

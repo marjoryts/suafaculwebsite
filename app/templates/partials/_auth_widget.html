@@ -8,8 +8,8 @@
 <div class="user-menu" id="user-menu">
     <button type="button" class="user-menu-toggle" id="user-menu-toggle"
             aria-haspopup="true" aria-expanded="false" aria-controls="user-menu-dropdown">
-        {% if usuario_sessao.foto_url %}
-        <img src="{{ usuario_sessao.foto_url }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
+        {% if usuario_sessao.avatar_url %}
+        <img src="{{ usuario_sessao.avatar_url }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
         {% else %}
         <span class="user-avatar user-avatar-fallback">{{ usuario_sessao.nome_usuario[0] | upper }}</span>
         {% endif %}
