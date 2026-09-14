@@ -1,0 +1,315 @@
+/* Tokens de marca, reset, body, scrollbar e header agora vivem em
+   /static/css/base.css e /static/css/components/header.css */
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.hero-content h1{
+    color: var(--second-color);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 600;
+    margin-bottom: 3rem;
+    line-height: 1.2;
+    margin-top: 1%;
+}
+ 
+.hero-content p {
+    color: var(--second-color);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+ 
+.hero {
+    background: linear-gradient(135deg,  var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--second-color);
+    padding: 4rem 0;
+    text-align: center;
+}
+ 
+.hero h1 strong {
+    color: var(--accent-color);
+}
+ 
+.wave {
+    height: 30px;
+    background: var(--light-bg);
+    margin-top: -20px;
+    border-top-left-radius: 100% 20px;
+    border-top-right-radius: 100% 20px;
+}
+ 
+.about-section {
+    background-color: var(--second-color);
+    padding: 4rem 0;
+}
+ 
+.about-content {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+ 
+.about-text {
+    flex: 1;
+}
+ 
+.about-image {
+    flex: 1;
+    text-align: center;
+}
+ 
+.about-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+ 
+.mission-vision-values {
+    background-color: var(--light-bg);
+    padding: 4rem 0;
+    text-align: center;
+}
+ 
+.mvv-grid {
+    display: flex;
+    justify-content: space-around;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+ 
+.mvv-card {
+    background-color: var(--second-color);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    flex: 1;
+    max-width: 320px;
+}
+ 
+.mvv-card h3 {
+    margin-top: 1rem;
+    color: var(--primary-color);
+}
+ 
+.mvv-card i {
+    font-size: 2.5rem;
+    color: var(--accent-color);
+}
+ 
+.mvv-card ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+ 
+.mvv-card li {
+    margin: 0.5rem 0;
+}
+ 
+.team-section {
+    background-color: var(--second-color);
+    padding: 4rem 0;
+    text-align: center;
+}
+ 
+.team-grid {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+ 
+.team-member-card {
+    background-color: var(--light-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 150px;
+}
+ 
+.team-member-card img {
+    width: 110%;
+    border-radius: 10%;
+    margin-bottom: 1rem;
+}
+ 
+.foto_1 {
+    width: 30%;
+    height: 50%;
+}
+ 
+.foto_2{
+ width: 30%;
+ height: 50%;
+}
+ 
+.foto_3 {
+width: 30%;
+height: 50%;
+}
+ 
+.foto_4 {
+width: 30%;
+height: 50%;
+}
+ 
+ 
+.team-member-card h3 {
+    color: var(--primary-color);
+}
+ 
+.social-links a {
+    margin: 0 0.5rem;
+    color: var(--accent-color);
+    font-size: 1.2rem;
+    transition: color 0.3s;
+}
+ 
+.social-links a:hover {
+    color: var(--accent-dark);
+}
+ 
+.call-to-action {
+    background-color: var(--primary-color);
+    color: var(--second-color);
+    padding: 3rem 0;
+    text-align: center;
+}
+ 
+.call-to-action .btn-primary,
+.call-to-action .btn-secondary {
+    display: inline-block;
+    margin: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+ 
+.btn-primary {
+    background-color: var(--accent-color);
+    color: #fff;
+}
+ 
+.btn-primary:hover {
+    background-color: var(--accent-dark);
+}
+ 
+.btn-secondary {
+    background-color: transparent;
+    border: 2px solid var(--second-color);
+    color: var(--second-color);
+}
+ 
+.btn-secondary:hover {
+    background-color: var(--second-color);
+    color: var(--primary-color);
+}
+ 
+footer {
+    background-color: var(--primary-dark);
+    color: var(--second-color);
+    padding: 3rem 0;
+}
+ 
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+ 
+.footer-about h3,
+.footer-links h4,
+.footer-help h4,
+.footer-social h4 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+ 
+.footer-about p {
+    color: var(--second-color);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    opacity: 0.8;
+}
+ 
+.footer-links ul,
+.footer-help ul {
+    list-style: none;
+}
+ 
+.footer-links li,
+.footer-help li {
+    margin-bottom: 0.7rem;
+}
+ 
+.footer-links a,
+.footer-help a {
+    color: var(--second-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    opacity: 0.8;
+    transition: var(--transition);
+}
+ 
+.footer-links a:hover,
+.footer-help a:hover {
+    opacity: 1;
+    color: var(--accent-color);
+}
+ 
+.social-icons {
+    display: flex;
+    gap: 1rem;
+}
+ 
+.social-icons a {
+    color: var(--second-color);
+    font-size: 1.5rem;
+    transition: var(--transition);
+}
+ 
+.social-icons a:hover {
+    color: var(--accent-color);
+    transform: translateY(-3px);
+}
+ 
+.footer-copyright p {
+    color: var(--second-color);
+}
+
+.footer-copyright {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+ 
+/* Seção do Media Query para o rodapé */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr; /* Colunas empilhadas */
+        text-align: center;
+    }
+ 
+    .footer-links ul,
+    .footer-help ul {
+        padding: 0;
+    }
+ 
+    .footer-social .social-icons {
+        justify-content: center;
+    }
+}

@@ -1,0 +1,30 @@
+{# ==========================================================================
+   Widget de autenticação do header — mostra foto + nome do usuário logado
+   (com menu suspenso: Perfil, Favoritos, Admin, Sair) ou o botão "Entrar".
+   Usa `usuario_sessao`, injetado automaticamente em todo template pelo
+   context_processor de app.py (não precisa ser passado pela rota).
+   ========================================================================== #}
+{% if usuario_sessao %}
+<div class="user-menu" id="user-menu">
+    <button type="button" class="user-menu-toggle" id="user-menu-toggle"
+            aria-haspopup="true" aria-expanded="false" aria-controls="user-menu-dropdown">
+        {% if usuario_sessao.foto_url %}
+        <img src="{{ usuario_sessao.foto_url }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
+        {% else %}
+        <span class="user-avatar user-avatar-fallback">{{ usuario_sessao.nome_usuario[0] | upper }}</span>
+        {% endif %}
+        <span class="user-menu-name">{{ usuario_sessao.nome_usuario }}</span>
+        <i class="fas fa-chevron-down user-menu-caret"></i>
+    </button>
+    <div class="user-menu-dropdown" id="user-menu-dropdown" role="menu">
+        <a href="/dashboard" role="menuitem"><i class="fas fa-user"></i> Meu perfil</a>
+        <a href="/favoritos" role="menuitem"><i class="fas fa-heart"></i> Meus favoritos</a>
+        {% if usuario_sessao.tipo == 'admin' %}
+        <a href="/admin" role="menuitem"><i class="fas fa-shield-halved"></i> Admin</a>
+        {% endif %}
+        <a href="/logout" class="user-menu-logout" role="menuitem"><i class="fas fa-arrow-right-from-bracket"></i> Sair</a>
+    </div>
+</div>
+{% else %}
+<a href="/login" class="btn-nav">Entrar</a>
+{% endif %}

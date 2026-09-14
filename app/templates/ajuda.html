@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajuda | SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/pages/ajuda.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% set active_page = 'ajuda' %}
+    {% include 'partials/_header.html' %}
+
+    <main>
+        <section class="hero ajuda-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Como podemos <span>ajudar você</span>?</h1>
+                    <p>Encontre respostas para suas dúvidas, explore nossos recursos ou entre em contato com nossa equipe de suporte.</p>
+                    
+                    <div class="search-box">
+                        <input type="text" placeholder="Pesquise por uma dúvida ou tópico">
+                        <button class="btn-search">
+                            Buscar <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <div class="wave"></div>
+        
+        <section class="help-content-section">
+            <div class="container">
+                <div class="help-sections-grid">
+                    <div class="faq-section">
+                        <h2><i class="fas fa-question-circle"></i> Perguntas Frequentes (FAQ)</h2>
+                        <ul class="faq-list">
+                            <li><strong>Como me cadastrar no site?</strong><br> Basta clicar no botão "Entrar" e seguir as instruções para criar sua conta.</li>
+                            <li><strong>O teste vocacional é gratuito?</strong><br> Sim! Nosso teste é 100% gratuito e online.</li>
+                            <li><strong>Como encontro faculdades perto de mim?</strong><br> Use nosso buscador e permita o acesso à sua localização.</li>
+                        </ul>
+                    </div>
+                    <div class="faq-section">
+                        <h2><i class="fas fa-info-circle"></i> Ainda com dúvidas?</h2>
+                        <ul class="faq-list">
+                            <li><strong>Conheça o SuaFacul</strong><br> Saiba mais sobre nossa missão e como ajudamos estudantes a escolher o futuro certo na página <a href="/sobrenos">Sobre nós</a>.</li>
+                            <li><strong>Explore os vestibulares</strong><br> Acompanhe datas e informações de vestibulares em todo o Brasil na página <a href="/vestibulares">Vestibulares</a>.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/header.js"></script>
+</body>
+</html>

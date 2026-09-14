@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculdades | SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/pages/faculdades.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% set active_page = 'faculdades' %}
+    {% include 'partials/_header.html' %}
+
+    <main>
+        <section class="hero">
+            <h1>Encontre a sua <em><strong>faculdade</strong></em> ideal!</h1>
+            <div class="container">
+                <div class="container-input">
+                    <div class="card">
+                        <label for="curso"> Qual curso deseja estudar?</label>
+                        <input type="text" class="text-input" placeholder="Digite o curso">
+                        <div class="filtros1">
+                            <label><input type="checkbox"> Presencial</label>
+                            <label><input type="checkbox"> Híbrido</label>
+                            <label><input type="checkbox"> EaD</label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <label for="faculdade"> Em qual faculdade?</label>
+                        <input type="text" class="text-input" placeholder="Digite a faculdade">
+                        <div class="filtros">
+                            <label><input type="radio">Pública</label>
+                            <label><input type="radio">Particular</label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <label for="cidade">Em que cidade quer estudar?</label>
+                        <input type="text" class="text-input" placeholder="Digite a cidade">
+                        <div class="filtros">
+                            <button class="btn-buscar">Buscar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção de Resultados (será criada dinamicamente pelo JavaScript) -->
+        <section class="results-section" style="display: none;">
+            <div class="container">
+                <div class="results-header">
+                    <h2><i class="fas fa-search"></i> Resultados da Busca</h2>
+                    <div class="results-count">0-0 de 0 faculdades encontradas</div>
+                </div>
+                <div class="courses-grid">
+                    <!-- Os cursos serão carregados dinamicamente via JavaScript -->
+                </div>
+                <div class="pagination">
+                    <!-- A paginação será gerada dinamicamente via JavaScript -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-about">
+                <h3>SuaFacul</h3>
+                <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Links Úteis</h4>
+                <ul>
+                    <li><a href="/vestibulares">Vestibulares</a></li>
+                    <li><a href="/testevocacional">Teste Vocacional</a></li>
+                    <li><a href="/faculdades">Faculdades</a></li>
+                    <li><a href="/cursos">Cursos</a></li>
+                </ul>
+            </div>
+            <div class="footer-help">
+                <h4>Ajuda</h4>
+                <ul>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Contato</a></li>
+                    <li><a href="#">Termos de Uso</a></li>
+                    <li><a href="#">Política de Privacidade</a></li>
+                </ul>
+            </div>
+            <div class="footer-social">
+                <h4>Redes Sociais</h4>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-copyright">
+            <p>&copy; 2025 SuaFacul. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+    <script src="/static/js/header.js"></script>
+    <script src="/static/js/favoritos.js"></script>
+    <script src="/static/js/faculdades.js"></script>
+</body>
+</html>

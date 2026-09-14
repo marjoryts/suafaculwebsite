@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Vocacional | SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/pages/teste-vocacional.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% set active_page = 'testevocacional' %}
+    {% include 'partials/_header.html' %}
+
+    <main>
+        <section class="hero teste-vocacional-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Descubra seu futuro com nosso <span>Teste Vocacional</span></h1>
+                    <p>Responda a perguntas simples e encontre os cursos e áreas que mais combinam com sua personalidade, habilidades e interesses.</p>
+                    
+                    <div class="hero-actions">
+                        <button class="btn-start-test" id="scroll-to-test-top">
+                            Começar Teste Agora <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <a href="#how-it-works" class="btn-outline">Como funciona<i class="fas fa-question"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <div class="wave"></div>
+        
+        <section class="how-it-works-section" id="how-it-works">
+            <div class="container">
+                <h2><i class="fas fa-lightbulb"></i> Como funciona o Teste Vocacional?</h2>
+                <p class="section-description">Nosso teste foi desenvolvido para te guiar na descoberta de suas aptidões e te ajudar a tomar a melhor decisão para sua carreira.</p>
+
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-icon">1</div>
+                        <h3>Perguntas Interativas</h3>
+                        <p>Responda a uma série de perguntas sobre suas preferências, hobbies e o que te motiva.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">2</div>
+                        <h3>Análise Personalizada</h3>
+                        <p>Nosso sistema analisa suas respostas para identificar padrões e áreas de maior compatibilidade.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">3</div>
+                        <h3>Resultados e Sugestões</h3>
+                        <p>Receba sugestões de cursos e áreas profissionais, além de faculdades que oferecem essas opções.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">4</div>
+                        <h3>Explore e Decida</h3>
+                        <p>Com base nos resultados, explore os detalhes de cursos e faculdades e dê o próximo passo!</p>
+                    </div>
+                </div>
+
+                <div class="important-note">
+                    <p><i class="fas fa-info-circle"></i> O teste é gratuito e leva apenas alguns minutos para ser concluído. Suas respostas são confidenciais.</p>
+                </div>
+                <button class="btn-start-test-bottom" id="scroll-to-test">
+                    Iniciar meu Teste Vocacional <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Seção do Teste Vocacional -->
+        <section class="how-it-works-section" id="vocational-test">
+            <div class="container">
+                <h2><i class="fas fa-compass"></i> Teste Vocacional</h2>
+                <p class="section-description">
+                    Responda às perguntas abaixo pensando em quem você é no dia a dia. No final, vamos indicar
+                    perfis de carreira e áreas de curso que combinam com você.
+                </p>
+
+                <form id="vocational-form" class="vocational-form">
+                    <!-- 1) Interesses -->
+                    <div class="form-section">
+                        <h3>1. Interesses</h3>
+
+                        <div class="question">
+                            <p>Que tipo de atividade você MAIS gosta de fazer?</p>
+                            <label><input type="radio" name="q1" value="tecnico,cientifico"> Resolver problemas lógicos, mexer com números ou tecnologia</label>
+                            <label><input type="radio" name="q1" value="criativo"> Criar coisas novas, desenhar, escrever, produzir conteúdo</label>
+                            <label><input type="radio" name="q1" value="humano"> Ajudar pessoas, ouvir, aconselhar, ensinar</label>
+                            <label><input type="radio" name="q1" value="gestao"> Organizar, planejar, liderar grupos ou projetos</label>
+                            <label><input type="radio" name="q1" value="pratico"> Colocar a mão na massa, atividades práticas</label>
+                        </div>
+
+                        <div class="question">
+                            <p>Você prefere trabalhar mais com:</p>
+                            <label><input type="radio" name="q2" value="humano"> Pessoas</label>
+                            <label><input type="radio" name="q2" value="gestao,tecnico"> Dados, planilhas, análises</label>
+                            <label><input type="radio" name="q2" value="tecnico,pratico"> Objetos, máquinas, tecnologia</label>
+                            <label><input type="radio" name="q2" value="criativo"> Arte, criação, comunicação</label>
+                        </div>
+                    </div>
+
+                    <!-- 2) Habilidades -->
+                    <div class="form-section">
+                        <h3>2. Habilidades</h3>
+
+                        <div class="question">
+                            <p>Em quais matérias você tem mais facilidade?</p>
+                            <label><input type="radio" name="q3" value="tecnico,cientifico"> Matemática, Física, Química</label>
+                            <label><input type="radio" name="q3" value="criativo"> Artes, Redação, Línguas</label>
+                            <label><input type="radio" name="q3" value="humano"> História, Sociologia, Filosofia</label>
+                            <label><input type="radio" name="q3" value="gestao"> Geografia, Economia, Empreendedorismo</label>
+                        </div>
+
+                        <div class="question">
+                            <p>As pessoas te elogiam mais por:</p>
+                            <label><input type="radio" name="q4" value="humano"> Empatia e jeito com pessoas</label>
+                            <label><input type="radio" name="q4" value="criativo"> Criatividade e boas ideias</label>
+                            <label><input type="radio" name="q4" value="tecnico"> Raciocínio lógico e solução de problemas</label>
+                            <label><input type="radio" name="q4" value="gestao"> Organização e liderança</label>
+                            <label><input type="radio" name="q4" value="pratico"> Agilidade para fazer as coisas na prática</label>
+                        </div>
+                    </div>
+
+                    <!-- 3) Personalidade no trabalho -->
+                    <div class="form-section">
+                        <h3>3. Personalidade no trabalho</h3>
+
+                        <div class="question">
+                            <p>Você prefere trabalhar:</p>
+                            <label><input type="radio" name="q5" value="tecnico,pratico"> Mais sozinho(a), focado(a) em suas tarefas</label>
+                            <label><input type="radio" name="q5" value="humano,gestao,criativo"> Em equipe, trocando ideias com outras pessoas</label>
+                        </div>
+
+                        <div class="question">
+                            <p>Você se sente melhor em ambientes:</p>
+                            <label><input type="radio" name="q6" value="criativo,gestao,pratico"> Dinâmicos, com mudanças e novidades</label>
+                            <label><input type="radio" name="q6" value="tecnico,cientifico,humano"> Mais estáveis e previsíveis</label>
+                        </div>
+                    </div>
+
+                    <!-- 4) Valores e Estilo de Vida -->
+                    <div class="form-section">
+                        <h3>4. Valores e estilo de vida</h3>
+
+                        <div class="question">
+                            <p>O que é mais importante para você em uma carreira?</p>
+                            <label><input type="radio" name="q7" value="gestao"> Alta remuneração e crescimento financeiro</label>
+                            <label><input type="radio" name="q7" value="humano"> Impacto social e ajudar pessoas</label>
+                            <label><input type="radio" name="q7" value="criativo"> Liberdade criativa e autonomia</label>
+                            <label><input type="radio" name="q7" value="tecnico,cientifico"> Estudar temas complexos e se aprofundar</label>
+                            <label><input type="radio" name="q7" value="pratico"> Ter uma profissão prática e objetiva</label>
+                        </div>
+
+                        <div class="question">
+                            <p>Você se vê:</p>
+                            <label><input type="radio" name="q8" value="cientifico,tecnico"> Estudando por muitos anos (faculdade longa, pós, etc.)</label>
+                            <label><input type="radio" name="q8" value="pratico,gestao"> Fazendo cursos mais curtos e já trabalhando rápido</label>
+                        </div>
+                    </div>
+
+                    <!-- 5) Expectativas de Carreira -->
+                    <div class="form-section">
+                        <h3>5. Expectativas de carreira</h3>
+
+                        <div class="question">
+                            <p>Onde você se imagina trabalhando?</p>
+                            <label><input type="radio" name="q9" value="gestao,tecnico"> Empresa grande ou multinacional</label>
+                            <label><input type="radio" name="q9" value="criativo,tecnico,pratico"> Startup ou empresa de tecnologia</label>
+                            <label><input type="radio" name="q9" value="humano,cientifico"> Setor público, hospitais, escolas ou pesquisa</label>
+                            <label><input type="radio" name="q9" value="gestao,criativo"> Tendo o próprio negócio</label>
+                        </div>
+
+                        <div class="question">
+                            <p>De forma geral, você se identifica mais com qual tipo de área?</p>
+                            <label><input type="radio" name="q10" value="tecnico"> Técnica / Exatas / Programação</label>
+                            <label><input type="radio" name="q10" value="criativo"> Criativa / Comunicação / Design</label>
+                            <label><input type="radio" name="q10" value="humano"> Humana / Social / Educação / Saúde</label>
+                            <label><input type="radio" name="q10" value="gestao"> Gestão / Negócios / Administração</label>
+                            <label><input type="radio" name="q10" value="cientifico"> Científica / Laboratório / Pesquisa</label>
+                            <label><input type="radio" name="q10" value="pratico"> Cursos técnicos e profissões práticas</label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-start-test-bottom">
+                            Ver meu resultado <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Resultados -->
+                <div id="vocational-result" class="vocational-result" style="display: none;">
+                    <h3><i class="fas fa-star"></i> Seu perfil vocacional</h3>
+                    <p class="result-intro">
+                        Com base nas suas respostas, estes são os perfis que mais combinam com você e algumas
+                        sugestões de áreas para explorar:
+                    </p>
+                    <div id="result-profiles" class="result-profiles"></div>
+                    <p class="result-tip">
+                        Use esse resultado como um guia inicial. Você pode combinar mais de um perfil e isso é
+                        totalmente normal. Explore cursos na página de <a href="/cursos">Cursos</a> e
+                        vestibulares em <a href="/vestibulares">Vestibulares</a>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="testimonials-section">
+            <div class="container">
+                <h2><i class="fas fa-quote-left"></i> O que dizem nossos usuários</h2>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <p>"Eu estava super indecisa sobre qual curso fazer, mas o teste da SuaFacul me deu um direcionamento incrível! Descobri uma área que eu nem tinha pensado antes."</p>
+                        <div class="author-info">
+                            <img src="imagens/user_avatar_1.png" alt="Avatar da Maria S.">
+                            <span>Maria S. - Estudante</span>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <p>"Fiz o teste por curiosidade e me surpreendi com a precisão dos resultados. Me ajudou a confirmar a minha escolha e me sentir mais confiante."</p>
+                        <div class="author-info">
+                            <img src="imagens/user_avatar_2.png" alt="Avatar do João L.">
+                            <span>João L. - Vestibulando</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-about">
+                    <h3>SuaFacul</h3>
+                    <p>Seu futuro em um só lugar! Encontre a faculdade e o curso perfeitos para você.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Links Úteis</h4>
+                    <ul>
+                        <li><a href="#">Vestibulares</a></li>
+                        <li><a href="#">Teste Vocacional</a></li>
+                        <li><a href="#">Faculdades</a></li>
+                        <li><a href="/cursos">Cursos</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-help">
+                    <h4>Ajuda</h4>
+                    <ul>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Contato</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-social">
+                    <h4>Redes Sociais</h4>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-copyright">
+                <p>&copy; 2025 SuaFacul. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+    <script src="/static/js/header.js"></script>
+    <script src="/static/js/testevocacional.js"></script>
+</body>
+</html>
