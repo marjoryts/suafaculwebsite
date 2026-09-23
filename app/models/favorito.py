@@ -68,3 +68,39 @@ class Favorito:
             return ids
         except Exception:
             return []
+
+    def contar_por_tipo(self, usuario_id):
+        """{'curso': n, 'faculdade': n, 'vestibular': n} em uma única consulta
+        (usado nos cards do dashboard do usuário)."""
+        contagem = {'curso': 0, 'faculdade': 0, 'vestibular': 0}
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT tipo, COUNT(*) AS total FROM favoritos WHERE usuario_id=? GROUP BY tipo", (usuario_id,))
+            for r in c.fetchall():
+                if r['tipo'] in contagem:
+                    contagem[r['tipo']] = r['total']
+            conn.close()
+        except Exception:
+            pass
+        return contagem
+
+    def proximos_vestibulares(self, usuario_id, limite=4):
+        """Vestibulares favoritados pelo usuário com prova de hoje em diante,
+        da mais próxima para a mais distante."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "SELECT v.id, v.nome, v.instituicao, v.cidade, v.regiao, v.data_prova, v.periodo_inscricao, v.link_edital "
+                "FROM favoritos f JOIN vestibulares v ON v.id = f.item_id "
+                "WHERE f.usuario_id=? AND f.tipo='vestibular' AND v.data_prova IS NOT NULL "
+                "AND date(v.data_prova) >= date('now') "
+                "ORDER BY date(v.data_prova) ASC LIMIT ?",
+                (usuario_id, limite)
+            )
+            rows = [dict(r) for r in c.fetchall()]
+            conn.close()
+            return rows
+        except Exception:
+            return []

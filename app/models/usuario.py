@@ -138,7 +138,8 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url FROM usuarios WHERE id=?", (id,))
+            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url, auth_provider, created_at "
+                      "FROM usuarios WHERE id=?", (id,))
             row = c.fetchone()
             conn.close()
             return dict(row) if row else None

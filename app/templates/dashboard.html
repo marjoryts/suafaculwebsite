@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfil - SuaFacul</title>
+    <title>Meu painel - SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <script src="/static/js/theme.js"></script>
     <link rel="stylesheet" href="/static/css/components/header.css">
     <link rel="stylesheet" href="/static/css/components/footer.css">
-    <link rel="stylesheet" href="/static/css/pages/style.css">
-    <link rel="stylesheet" href="/static/css/pages/dashboard.css">
     <link rel="stylesheet" href="/static/css/pages/cursos.css">
+    <link rel="stylesheet" href="/static/css/components/painel.css">
+    <link rel="stylesheet" href="/static/css/pages/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
@@ -18,183 +18,473 @@
     {% set active_page = 'dashboard' %}
     {% include 'partials/_header.html' %}
 
-    <main>
-        <div class="dashboard-container">
-            <div class="dashboard-header">
-                <h1><i class="fas fa-user-circle"></i> Dashboard do Usuário</h1>
-                <div class="user-info">
-                    <h2>Bem-vindo, {{ usuario.nome_usuario }}!</h2>
-                    <p><i class="fas fa-envelope"></i> {{ usuario.email }}</p>
+    {% set primeiro_nome = usuario.nome_usuario.split(' ')[0] %}
+    {% set eh_admin = usuario.tipo == 'admin' %}
+    {% set total_testes = testes_vocacionais|length %}
+    {% set rotulo_tipo = {'curso': 'Curso', 'faculdade': 'Faculdade', 'vestibular': 'Vestibular'} %}
+    {% set icone_tipo = {'curso': 'fa-book', 'faculdade': 'fa-building-columns', 'vestibular': 'fa-clipboard-list'} %}
+    {% set secao_tipo = {'curso': 'cursos-favoritos', 'faculdade': 'faculdades-favoritas', 'vestibular': 'vestibulares-favoritos'} %}
+    {% set meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] %}
+
+    <div class="painel" id="painel-usuario">
+        <!-- ============================== Barra lateral ============================== -->
+        <aside class="painel-sidebar" aria-label="Menu do painel">
+            <div class="painel-perfil">
+                <div class="painel-avatar" aria-hidden="true">
+                    {% if usuario.avatar_url %}
+                        <img src="{{ usuario.avatar_url }}" alt="" referrerpolicy="no-referrer">
+                    {% else %}
+                        {{ usuario.nome_usuario[:1]|upper }}
+                    {% endif %}
                 </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats_favoritos.cursos }}</div>
-                        <div class="stat-label">Cursos Favoritos</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats_favoritos.faculdades }}</div>
-                        <div class="stat-label">Faculdades Salvas</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats_favoritos.vestibulares }}</div>
-                        <div class="stat-label">Vestibulares</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-tabs">
-                <button class="dashboard-tab-button active" data-dash-tab="visao-geral">
-                    <i class="fas fa-th-large"></i> Visão Geral
-                </button>
-                <button class="dashboard-tab-button" data-dash-tab="favoritos">
-                    <i class="fas fa-heart"></i> Meus Favoritos
-                </button>
-            </div>
-
-            <div id="visao-geral-tab" class="dashboard-tab-content active">
-                <div class="dashboard-grid">
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-graduation-cap"></i> Meus Cursos</h3>
-                        <p>Gerencie seus cursos favoritos e acompanhe suas preferências de estudo.</p>
-                        <a href="/cursos" class="btn-dashboard">Ver Cursos</a>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-university"></i> Minhas Faculdades</h3>
-                        <p>Visualize as faculdades que você salvou e compare opções.</p>
-                        <a href="/faculdades" class="btn-dashboard">Ver Faculdades</a>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-calendar-alt"></i> Vestibulares</h3>
-                        <p>Acompanhe as datas dos vestibulares e prepare-se para as provas.</p>
-                        <a href="/vestibulares" class="btn-dashboard">Ver Vestibulares</a>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-chart-line"></i> Teste Vocacional</h3>
-                        <p>Faça o teste vocacional e descubra qual curso combina mais com você.</p>
-                        <a href="/testevocacional" class="btn-dashboard">Fazer Teste</a>
-                    </div>
-
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-cog"></i> Configurações</h3>
-                        <p>Atualize suas informações pessoais e preferências da conta.</p>
-                        <button class="btn-dashboard" onclick="editarPerfil()">Editar Perfil</button>
-                    </div>
-
-                    {% if usuario and usuario.tipo == 'admin' %}
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-shield-alt"></i> Área Administrativa</h3>
-                        <p>Acesse ferramentas administrativas para gerenciar usuários e conteúdo.</p>
-                        <a href="/admin" class="btn-dashboard">Acessar Admin</a>
-                    </div>
+                <div class="painel-perfil-texto">
+                    <span class="painel-nome">{{ usuario.nome_usuario }}</span>
+                    <span class="painel-email">{{ usuario.email }}</span>
+                    {% if eh_admin %}
+                        <span class="painel-papel painel-papel--admin"><i class="fas fa-shield-halved"></i> Administrador</span>
+                    {% else %}
+                        <span class="painel-papel"><i class="fas fa-user-graduate"></i> Estudante</span>
                     {% endif %}
                 </div>
             </div>
 
-            <div id="favoritos-tab" class="dashboard-tab-content">
-                <div class="favorites-subtabs">
-                    <button class="subtab-button active" data-favtipo="curso">
-                        <i class="fas fa-book"></i> Cursos
-                    </button>
-                    <button class="subtab-button" data-favtipo="vestibular">
-                        <i class="fas fa-clipboard-list"></i> Vestibulares
-                    </button>
-                    <button class="subtab-button" data-favtipo="faculdade">
-                        <i class="fas fa-university"></i> Faculdades
-                    </button>
+            <nav class="painel-nav" aria-label="Seções do painel">
+                <span class="painel-nav-grupo">Meu painel</span>
+                <a href="#visao-geral" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-house"></i><span class="painel-nav-texto">Visão geral</span>
+                </a>
+                <a href="#cursos-favoritos" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-book"></i><span class="painel-nav-texto">Cursos favoritos</span>
+                    <span class="painel-nav-contador" data-contador="curso">{{ stats_favoritos.cursos }}</span>
+                </a>
+                <a href="#faculdades-favoritas" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-building-columns"></i><span class="painel-nav-texto">Faculdades favoritas</span>
+                    <span class="painel-nav-contador" data-contador="faculdade">{{ stats_favoritos.faculdades }}</span>
+                </a>
+                <a href="#vestibulares-favoritos" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-clipboard-list"></i><span class="painel-nav-texto">Vestibulares salvos</span>
+                    <span class="painel-nav-contador" data-contador="vestibular">{{ stats_favoritos.vestibulares }}</span>
+                </a>
+                <a href="#teste-vocacional" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-compass"></i><span class="painel-nav-texto">Teste vocacional</span>
+                </a>
+
+                <span class="painel-nav-grupo">Explorar</span>
+                <a href="/cursos" class="painel-nav-link">
+                    <i class="fas fa-graduation-cap"></i><span class="painel-nav-texto">Cursos</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+                <a href="/faculdades" class="painel-nav-link">
+                    <i class="fas fa-school"></i><span class="painel-nav-texto">Faculdades</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+                <a href="/vestibulares" class="painel-nav-link">
+                    <i class="fas fa-calendar-days"></i><span class="painel-nav-texto">Vestibulares</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+
+                <span class="painel-nav-grupo">Conta</span>
+                <a href="#perfil" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-user-gear"></i><span class="painel-nav-texto">Perfil e configurações</span>
+                </a>
+                {% if eh_admin %}
+                <a href="/admin" class="painel-nav-link">
+                    <i class="fas fa-shield-halved"></i><span class="painel-nav-texto">Painel administrativo</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="painel-sidebar-rodape">
+                <a href="/logout" class="painel-nav-link painel-nav-link--sair">
+                    <i class="fas fa-right-from-bracket"></i><span class="painel-nav-texto">Sair da conta</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="painel-conteudo">
+            <!-- ============================== Visão geral ============================== -->
+            <section class="painel-secao" id="visao-geral" aria-labelledby="titulo-visao-geral">
+                <div class="painel-boasvindas">
+                    <div>
+                        <h1 id="titulo-visao-geral">Olá, <span>{{ primeiro_nome }}</span>!</h1>
+                        <p>Acompanhe seus cursos e faculdades favoritos, as próximas provas e o seu perfil vocacional em um só lugar.</p>
+                    </div>
+                    <div class="painel-boasvindas-acoes">
+                        {% if ultimo_teste %}
+                        <a href="/cursos" class="btn btn-primary"><i class="fas fa-magnifying-glass"></i> Explorar cursos</a>
+                        <a href="#teste-vocacional" class="btn btn-contorno-claro" data-painel-link>Meu perfil vocacional</a>
+                        {% else %}
+                        <a href="/testevocacional" class="btn btn-primary"><i class="fas fa-compass"></i> Fazer teste vocacional</a>
+                        <a href="/cursos" class="btn btn-contorno-claro">Explorar cursos</a>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div id="dash-curso-content" class="favorites-subcontent active">
-                    <div class="courses-grid" id="dash-curso-grid"></div>
+                <div class="painel-stats">
+                    <a href="#cursos-favoritos" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone"><i class="fas fa-book"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" data-contador="curso">{{ stats_favoritos.cursos }}</span>
+                            <span class="painel-stat-rotulo">Cursos favoritos</span>
+                        </span>
+                    </a>
+                    <a href="#faculdades-favoritas" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--azul"><i class="fas fa-building-columns"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" data-contador="faculdade">{{ stats_favoritos.faculdades }}</span>
+                            <span class="painel-stat-rotulo">Faculdades favoritas</span>
+                        </span>
+                    </a>
+                    <a href="#vestibulares-favoritos" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--laranja"><i class="fas fa-clipboard-list"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" data-contador="vestibular">{{ stats_favoritos.vestibulares }}</span>
+                            <span class="painel-stat-rotulo">Vestibulares salvos</span>
+                        </span>
+                    </a>
+                    <a href="#teste-vocacional" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--verde"><i class="fas fa-compass"></i></span>
+                        <span>
+                            <span class="painel-stat-numero">{{ total_testes }}</span>
+                            <span class="painel-stat-rotulo">Teste{{ '' if total_testes == 1 else 's' }} vocaciona{{ 'l' if total_testes == 1 else 'is' }}</span>
+                        </span>
+                    </a>
                 </div>
-                <div id="dash-vestibular-content" class="favorites-subcontent">
-                    <div class="courses-grid" id="dash-vestibular-grid"></div>
-                </div>
-                <div id="dash-faculdade-content" class="favorites-subcontent">
-                    <div class="courses-grid" id="dash-faculdade-grid"></div>
-                </div>
-            </div>
-        </div>
-    </main>
 
-    {% include 'partials/_footer.html' %}
-    
-    <!-- Modal Editar Perfil -->
-    <div id="perfil-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Editar Perfil</h2>
-                <span class="close" onclick="fecharPerfilModal()">&times;</span>
-            </div>
-            <div id="perfil-alert"></div>
-            <form id="perfil-form">
-                <div class="form-group">
-                    <label for="perfil-username">Nome de Usuário:</label>
-                    <input type="text" id="perfil-username" required>
+                <div class="painel-grid">
+                    <!-- Próximas provas (vestibulares favoritados com data futura) -->
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-calendar-check"></i> Próximas provas</h2>
+                                <p>Dos vestibulares que você salvou</p>
+                            </div>
+                            <a href="#vestibulares-favoritos" class="painel-link" data-painel-link>Ver todos <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        {% if proximas_provas %}
+                        <ul class="painel-lista">
+                            {% for v in proximas_provas %}
+                            {% set partes = (v.data_prova or '')[:10].split('-') %}
+                            <li class="painel-lista-item">
+                                <div class="painel-data" aria-hidden="true">
+                                    <strong>{{ partes[2] if partes|length == 3 else '--' }}</strong>
+                                    <span>{{ meses[(partes[1]|int) - 1] if partes|length == 3 and 1 <= (partes[1]|int) <= 12 else '' }}</span>
+                                </div>
+                                <div class="painel-lista-texto">
+                                    <span class="painel-lista-titulo">{{ v.nome }}</span>
+                                    <span class="painel-lista-meta">
+                                        Prova em {{ v.data_prova|data_br }}{% if v.cidade %} · {{ v.cidade }}{% endif %}
+                                    </span>
+                                </div>
+                                {% if v.link_edital %}
+                                <a href="{{ v.link_edital }}" class="painel-link" target="_blank" rel="noopener">Edital <i class="fas fa-arrow-up-right-from-square"></i></a>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="painel-vazio">
+                            <i class="fas fa-calendar-plus"></i>
+                            <strong>Nenhuma prova agendada</strong>
+                            <p>Salve vestibulares nos favoritos para acompanhar as datas das provas aqui.</p>
+                            <a href="/vestibulares" class="btn btn-outline">Ver vestibulares</a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Perfil vocacional (último resultado) -->
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-compass"></i> Perfil vocacional</h2>
+                                <p>{% if ultimo_teste %}Teste feito em {{ ultimo_teste.created_at|data_br }}{% else %}Descubra as áreas que combinam com você{% endif %}</p>
+                            </div>
+                        </div>
+                        {% if ultimo_teste %}
+                        <div class="painel-destaque">
+                            <i class="fas fa-star"></i>
+                            <div>
+                                <strong>{{ ultimo_teste.perfil_nome }}</strong>
+                                <span>Seu perfil predominante</span>
+                            </div>
+                        </div>
+                        <div class="painel-barras">
+                            {% for p in ultimo_teste.pontuacoes[:3] %}
+                            <div>
+                                <div class="painel-barra-rotulo"><span>{{ p.nome }}</span><strong>{{ p.percentual }}%</strong></div>
+                                <div class="painel-barra{% if loop.first %} painel-barra--destaque{% endif %}" role="img" aria-label="{{ p.nome }}: {{ p.percentual }}%"><span style="width: {{ p.percentual }}%"></span></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p style="margin-top: 1.25rem;">
+                            <a href="#teste-vocacional" class="painel-link" data-painel-link>Ver resultado completo <i class="fas fa-arrow-right"></i></a>
+                        </p>
+                        {% else %}
+                        <div class="painel-vazio">
+                            <i class="fas fa-compass"></i>
+                            <strong>Você ainda não fez o teste</strong>
+                            <p>Responda algumas perguntas e veja quais áreas e cursos combinam com seu perfil.</p>
+                            <a href="/testevocacional" class="btn btn-primary">Fazer teste agora</a>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="perfil-email">Email:</label>
-                    <input type="email" id="perfil-email" required>
+
+                <div class="painel-grid">
+                    <!-- Salvos recentemente -->
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-heart"></i> Salvos recentemente</h2>
+                                <p>Seus últimos favoritos</p>
+                            </div>
+                        </div>
+                        {% if favoritos_recentes %}
+                        <ul class="painel-lista">
+                            {% for f in favoritos_recentes %}
+                            <li class="painel-lista-item">
+                                <span class="painel-lista-icone painel-lista-icone--{{ f.tipo }}" aria-hidden="true"><i class="fas {{ icone_tipo.get(f.tipo, 'fa-heart') }}"></i></span>
+                                <div class="painel-lista-texto">
+                                    <span class="painel-lista-titulo">{{ f.nome_item }}</span>
+                                    <span class="painel-lista-meta">{{ rotulo_tipo.get(f.tipo, f.tipo) }} · salvo em {{ f.created_at|data_br }}</span>
+                                </div>
+                                <a href="#{{ secao_tipo.get(f.tipo, 'visao-geral') }}" class="painel-link" data-painel-link aria-label="Ver {{ rotulo_tipo.get(f.tipo, '')|lower }}s favoritos"><i class="fas fa-chevron-right"></i></a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="painel-vazio">
+                            <i class="far fa-heart"></i>
+                            <strong>Nada salvo ainda</strong>
+                            <p>Toque no coração em cursos, faculdades e vestibulares para guardá-los aqui.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acesso rápido -->
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-bolt"></i> Acesso rápido</h2>
+                                <p>Continue explorando</p>
+                            </div>
+                        </div>
+                        <div class="painel-acoes painel-acoes--coluna">
+                            <a href="/cursos" class="painel-acao">
+                                <i class="fas fa-graduation-cap"></i>
+                                <div><strong>Cursos</strong><span>Compare áreas, duração e modalidades</span></div>
+                            </a>
+                            <a href="/faculdades" class="painel-acao">
+                                <i class="fas fa-school"></i>
+                                <div><strong>Faculdades</strong><span>Busque instituições por cidade e curso</span></div>
+                            </a>
+                            <a href="/vestibulares" class="painel-acao">
+                                <i class="fas fa-calendar-days"></i>
+                                <div><strong>Vestibulares</strong><span>Datas de inscrição e provas</span></div>
+                            </a>
+                            <a href="/testevocacional" class="painel-acao">
+                                <i class="fas fa-compass"></i>
+                                <div><strong>Teste vocacional</strong><span>{% if ultimo_teste %}Refaça e compare resultados{% else %}Descubra seu perfil{% endif %}</span></div>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="perfil-password">Nova Senha:</label>
-                    <input type="password" id="perfil-password">
-                    <small>Deixe em branco para manter a senha atual</small>
+            </section>
+
+            <!-- ============================== Favoritos ============================== -->
+            {% set favoritos_secoes = [
+                ('cursos-favoritos', 'curso', 'Cursos favoritos', 'Os cursos que você salvou para comparar depois.', '/cursos', 'Explorar cursos', stats_favoritos.cursos),
+                ('faculdades-favoritas', 'faculdade', 'Faculdades favoritas', 'As instituições que você está considerando.', '/faculdades', 'Buscar faculdades', stats_favoritos.faculdades),
+                ('vestibulares-favoritos', 'vestibular', 'Vestibulares salvos', 'Acompanhe inscrições, provas e editais.', '/vestibulares', 'Ver vestibulares', stats_favoritos.vestibulares),
+            ] %}
+            {% for secao_id, tipo, titulo, descricao, url, rotulo_url, total in favoritos_secoes %}
+            <section class="painel-secao" id="{{ secao_id }}" aria-labelledby="titulo-{{ secao_id }}" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-{{ secao_id }}">{{ titulo }}</h1>
+                        <p>{{ descricao }}</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <a href="{{ url }}" class="btn btn-primary"><i class="fas fa-plus"></i> {{ rotulo_url }}</a>
+                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <button type="button" class="btn-outline" onclick="fecharPerfilModal()">Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar</button>
+                <div class="painel-favoritos-grid" id="dash-{{ tipo }}-grid" data-favoritos-tipo="{{ tipo }}" aria-live="polite">
+                    <div class="painel-carregando"><span class="painel-spinner"></span> Carregando favoritos…</div>
                 </div>
-            </form>
-        </div>
+            </section>
+            {% endfor %}
+
+            <!-- ============================== Teste vocacional ============================== -->
+            <section class="painel-secao" id="teste-vocacional" aria-labelledby="titulo-teste" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-teste">Teste vocacional</h1>
+                        <p>Seu perfil com base nas respostas do teste.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <a href="/testevocacional" class="btn btn-primary"><i class="fas fa-rotate-right"></i> {{ 'Refazer teste' if ultimo_teste else 'Fazer teste' }}</a>
+                    </div>
+                </div>
+
+                {% if ultimo_teste %}
+                <div class="painel-grid">
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-chart-simple"></i> Resultado mais recente</h2>
+                                <p>{{ ultimo_teste.created_at|data_br(true) }}</p>
+                            </div>
+                        </div>
+                        <div class="painel-destaque">
+                            <i class="fas fa-star"></i>
+                            <div>
+                                <strong>{{ ultimo_teste.perfil_nome }}</strong>
+                                <span>Perfil predominante</span>
+                            </div>
+                        </div>
+                        <div class="painel-barras">
+                            {% for p in ultimo_teste.pontuacoes %}
+                            <div>
+                                <div class="painel-barra-rotulo"><span>{{ p.nome }}</span><strong>{{ p.percentual }}%</strong></div>
+                                <div class="painel-barra{% if loop.first %} painel-barra--destaque{% endif %}" role="img" aria-label="{{ p.nome }}: {{ p.percentual }}%"><span style="width: {{ p.percentual }}%"></span></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-clock-rotate-left"></i> Histórico</h2>
+                                <p>{{ total_testes }} teste{{ '' if total_testes == 1 else 's' }} realizado{{ '' if total_testes == 1 else 's' }}</p>
+                            </div>
+                        </div>
+                        <ul class="painel-lista">
+                            {% for t in testes_vocacionais %}
+                            <li class="painel-lista-item">
+                                <span class="painel-lista-icone{% if loop.first %} painel-lista-icone--vestibular{% endif %}" aria-hidden="true"><i class="fas fa-compass"></i></span>
+                                <div class="painel-lista-texto">
+                                    <span class="painel-lista-titulo">{{ t.perfil_nome }}</span>
+                                    <span class="painel-lista-meta">{{ t.created_at|data_br(true) }}</span>
+                                </div>
+                                {% if loop.first %}<span class="painel-chip painel-chip--laranja">Atual</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% else %}
+                <div class="painel-card">
+                    <div class="painel-vazio">
+                        <i class="fas fa-compass"></i>
+                        <strong>Nenhum teste realizado</strong>
+                        <p>O teste leva poucos minutos. Quando terminar, o resultado aparece aqui automaticamente.</p>
+                        <a href="/testevocacional" class="btn btn-primary">Começar teste vocacional</a>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- ============================== Perfil e configurações ============================== -->
+            <section class="painel-secao" id="perfil" aria-labelledby="titulo-perfil" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-perfil">Perfil e configurações</h1>
+                        <p>Atualize seus dados de acesso e preferências.</p>
+                    </div>
+                </div>
+
+                <div class="painel-card">
+                    <div class="painel-card-cabecalho">
+                        <div>
+                            <h2><i class="fas fa-id-card"></i> Informações pessoais</h2>
+                            <p>Esses dados identificam sua conta no SuaFacul.</p>
+                        </div>
+                    </div>
+                    <form id="perfil-form" class="painel-form" novalidate>
+                        <div class="painel-form-alerta" id="perfil-alert" role="status" aria-live="polite"></div>
+                        <div class="painel-campo">
+                            <label for="perfil-username">Nome de usuário</label>
+                            <input type="text" id="perfil-username" name="username" value="{{ usuario.nome_usuario }}" autocomplete="username" required>
+                        </div>
+                        <div class="painel-campo">
+                            <label for="perfil-email">E-mail</label>
+                            <div class="painel-campo-com-selo">
+                                <input type="email" id="perfil-email" name="email" value="{{ usuario.email }}" autocomplete="email" required>
+                                {% if usuario.auth_provider == 'google' %}
+                                <span class="painel-selo"><i class="fas fa-circle-check"></i> Conta Google</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="painel-campo">
+                            <label for="perfil-password">Nova senha</label>
+                            <input type="password" id="perfil-password" name="password" autocomplete="new-password" minlength="6">
+                            <small>Deixe em branco para manter a senha atual.</small>
+                        </div>
+                        <div class="painel-campo">
+                            <label for="perfil-password-confirm">Confirmar nova senha</label>
+                            <input type="password" id="perfil-password-confirm" name="password_confirm" autocomplete="new-password">
+                        </div>
+                        <div class="painel-form-acoes">
+                            <button type="reset" class="btn btn-outline">Descartar alterações</button>
+                            <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="painel-grid">
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-circle-half-stroke"></i> Aparência</h2>
+                                <p>Escolha o tema do site neste navegador.</p>
+                            </div>
+                        </div>
+                        <div class="painel-opcoes" role="radiogroup" aria-label="Tema">
+                            <label class="painel-opcao"><input type="radio" name="tema" value="light"><i class="fas fa-sun"></i> Claro</label>
+                            <label class="painel-opcao"><input type="radio" name="tema" value="dark"><i class="fas fa-moon"></i> Escuro</label>
+                            <label class="painel-opcao"><input type="radio" name="tema" value="sistema"><i class="fas fa-desktop"></i> Automático</label>
+                        </div>
+                    </div>
+
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-user-shield"></i> Conta</h2>
+                                <p>Informações de acesso</p>
+                            </div>
+                        </div>
+                        <dl class="painel-info">
+                            <div>
+                                <dt>Tipo de conta</dt>
+                                <dd>{{ 'Administrador' if eh_admin else 'Estudante' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Acesso</dt>
+                                <dd>{{ 'Google' if usuario.auth_provider == 'google' else 'E-mail e senha' }}</dd>
+                            </div>
+                            {% if usuario.created_at %}
+                            <div>
+                                <dt>Membro desde</dt>
+                                <dd>{{ usuario.created_at|data_br }}</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                        <p style="margin-top: 1.25rem;">
+                            <a href="/logout" class="btn btn-sair"><i class="fas fa-right-from-bracket"></i> Sair da conta</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
+    {% include 'partials/_footer.html' %}
+
     <script src="/static/js/header.js"></script>
+    <script src="/static/js/painel.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/dashboard-favoritos.js"></script>
-    <script>
-    window._usuario_nome = '{{ usuario.nome_usuario }}'; window._usuario_email = '{{ usuario.email }}'; window._usuario_id = {{ usuario.id }};
-    window.editarPerfil = function() {
-        document.getElementById('perfil-username').value = "{{ usuario.nome_usuario }}";
-        document.getElementById('perfil-email').value = "{{ usuario.email }}";
-        document.getElementById('perfil-password').value = '';
-        document.getElementById('perfil-alert').innerHTML = '';
-        document.getElementById('perfil-modal').style.display = 'block';
-    };
-    window.fecharPerfilModal = function() {
-        document.getElementById('perfil-modal').style.display = 'none';
-    };
-    document.getElementById('perfil-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('perfil-username').value;
-        const email = document.getElementById('perfil-email').value;
-        const password = document.getElementById('perfil-password').value;
-        const alertDiv = document.getElementById('perfil-alert');
-        const formData = new FormData();
-        formData.append('id', "{{ usuario.id }}");
-        formData.append('username', username);
-        formData.append('email', email);
-        if (password) formData.append('password', password);
-        fetch('/api/usuario/atualizar', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alertDiv.innerHTML = '<div class="alert success">Perfil atualizado com sucesso!</div>';
-                setTimeout(() => { window.location.reload(); }, 1000);
-            } else {
-                alertDiv.innerHTML = `<div class=\"alert error\">${data.message}</div>`;
-            }
-        })
-        .catch(() => {
-            alertDiv.innerHTML = '<div class="alert error">Erro ao atualizar perfil.</div>';
-        });
-    });
-    </script>
 </body>
-</html> 
+</html>

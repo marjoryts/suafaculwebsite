@@ -2,6 +2,7 @@
 import os
 import sys
 import math
+import json
 import logging
 from dotenv import load_dotenv
 from flask import (Flask, render_template, request, session, redirect,
@@ -70,6 +71,21 @@ app.config['DEBUG'] = _debug_mode
 if not _debug_mode or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     scheduler_service.start(app)
 
+
+@app.template_filter('data_br')
+def _filtro_data_br(valor, com_hora=False):
+    """'2026-09-23 10:24:00' / '2026-09-23' -> '23/09/2026' (ou com hora)."""
+    if not valor:
+        return ''
+    from datetime import datetime
+    texto = str(valor)
+    for formato in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d'):
+        try:
+            d = datetime.strptime(texto[:19], formato)
+            return d.strftime('%d/%m/%Y %H:%M' if com_hora else '%d/%m/%Y')
+        except ValueError:
+            continue
+    return texto
 
 @app.context_processor
 def _injetar_ano_atual():
@@ -162,14 +178,29 @@ def favoritos():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    usuario = Usuario().buscar_por_id(session['user_id'])
+    user_id = session['user_id']
+    usuario = Usuario().buscar_por_id(user_id)
+    if not usuario:
+        # Conta removida enquanto a sessão ainda existia.
+        session.clear()
+        return redirect(url_for('login'))
     favorito_model = Favorito()
+    contagem = favorito_model.contar_por_tipo(user_id)
     stats_favoritos = {
-        'cursos': len(favorito_model.listar_por_usuario(session['user_id'], 'curso')),
-        'faculdades': len(favorito_model.listar_por_usuario(session['user_id'], 'faculdade')),
-        'vestibulares': len(favorito_model.listar_por_usuario(session['user_id'], 'vestibular')),
+        'cursos': contagem['curso'],
+        'faculdades': contagem['faculdade'],
+        'vestibulares': contagem['vestibular'],
     }
-    return render_template('dashboard.html', usuario=usuario, stats_favoritos=stats_favoritos)
+    testes = TesteVocacional().listar_por_usuario(user_id, limite=10)
+    return render_template(
+        'dashboard.html',
+        usuario=usuario,
+        stats_favoritos=stats_favoritos,
+        favoritos_recentes=favorito_model.listar_por_usuario(user_id)[:6],
+        proximas_provas=favorito_model.proximos_vestibulares(user_id, limite=4),
+        testes_vocacionais=testes,
+        ultimo_teste=testes[0] if testes else None,
+    )
 
 @app.route('/admin')
 @admin_required
@@ -314,9 +345,14 @@ def api_usuario_listar():
 
 @app.route('/api/usuario/buscar', methods=['GET'])
 def api_usuario_buscar():
+    # Dados de conta: só o próprio usuário ou um administrador podem ver.
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado.'}), 401
     id = request.args.get('id')
     if not id:
         return jsonify({'success': False, 'message': 'ID não fornecido.'})
+    if str(id) != str(session['user_id']) and session.get('tipo') != 'admin':
+        return jsonify({'success': False, 'message': 'Acesso restrito a administradores.'}), 403
     u = Usuario().buscar_por_id(id)
     if u:
         return jsonify({'success': True, 'usuario': u})
@@ -332,6 +368,36 @@ def api_usuario_atualizar():
     if not id or not username or not email:
         return jsonify({'success': False, 'message': 'Dados obrigatórios não fornecidos.'})
     return jsonify(Usuario().atualizar(id, username, email, password))
+
+@app.route('/api/usuario/perfil', methods=['POST'])
+def api_usuario_perfil():
+    """O usuário logado atualiza os PRÓPRIOS dados (nome de usuário, e-mail,
+    senha). Não permite trocar o tipo de acesso nem editar outra conta — isso
+    continua restrito a /api/usuario/atualizar e /definir-tipo (admin)."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado.'}), 401
+    username = request.form.get('username', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '')
+    confirmacao = request.form.get('password_confirm', '')
+    if not username or not email:
+        return jsonify({'success': False, 'message': 'Nome de usuário e e-mail são obrigatórios.'})
+    import re
+    if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+        return jsonify({'success': False, 'message': 'Formato de e-mail inválido.'})
+    if password:
+        if len(password) < 6:
+            return jsonify({'success': False, 'message': 'A nova senha deve ter pelo menos 6 caracteres.'})
+        if password != confirmacao:
+            return jsonify({'success': False, 'message': 'A confirmação não confere com a nova senha.'})
+    resultado = Usuario().atualizar(session['user_id'], username, email, password or None)
+    if resultado.get('success'):
+        session['username'] = username
+        session['email'] = email
+        resultado['message'] = 'Perfil atualizado com sucesso!'
+    elif 'UNIQUE' in resultado.get('message', ''):
+        resultado['message'] = 'Esse nome de usuário ou e-mail já está em uso.'
+    return jsonify(resultado)
 
 @app.route('/api/usuario/definir-tipo', methods=['POST'])
 @admin_required
@@ -426,6 +492,7 @@ def api_busca_sugestoes():
     return jsonify({'success': True, 'termo': termo, 'resultados': resultados, 'total': total})
 
 @app.route('/api/cursos/criar', methods=['POST'])
+@admin_required
 def api_cursos_criar():
     dados = {k: request.form.get(k, '') for k in ['nome','instituicao','modalidade','descricao','duracao','grau','area','tipo_instituicao']}
     faculdade_id = request.form.get('faculdade_id')
@@ -727,6 +794,7 @@ def api_vestibulares_buscar():
     return jsonify({'success': False, 'message': 'Vestibular não encontrado.'})
 
 @app.route('/api/vestibulares/criar', methods=['POST'])
+@admin_required
 def api_vestibulares_criar():
     dados = {k: request.form.get(k, '') for k in ['nome','instituicao','tipo_instituicao','cidade','regiao','periodo_inscricao','data_prova','descricao','link_edital']}
     if not dados['nome'] or not dados['instituicao']:
@@ -761,8 +829,23 @@ def api_admin_stats():
     c.execute("SELECT COUNT(*) FROM vestibulares"); stats['total_vestibulares'] = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM vestibulares WHERE status_validacao='ativo'"); stats['vestibulares_ativos'] = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM vestibulares WHERE cadastrado_ok=0"); stats['vestibulares_sem_faculdade'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM vestibulares WHERE status_validacao='encerrado'"); stats['vestibulares_encerrados'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE tipo='aluno'"); stats['total_alunos'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE created_at >= datetime('now', '-30 days')"); stats['novos_usuarios_30d'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM favoritos"); stats['total_favoritos'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM teste_vocacional_resultados"); stats['total_testes_vocacionais'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(DISTINCT faculdade_id) FROM cursos WHERE faculdade_id IS NOT NULL"); stats['faculdades_com_cursos'] = c.fetchone()[0]
+    c.execute("SELECT id, tipo, executado_em, sucesso, resumo FROM automacao_logs ORDER BY executado_em DESC, id DESC LIMIT 5")
+    automacoes = []
+    for r in c.fetchall():
+        try:
+            resumo = json.loads(r['resumo']) if r['resumo'] else None
+        except ValueError:
+            resumo = None
+        automacoes.append({'id': r['id'], 'tipo': r['tipo'], 'executado_em': r['executado_em'],
+                           'sucesso': bool(r['sucesso']), 'resumo': resumo})
     conn.close()
-    return jsonify({'success': True, 'stats': stats})
+    return jsonify({'success': True, 'stats': stats, 'automacoes': automacoes})
 
 # ──────────────────────────────────────────────
 # API — Favoritos

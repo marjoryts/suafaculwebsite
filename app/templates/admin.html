@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - SuaFacul</title>
+    <title>Painel administrativo - SuaFacul</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <script src="/static/js/theme.js"></script>
     <link rel="stylesheet" href="/static/css/components/header.css">
     <link rel="stylesheet" href="/static/css/components/footer.css">
-    <link rel="stylesheet" href="/static/css/pages/style.css">
+    <link rel="stylesheet" href="/static/css/components/painel.css">
     <link rel="stylesheet" href="/static/css/pages/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -17,263 +17,558 @@
     {% set active_page = 'admin' %}
     {% include 'partials/_header.html' %}
 
-
-    <main>
-        <div class="admin-container">
-            <div class="admin-header">
-                <h1><i class="fas fa-shield-alt"></i> Painel Administrativo</h1>
-                <p>Gerencie usuários, conteúdo e configurações do sistema</p>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="total-users">0</div>
-                    <div class="stat-label">Total de Usuários</div>
+    <div class="painel" id="painel-admin">
+        <!-- ============================== Barra lateral ============================== -->
+        <aside class="painel-sidebar" aria-label="Menu administrativo">
+            <div class="painel-perfil">
+                <div class="painel-avatar" aria-hidden="true">
+                    {% if usuario_sessao.avatar_url %}
+                        <img src="{{ usuario_sessao.avatar_url }}" alt="" referrerpolicy="no-referrer">
+                    {% else %}
+                        {{ (usuario_sessao.nome_usuario or 'A')[:1]|upper }}
+                    {% endif %}
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="total-cursos">0</div>
-                    <div class="stat-label">Cursos Cadastrados</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="total-faculdades">0</div>
-                    <div class="stat-label">Faculdades</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="total-vestibulares">0</div>
-                    <div class="stat-label">Vestibulares</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="vestibulares-ativos">0</div>
-                    <div class="stat-label">Vestibulares Ativos</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="vestibulares-sem-faculdade">0</div>
-                    <div class="stat-label">Vestibulares sem Faculdade Vinculada</div>
+                <div class="painel-perfil-texto">
+                    <span class="painel-nome">{{ usuario_sessao.nome_usuario }}</span>
+                    <span class="painel-email">{{ usuario_sessao.email }}</span>
+                    <span class="painel-papel painel-papel--admin"><i class="fas fa-shield-halved"></i> Administrador</span>
                 </div>
             </div>
 
-            <div class="admin-tabs">
-                <button class="tab-button active" onclick="openTab('users')">
-                    <i class="fas fa-users"></i> Usuários
-                </button>
-                <button class="tab-button" onclick="openTab('faculdades')">
-                    <i class="fas fa-university"></i> Faculdades
-                </button>
-                <button class="tab-button" onclick="openTab('vestibulares')">
-                    <i class="fas fa-file-signature"></i> Vestibulares
-                </button>
-                <button class="tab-button" onclick="openTab('settings')">
-                    <i class="fas fa-cog"></i> Configurações
-                </button>
+            <nav class="painel-nav" aria-label="Seções administrativas">
+                <span class="painel-nav-grupo">Administração</span>
+                <a href="#visao-geral" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-chart-pie"></i><span class="painel-nav-texto">Visão geral</span>
+                </a>
+                <a href="#usuarios" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-users"></i><span class="painel-nav-texto">Usuários</span>
+                    <span class="painel-nav-contador" data-stat="total_usuarios">–</span>
+                </a>
+                <a href="#faculdades" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-building-columns"></i><span class="painel-nav-texto">Faculdades</span>
+                    <span class="painel-nav-contador" data-stat="total_faculdades">–</span>
+                </a>
+                <a href="#cursos" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-book"></i><span class="painel-nav-texto">Cursos</span>
+                    <span class="painel-nav-contador" data-stat="total_cursos">–</span>
+                </a>
+                <a href="#vestibulares" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-clipboard-list"></i><span class="painel-nav-texto">Vestibulares</span>
+                    <span class="painel-nav-contador" data-stat="total_vestibulares">–</span>
+                </a>
+                <a href="#sistema" class="painel-nav-link" data-painel-link>
+                    <i class="fas fa-server"></i><span class="painel-nav-texto">Sistema</span>
+                </a>
+
+                <span class="painel-nav-grupo">Atalhos</span>
+                <a href="/dashboard" class="painel-nav-link">
+                    <i class="fas fa-user"></i><span class="painel-nav-texto">Meu painel</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+                <a href="/" class="painel-nav-link">
+                    <i class="fas fa-globe"></i><span class="painel-nav-texto">Ver site</span>
+                    <i class="fas fa-arrow-up-right-from-square painel-nav-externo" aria-hidden="true"></i>
+                </a>
+            </nav>
+
+            <div class="painel-sidebar-rodape">
+                <a href="/logout" class="painel-nav-link painel-nav-link--sair">
+                    <i class="fas fa-right-from-bracket"></i><span class="painel-nav-texto">Sair da conta</span>
+                </a>
             </div>
+        </aside>
 
-            <!-- Tab Usuários -->
-            <div id="users" class="tab-content active">
-                <div class="search-bar">
-                    <input type="text" id="search-input" class="search-input" placeholder="Buscar usuários...">
-                    <button class="btn-admin" onclick="buscarUsuarios()">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
-                    <button class="btn-admin btn-success" onclick="abrirModalAdicionar()">
-                        <i class="fas fa-plus"></i> Adicionar Usuário
-                    </button>
+        <main class="painel-conteudo">
+            <!-- ============================== Visão geral ============================== -->
+            <section class="painel-secao" id="visao-geral" aria-labelledby="titulo-admin">
+                <div class="painel-boasvindas">
+                    <div>
+                        <h1 id="titulo-admin">Painel <span>administrativo</span></h1>
+                        <p>Gerencie usuários, faculdades, cursos e vestibulares e acompanhe os dados do SuaFacul.</p>
+                    </div>
+                    <div class="painel-boasvindas-acoes">
+                        <button type="button" class="btn btn-primary" onclick="abrirModalAdicionar()"><i class="fas fa-user-plus"></i> Adicionar usuário</button>
+                        <a href="#sistema" class="btn btn-contorno-claro" data-painel-link>Dados do sistema</a>
+                    </div>
                 </div>
 
-                <div id="users-alert"></div>
-                <div id="users-loading" class="loading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i> Carregando usuários...
+                <div class="painel-stats" aria-live="polite">
+                    <a href="#usuarios" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone"><i class="fas fa-users"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" id="total-users" data-stat="total_usuarios">–</span>
+                            <span class="painel-stat-rotulo">Usuários</span>
+                            <span class="painel-stat-extra"><span data-stat="total_admins">–</span> admin(s) · <span data-stat="novos_usuarios_30d">–</span> novos em 30 dias</span>
+                        </span>
+                    </a>
+                    <a href="#faculdades" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--azul"><i class="fas fa-building-columns"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" id="total-faculdades" data-stat="total_faculdades">–</span>
+                            <span class="painel-stat-rotulo">Faculdades</span>
+                            <span class="painel-stat-extra"><span data-stat="faculdades_importadas_emec">–</span> importadas do e-MEC</span>
+                        </span>
+                    </a>
+                    <a href="#cursos" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--verde"><i class="fas fa-book"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" id="total-cursos" data-stat="total_cursos">–</span>
+                            <span class="painel-stat-rotulo">Cursos cadastrados</span>
+                            <span class="painel-stat-extra">em <span data-stat="faculdades_com_cursos">–</span> faculdade(s)</span>
+                        </span>
+                    </a>
+                    <a href="#vestibulares" class="painel-stat" data-painel-link>
+                        <span class="painel-stat-icone painel-stat-icone--laranja"><i class="fas fa-clipboard-list"></i></span>
+                        <span>
+                            <span class="painel-stat-numero" id="total-vestibulares" data-stat="total_vestibulares">–</span>
+                            <span class="painel-stat-rotulo">Vestibulares</span>
+                            <span class="painel-stat-extra"><span id="vestibulares-ativos" data-stat="vestibulares_ativos">–</span> ativos · <span id="vestibulares-sem-faculdade" data-stat="vestibulares_sem_faculdade">–</span> sem faculdade</span>
+                        </span>
+                    </a>
                 </div>
 
-                <table class="users-table" id="users-table" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nome de Usuário</th>
-                            <th>Email</th>
-                            <th>Tipo</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-list">
-                    </tbody>
-                </table>
-            </div>
+                <div class="painel-grid">
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-bolt"></i> Ações rápidas</h2>
+                                <p>Tarefas administrativas mais usadas</p>
+                            </div>
+                        </div>
+                        <div class="painel-acoes painel-acoes--coluna">
+                            <button type="button" class="painel-acao" onclick="abrirModalAdicionar()">
+                                <i class="fas fa-user-plus"></i>
+                                <div><strong>Adicionar usuário</strong><span>Criar conta de aluno ou administrador</span></div>
+                            </button>
+                            <button type="button" class="painel-acao" onclick="abrirModalFaculdade()">
+                                <i class="fas fa-building-circle-check"></i>
+                                <div><strong>Cadastrar faculdade</strong><span>Inclusão manual de instituição</span></div>
+                            </button>
+                            <button type="button" class="painel-acao" onclick="abrirModalCurso()">
+                                <i class="fas fa-book-medical"></i>
+                                <div><strong>Cadastrar curso</strong><span>Vinculado a uma faculdade</span></div>
+                            </button>
+                            <button type="button" class="painel-acao" data-painel-ir="vestibulares">
+                                <i class="fas fa-check-double"></i>
+                                <div><strong>Validar vestibulares</strong><span>Conferir datas e instituições</span></div>
+                            </button>
+                        </div>
+                    </div>
 
-            <!-- Tab Faculdades -->
-            <div id="faculdades" class="tab-content">
-                <div class="import-bar">
-                    <input type="text" id="emec-codigo" placeholder="Código e-MEC da instituição (ex: 339)">
-                    <button class="btn-admin" onclick="importarEmec()">
-                        <i class="fas fa-cloud-download-alt"></i> Importar do e-MEC
-                    </button>
-                    <small>O e-MEC não expõe API oficial: os dados são obtidos por leitura da página pública de consulta. Telefone e e-mail de contato quase sempre precisam ser completados manualmente.</small>
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-heart-pulse"></i> Engajamento</h2>
+                                <p>Uso das funcionalidades pelos alunos</p>
+                            </div>
+                        </div>
+                        <ul class="painel-lista">
+                            <li class="painel-lista-item">
+                                <span class="painel-lista-icone painel-lista-icone--curso" aria-hidden="true"><i class="fas fa-user-graduate"></i></span>
+                                <div class="painel-lista-texto"><span class="painel-lista-titulo">Alunos cadastrados</span><span class="painel-lista-meta">Contas do tipo aluno</span></div>
+                                <strong class="admin-numero" data-stat="total_alunos">–</strong>
+                            </li>
+                            <li class="painel-lista-item">
+                                <span class="painel-lista-icone painel-lista-icone--vestibular" aria-hidden="true"><i class="fas fa-heart"></i></span>
+                                <div class="painel-lista-texto"><span class="painel-lista-titulo">Favoritos salvos</span><span class="painel-lista-meta">Cursos, faculdades e vestibulares</span></div>
+                                <strong class="admin-numero" data-stat="total_favoritos">–</strong>
+                            </li>
+                            <li class="painel-lista-item">
+                                <span class="painel-lista-icone painel-lista-icone--ok" aria-hidden="true"><i class="fas fa-compass"></i></span>
+                                <div class="painel-lista-texto"><span class="painel-lista-titulo">Testes vocacionais</span><span class="painel-lista-meta">Resultados registrados</span></div>
+                                <strong class="admin-numero" data-stat="total_testes_vocacionais">–</strong>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
+            </section>
 
-                <div class="import-bar">
-                    <select id="emec-uf">
-                        <option value="">Selecione a UF...</option>
-                        <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option>
-                        <option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option>
-                        <option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
-                        <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option>
-                        <option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option>
-                        <option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
-                        <option value="SP" selected>SP</option><option value="SE">SE</option><option value="TO">TO</option>
-                    </select>
-                    <button class="btn-admin" onclick="importarEmecPorUF()">
-                        <i class="fas fa-map-marked-alt"></i> Importar todas as IES da UF
-                    </button>
-                    <button class="btn-admin btn-secondary" onclick="importarEmecBrasil()">
-                        <i class="fas fa-globe-americas"></i> Importar Brasil inteiro (27 UFs)
-                    </button>
-                    <small>Busca todas as instituições em atividade cadastradas no e-MEC para a UF (ou para todas as 27 UFs). Nome, organização acadêmica e tipo (pública/privada) vêm preenchidos; endereço/telefone/site ficam para completar depois — o e-MEC não os disponibiliza nessa listagem. A importação do Brasil inteiro pode levar vários minutos.</small>
+            <!-- ============================== Usuários ============================== -->
+            <section class="painel-secao" id="usuarios" aria-labelledby="titulo-usuarios" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-usuarios">Usuários</h1>
+                        <p>Contas cadastradas e nível de acesso.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <button type="button" class="btn btn-primary" onclick="abrirModalAdicionar()"><i class="fas fa-plus"></i> Adicionar usuário</button>
+                    </div>
                 </div>
-
-                <div class="import-bar">
-                    <input type="file" id="emec-csv-file" accept=".csv">
-                    <button class="btn-admin" onclick="importarEmecCsv()">
-                        <i class="fas fa-file-upload"></i> Importar CSV oficial (upload manual)
-                    </button>
-                    <small>Se os botões acima derem erro 403 (bloqueio do e-MEC a chamadas automatizadas), baixe o CSV oficial pelo seu navegador em
-                        <a href="https://dadosabertos.mec.gov.br/indicadores-sobre-ensino-superior" target="_blank" rel="noopener">dadosabertos.mec.gov.br</a>
-                        ("Instituições de Educação Superior do Brasil") e envie o arquivo aqui — importa o Brasil inteiro de uma vez, sem depender de nenhuma chamada ao e-MEC.</small>
+                <div class="painel-card">
+                    <div class="painel-ferramentas">
+                        <label class="painel-busca">
+                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="search-input" placeholder="Buscar por nome ou e-mail..." aria-label="Buscar usuários">
+                        </label>
+                    </div>
+                    <div id="users-alert"></div>
+                    <div id="users-loading" class="painel-carregando" style="display: none;">
+                        <span class="painel-spinner"></span> Carregando usuários...
+                    </div>
+                    <div class="painel-tabela">
+                        <table id="users-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuário</th>
+                                    <th>E-mail</th>
+                                    <th>Tipo</th>
+                                    <th class="admin-col-acoes">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="painel-tabela-rodape"><span id="users-total"></span></div>
                 </div>
+            </section>
 
-                <div class="import-bar">
-                    <input type="file" id="censo-cursos-file" accept=".csv">
-                    <button class="btn-admin" onclick="importarCursosCenso()">
-                        <i class="fas fa-graduation-cap"></i> Importar cursos (Censo INEP)
-                    </button>
-                    <small>Importa os cursos de graduação de <strong>todas as instituições já cadastradas</strong> (upload acima). Baixe o CSV
-                        "MICRODADOS_CADASTRO_CURSOS_&lt;ano&gt;.CSV" (dentro do ZIP do Censo) em
-                        <a href="https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/censo-da-educacao-superior" target="_blank" rel="noopener">gov.br/inep</a>.
-                        Arquivo grande (400+MB) — a importação pode levar um tempo, não feche a página.</small>
-                </div>
-
-                <div class="search-bar">
-                    <input type="text" id="faculdade-search-input" class="search-input" placeholder="Buscar faculdades...">
-                    <button class="btn-admin" onclick="buscarFaculdades()">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
-                    <button class="btn-admin btn-success" onclick="abrirModalFaculdade()">
-                        <i class="fas fa-plus"></i> Cadastrar Manualmente
-                    </button>
+            <!-- ============================== Faculdades ============================== -->
+            <section class="painel-secao" id="faculdades" aria-labelledby="titulo-faculdades" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-faculdades">Faculdades</h1>
+                        <p>Instituições cadastradas manualmente ou importadas do e-MEC.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <button type="button" class="btn btn-primary" onclick="abrirModalFaculdade()"><i class="fas fa-plus"></i> Cadastrar manualmente</button>
+                    </div>
                 </div>
 
                 <div id="faculdades-alert"></div>
-                <div id="faculdades-loading" class="loading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i> Carregando faculdades...
+
+                <div class="painel-card">
+                    <div class="painel-ferramentas">
+                        <label class="painel-busca">
+                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="faculdade-search-input" placeholder="Buscar por nome, sigla ou cidade..." aria-label="Buscar faculdades">
+                        </label>
+                        <button type="button" class="btn btn-outline" onclick="buscarFaculdades()"><i class="fas fa-magnifying-glass"></i> Buscar</button>
+                    </div>
+                    <div id="faculdades-loading" class="painel-carregando" style="display: none;">
+                        <span class="painel-spinner"></span> Carregando faculdades...
+                    </div>
+                    <div class="painel-tabela">
+                        <table id="faculdades-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Cidade/UF</th>
+                                    <th>Tipo</th>
+                                    <th>Origem</th>
+                                    <th>Contato</th>
+                                    <th class="admin-col-acoes">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faculdades-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="painel-tabela-rodape"><span id="faculdades-total"></span></div>
                 </div>
 
-                <table class="users-table" id="faculdades-table" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Cidade/UF</th>
-                            <th>Tipo</th>
-                            <th>Origem</th>
-                            <th>Contato</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="faculdades-list">
-                    </tbody>
-                </table>
-            </div>
+                <div class="painel-card">
+                    <div class="painel-card-cabecalho">
+                        <div>
+                            <h2><i class="fas fa-cloud-arrow-down"></i> Importar instituições</h2>
+                            <p>Dados oficiais do e-MEC / MEC</p>
+                        </div>
+                    </div>
+                    <div class="admin-importacoes">
+                        <div class="admin-importacao">
+                            <h3>Por código e-MEC</h3>
+                            <div class="admin-importacao-campos">
+                                <input type="text" id="emec-codigo" placeholder="Código e-MEC (ex.: 339)" aria-label="Código e-MEC da instituição">
+                                <button type="button" class="btn btn-outline" onclick="importarEmec()"><i class="fas fa-cloud-arrow-down"></i> Importar</button>
+                            </div>
+                            <small>O e-MEC não expõe API oficial: os dados são obtidos por leitura da página pública de consulta. Telefone e e-mail de contato quase sempre precisam ser completados manualmente.</small>
+                        </div>
 
-            <!-- Tab Vestibulares -->
-            <div id="vestibulares" class="tab-content">
-                <div class="import-bar">
-                    <button class="btn-admin" onclick="validarVestibulares(false)">
-                        <i class="fas fa-eye"></i> Pré-visualizar validação
-                    </button>
-                    <button class="btn-admin btn-success" onclick="validarVestibulares(true)">
-                        <i class="fas fa-check-double"></i> Validar e Aplicar
-                    </button>
-                    <small>Verifica automaticamente se a data de cada vestibular ainda é válida e se a instituição já está cadastrada em Faculdades.</small>
+                        <div class="admin-importacao">
+                            <h3>Por UF ou Brasil inteiro</h3>
+                            <div class="admin-importacao-campos">
+                                <select id="emec-uf" aria-label="UF">
+                                    <option value="">Selecione a UF...</option>
+                                    <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option>
+                                    <option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option>
+                                    <option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                                    <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option>
+                                    <option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option>
+                                    <option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                                    <option value="SP" selected>SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                                </select>
+                                <button type="button" class="btn btn-outline" onclick="importarEmecPorUF()"><i class="fas fa-map-location-dot"></i> Importar UF</button>
+                                <button type="button" class="btn btn-outline" onclick="importarEmecBrasil()"><i class="fas fa-earth-americas"></i> Brasil (27 UFs)</button>
+                            </div>
+                            <small>Busca todas as instituições em atividade no e-MEC para a UF (ou para as 27 UFs). Nome, organização acadêmica e tipo vêm preenchidos; endereço/telefone/site ficam para completar depois. A importação do Brasil inteiro pode levar vários minutos.</small>
+                        </div>
+
+                        <div class="admin-importacao">
+                            <h3>CSV oficial (upload manual)</h3>
+                            <div class="admin-importacao-campos">
+                                <input type="file" id="emec-csv-file" accept=".csv" aria-label="Arquivo CSV de instituições">
+                                <button type="button" class="btn btn-outline" onclick="importarEmecCsv()"><i class="fas fa-file-arrow-up"></i> Enviar CSV</button>
+                            </div>
+                            <small>Se os botões acima derem erro 403 (bloqueio do e-MEC a chamadas automatizadas), baixe o CSV em
+                                <a href="https://dadosabertos.mec.gov.br/indicadores-sobre-ensino-superior" target="_blank" rel="noopener">dadosabertos.mec.gov.br</a>
+                                ("Instituições de Educação Superior do Brasil") e envie aqui — importa o Brasil inteiro de uma vez.</small>
+                        </div>
+                    </div>
                 </div>
-                <div id="vestibulares-alert"></div>
-                <div id="vestibulares-resumo"></div>
-                <table class="users-table" id="vestibulares-table" style="display:none;">
-                    <thead>
-                        <tr>
-                            <th>Vestibular</th>
-                            <th>Instituição</th>
-                            <th>Situação da data</th>
-                            <th>Faculdade cadastrada?</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vestibulares-list"></tbody>
-                </table>
-            </div>
+            </section>
 
-            <!-- Tab Configurações -->
-            <div id="settings" class="tab-content">
-                <h2>Configurações do Sistema</h2>
-                <p>Funcionalidade em desenvolvimento...</p>
-            </div>
-        </div>
-    </main>
+            <!-- ============================== Cursos ============================== -->
+            <section class="painel-secao" id="cursos" aria-labelledby="titulo-cursos" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-cursos">Cursos</h1>
+                        <p>Cursos de graduação disponíveis no site.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <button type="button" class="btn btn-primary" onclick="abrirModalCurso()"><i class="fas fa-plus"></i> Cadastrar curso</button>
+                    </div>
+                </div>
+
+                <div id="cursos-alert"></div>
+
+                <div class="painel-card">
+                    <div class="painel-ferramentas">
+                        <label class="painel-busca">
+                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="curso-search-input" placeholder="Buscar por nome, instituição ou área..." aria-label="Buscar cursos">
+                        </label>
+                    </div>
+                    <div id="cursos-loading" class="painel-carregando" style="display: none;">
+                        <span class="painel-spinner"></span> Carregando cursos...
+                    </div>
+                    <div class="painel-tabela">
+                        <table id="cursos-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Curso</th>
+                                    <th>Instituição</th>
+                                    <th>Área</th>
+                                    <th>Modalidade</th>
+                                    <th>Grau / duração</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cursos-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="painel-tabela-rodape">
+                        <span id="cursos-total"></span>
+                        <div class="painel-paginacao" id="cursos-paginacao"></div>
+                    </div>
+                </div>
+
+                <div class="painel-card">
+                    <div class="painel-card-cabecalho">
+                        <div>
+                            <h2><i class="fas fa-graduation-cap"></i> Importar cursos (Censo INEP)</h2>
+                            <p>Cursos de graduação das instituições já cadastradas</p>
+                        </div>
+                    </div>
+                    <div class="admin-importacao">
+                        <div class="admin-importacao-campos">
+                            <input type="file" id="censo-cursos-file" accept=".csv" aria-label="Arquivo CSV de cursos do Censo">
+                            <button type="button" class="btn btn-outline" onclick="importarCursosCenso()"><i class="fas fa-file-arrow-up"></i> Importar cursos</button>
+                        </div>
+                        <small>Importa os cursos de <strong>todas as instituições já cadastradas</strong>. Baixe o CSV
+                            "MICRODADOS_CADASTRO_CURSOS_&lt;ano&gt;.CSV" (dentro do ZIP do Censo) em
+                            <a href="https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/censo-da-educacao-superior" target="_blank" rel="noopener">gov.br/inep</a>.
+                            Arquivo grande (400+MB) — a importação pode levar um tempo, não feche a página.</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================== Vestibulares ============================== -->
+            <section class="painel-secao" id="vestibulares" aria-labelledby="titulo-vestibulares" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-vestibulares">Vestibulares</h1>
+                        <p>Processos seletivos cadastrados e validação automática de datas.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <button type="button" class="btn btn-primary" onclick="abrirModalVestibular()"><i class="fas fa-plus"></i> Cadastrar vestibular</button>
+                    </div>
+                </div>
+
+                <div class="painel-card">
+                    <div class="painel-card-cabecalho">
+                        <div>
+                            <h2><i class="fas fa-check-double"></i> Validação automática</h2>
+                            <p>Verifica se a data de cada vestibular ainda é válida e se a instituição já está cadastrada em Faculdades. Também roda sozinha uma vez por dia.</p>
+                        </div>
+                    </div>
+                    <div class="painel-ferramentas">
+                        <button type="button" class="btn btn-outline" onclick="validarVestibulares(false)"><i class="fas fa-eye"></i> Pré-visualizar</button>
+                        <button type="button" class="btn btn-primary" onclick="validarVestibulares(true)"><i class="fas fa-check-double"></i> Validar e aplicar</button>
+                    </div>
+                    <div id="vestibulares-alert"></div>
+                    <div id="vestibulares-resumo"></div>
+                    <div class="painel-tabela">
+                        <table id="vestibulares-table" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Vestibular</th>
+                                    <th>Instituição</th>
+                                    <th>Situação da data</th>
+                                    <th>Faculdade cadastrada?</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vestibulares-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="painel-card">
+                    <div class="painel-card-cabecalho">
+                        <div>
+                            <h2><i class="fas fa-list"></i> Vestibulares cadastrados</h2>
+                            <p>Inclui instituições públicas e privadas</p>
+                        </div>
+                    </div>
+                    <div id="vestibulares-cadastro-alert"></div>
+                    <div class="painel-ferramentas">
+                        <label class="painel-busca">
+                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="vestibular-search-input" placeholder="Buscar por nome, instituição ou cidade..." aria-label="Buscar vestibulares">
+                        </label>
+                    </div>
+                    <div id="vestibulares-cadastro-loading" class="painel-carregando" style="display: none;">
+                        <span class="painel-spinner"></span> Carregando vestibulares...
+                    </div>
+                    <div class="painel-tabela">
+                        <table id="vestibulares-cadastro-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Vestibular</th>
+                                    <th>Instituição</th>
+                                    <th>Local</th>
+                                    <th>Prova</th>
+                                    <th>Situação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vestibulares-cadastro-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="painel-tabela-rodape">
+                        <span id="vestibulares-cadastro-total"></span>
+                        <div class="painel-paginacao" id="vestibulares-paginacao"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================== Sistema ============================== -->
+            <section class="painel-secao" id="sistema" aria-labelledby="titulo-sistema" hidden>
+                <div class="painel-cabecalho">
+                    <div>
+                        <h1 id="titulo-sistema">Sistema</h1>
+                        <p>Automações e panorama dos dados cadastrados.</p>
+                    </div>
+                    <div class="painel-cabecalho-acoes">
+                        <button type="button" class="btn btn-outline" onclick="carregarStats()"><i class="fas fa-rotate-right"></i> Atualizar dados</button>
+                    </div>
+                </div>
+
+                <div class="painel-grid">
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-robot"></i> Automações recentes</h2>
+                                <p>Validação diária de vestibulares</p>
+                            </div>
+                        </div>
+                        <ul class="painel-lista" id="automacoes-lista">
+                            <li class="painel-carregando"><span class="painel-spinner"></span> Carregando...</li>
+                        </ul>
+                    </div>
+
+                    <div class="painel-card">
+                        <div class="painel-card-cabecalho">
+                            <div>
+                                <h2><i class="fas fa-database"></i> Base de dados</h2>
+                                <p>Totais atuais</p>
+                            </div>
+                        </div>
+                        <dl class="admin-dados">
+                            <div><dt>Usuários</dt><dd data-stat="total_usuarios">–</dd></div>
+                            <div><dt>Administradores</dt><dd data-stat="total_admins">–</dd></div>
+                            <div><dt>Alunos</dt><dd data-stat="total_alunos">–</dd></div>
+                            <div><dt>Faculdades</dt><dd data-stat="total_faculdades">–</dd></div>
+                            <div><dt>Importadas do e-MEC</dt><dd data-stat="faculdades_importadas_emec">–</dd></div>
+                            <div><dt>Cursos</dt><dd data-stat="total_cursos">–</dd></div>
+                            <div><dt>Vestibulares</dt><dd data-stat="total_vestibulares">–</dd></div>
+                            <div><dt>Vestibulares ativos</dt><dd data-stat="vestibulares_ativos">–</dd></div>
+                            <div><dt>Vestibulares encerrados</dt><dd data-stat="vestibulares_encerrados">–</dd></div>
+                            <div><dt>Sem faculdade vinculada</dt><dd data-stat="vestibulares_sem_faculdade">–</dd></div>
+                            <div><dt>Favoritos salvos</dt><dd data-stat="total_favoritos">–</dd></div>
+                            <div><dt>Testes vocacionais</dt><dd data-stat="total_testes_vocacionais">–</dd></div>
+                        </dl>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
     <!-- Modal Adicionar/Editar Usuário -->
-    <div id="user-modal" class="modal">
+    <div id="user-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modal-title">Adicionar Usuário</h2>
-                <span class="close" onclick="fecharModal()">&times;</span>
+                <button type="button" class="close" onclick="fecharModal()" aria-label="Fechar">&times;</button>
             </div>
             <div id="modal-alert"></div>
             <form id="user-form">
                 <input type="hidden" id="user-id">
                 <div class="form-group">
-                    <label for="username">Nome de Usuário:</label>
+                    <label for="username">Nome de usuário</label>
                     <input type="text" id="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email:</label>
+                    <label for="email">E-mail</label>
                     <input type="email" id="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Senha:</label>
-                    <input type="password" id="password">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" autocomplete="new-password">
                     <small>Deixe em branco para manter a senha atual (ao editar)</small>
                 </div>
                 <div class="form-group" id="tipo-group" style="display:none;">
-                    <label for="user-tipo">Tipo de acesso:</label>
+                    <label for="user-tipo">Tipo de acesso</label>
                     <select id="user-tipo">
                         <option value="aluno">Aluno</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
-                <div style="text-align: right;">
-                    <button type="button" class="btn-admin btn-secondary" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn-admin">Salvar</button>
+                <div class="modal-acoes">
+                    <button type="button" class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Adicionar/Editar Faculdade -->
-    <div id="faculdade-modal" class="modal">
+    <div id="faculdade-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="faculdade-modal-title">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="faculdade-modal-title">Cadastrar Faculdade</h2>
-                <span class="close" onclick="fecharModalFaculdade()">&times;</span>
+                <button type="button" class="close" onclick="fecharModalFaculdade()" aria-label="Fechar">&times;</button>
             </div>
             <div id="faculdade-modal-alert"></div>
             <form id="faculdade-form">
                 <input type="hidden" id="faculdade-id">
                 <div class="form-group">
-                    <label for="f-nome">Nome:</label>
+                    <label for="f-nome">Nome</label>
                     <input type="text" id="f-nome" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="f-sigla">Sigla:</label>
+                        <label for="f-sigla">Sigla</label>
                         <input type="text" id="f-sigla">
                     </div>
                     <div class="form-group">
-                        <label for="f-tipo">Tipo:</label>
+                        <label for="f-tipo">Tipo</label>
                         <select id="f-tipo">
                             <option value="Pública">Pública</option>
                             <option value="Privada">Privada</option>
@@ -281,59 +576,193 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="f-url">Site (URL):</label>
+                    <label for="f-url">Site (URL)</label>
                     <input type="text" id="f-url" placeholder="https://...">
                 </div>
                 <div class="form-group">
-                    <label for="f-endereco">Endereço:</label>
+                    <label for="f-endereco">Endereço</label>
                     <input type="text" id="f-endereco">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="f-cidade">Cidade:</label>
+                        <label for="f-cidade">Cidade</label>
                         <input type="text" id="f-cidade">
                     </div>
                     <div class="form-group">
-                        <label for="f-uf">UF:</label>
+                        <label for="f-uf">UF</label>
                         <input type="text" id="f-uf" maxlength="2">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="f-telefone">Telefone:</label>
+                        <label for="f-telefone">Telefone</label>
                         <input type="text" id="f-telefone">
                     </div>
                     <div class="form-group">
-                        <label for="f-email">E-mail de contato:</label>
+                        <label for="f-email">E-mail de contato</label>
                         <input type="email" id="f-email">
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <button type="button" class="btn-admin btn-secondary" onclick="fecharModalFaculdade()">Cancelar</button>
-                    <button type="submit" class="btn-admin">Salvar</button>
+                <div class="modal-acoes">
+                    <button type="button" class="btn btn-outline" onclick="fecharModalFaculdade()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Cadastrar Curso (usa /api/cursos/criar) -->
+    <div id="curso-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="curso-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="curso-modal-title">Cadastrar Curso</h2>
+                <button type="button" class="close" onclick="fecharModalCurso()" aria-label="Fechar">&times;</button>
+            </div>
+            <div id="curso-modal-alert"></div>
+            <form id="curso-form">
+                <div class="form-group">
+                    <label for="c-nome">Nome do curso</label>
+                    <input type="text" id="c-nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="c-faculdade">Faculdade</label>
+                    <select id="c-faculdade" required>
+                        <option value="">Carregando faculdades...</option>
+                    </select>
+                    <small>A instituição e o tipo (pública/privada) vêm da faculdade selecionada.</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="c-modalidade">Modalidade</label>
+                        <select id="c-modalidade">
+                            <option value="presencial">Presencial</option>
+                            <option value="ead">EaD</option>
+                            <option value="semipresencial">Semipresencial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="c-area">Área</label>
+                        <input type="text" id="c-area" list="c-areas" placeholder="Ex.: Tecnologia">
+                        <datalist id="c-areas"></datalist>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="c-grau">Grau</label>
+                        <input type="text" id="c-grau" list="c-graus" placeholder="Ex.: Bacharelado">
+                        <datalist id="c-graus">
+                            <option value="Bacharelado"></option>
+                            <option value="Licenciatura"></option>
+                            <option value="Tecnólogo"></option>
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="c-duracao">Duração</label>
+                        <input type="text" id="c-duracao" placeholder="Ex.: 4 anos">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="c-descricao">Descrição</label>
+                    <textarea id="c-descricao" rows="3"></textarea>
+                </div>
+                <div class="modal-acoes">
+                    <button type="button" class="btn btn-outline" onclick="fecharModalCurso()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Cadastrar Vestibular (usa /api/vestibulares/criar) -->
+    <div id="vestibular-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vestibular-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="vestibular-modal-title">Cadastrar Vestibular</h2>
+                <button type="button" class="close" onclick="fecharModalVestibular()" aria-label="Fechar">&times;</button>
+            </div>
+            <div id="vestibular-modal-alert"></div>
+            <form id="vestibular-form">
+                <div class="form-group">
+                    <label for="v-nome">Nome</label>
+                    <input type="text" id="v-nome" required placeholder="Ex.: Fuvest 2027">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="v-instituicao">Instituição (sigla)</label>
+                        <input type="text" id="v-instituicao" required placeholder="Ex.: USP">
+                    </div>
+                    <div class="form-group">
+                        <label for="v-tipo">Tipo</label>
+                        <select id="v-tipo">
+                            <option value="Pública">Pública</option>
+                            <option value="Privada">Privada</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="v-cidade">Cidade</label>
+                        <input type="text" id="v-cidade">
+                    </div>
+                    <div class="form-group">
+                        <label for="v-regiao">Região</label>
+                        <select id="v-regiao">
+                            <option value="">—</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Nordeste">Nordeste</option>
+                            <option value="Centro-Oeste">Centro-Oeste</option>
+                            <option value="Sudeste">Sudeste</option>
+                            <option value="Sul">Sul</option>
+                            <option value="Nacional">Nacional</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="v-inscricao">Período de inscrição</label>
+                        <input type="text" id="v-inscricao" placeholder="Ex.: 17/08 a 09/10/2026">
+                    </div>
+                    <div class="form-group">
+                        <label for="v-data">Data da prova</label>
+                        <input type="date" id="v-data">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="v-edital">Link do edital</label>
+                    <input type="url" id="v-edital" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label for="v-descricao">Descrição</label>
+                    <textarea id="v-descricao" rows="3"></textarea>
+                </div>
+                <div class="modal-acoes">
+                    <button type="button" class="btn btn-outline" onclick="fecharModalVestibular()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cadastrar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal de Confirmação -->
-    <div id="confirm-modal" class="modal">
-        <div class="modal-content">
+    <div id="confirm-modal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="modal-content modal-content--estreito">
             <div class="modal-header">
-                <h2>Confirmar Exclusão</h2>
-                <span class="close" onclick="fecharConfirmModal()">&times;</span>
+                <h2 id="confirm-title">Confirmar exclusão</h2>
+                <button type="button" class="close" onclick="fecharConfirmModal()" aria-label="Fechar">&times;</button>
             </div>
             <p id="confirm-message">Tem certeza que deseja excluir este usuário?</p>
-            <div style="text-align: right;">
-                <button class="btn-admin btn-secondary" onclick="fecharConfirmModal()">Cancelar</button>
-                <button class="btn-admin btn-danger" onclick="confirmarExclusao()">Excluir</button>
+            <div class="modal-acoes">
+                <button type="button" class="btn btn-outline" onclick="fecharConfirmModal()">Cancelar</button>
+                <button type="button" class="btn btn-perigo" onclick="confirmarExclusao()"><i class="fas fa-trash"></i> Excluir</button>
             </div>
         </div>
     </div>
 
     {% include 'partials/_footer.html' %}
-    
+
     <script src="/static/js/header.js"></script>
+    <script src="/static/js/painel.js"></script>
     <script src="/static/js/admin.js"></script>
+    <script>window._adminUsuarioId = {{ usuario_sessao.id|tojson }};</script>
 </body>
-</html> 
+</html>

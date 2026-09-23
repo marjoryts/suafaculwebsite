@@ -56,6 +56,7 @@
             const novoTema = root.classList.contains('dark-mode') ? 'light' : 'dark';
             aplicarTema(novoTema);
             salvarPreferencia(novoTema);
+            document.dispatchEvent(new CustomEvent('tema:alterado', { detail: { preferencia: novoTema } }));
         });
     });
 
@@ -63,6 +64,36 @@
     window.addEventListener('storage', function (e) {
         if (e.key === STORAGE_KEY && (e.newValue === 'dark' || e.newValue === 'light')) {
             aplicarTema(e.newValue);
+        } else if (e.key === STORAGE_KEY && e.newValue === null) {
+            aplicarTema(temaInicial());
         }
     });
+
+    // 4) Sem escolha salva ("automático"), acompanha a troca de tema do sistema.
+    if (window.matchMedia) {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const aoMudarSistema = function () {
+            if (!lerPreferencia()) aplicarTema(temaInicial());
+        };
+        if (mq.addEventListener) mq.addEventListener('change', aoMudarSistema);
+    }
+
+    // 5) API usada pela tela de configurações do dashboard:
+    //    preferencia() → 'light' | 'dark' | 'sistema'; definir(mesmos valores).
+    window.SuaFaculTema = {
+        preferencia: function () {
+            const salvo = lerPreferencia();
+            return salvo === 'dark' || salvo === 'light' ? salvo : 'sistema';
+        },
+        definir: function (valor) {
+            if (valor === 'dark' || valor === 'light') {
+                salvarPreferencia(valor);
+                aplicarTema(valor);
+            } else {
+                try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignora */ }
+                aplicarTema(temaInicial());
+            }
+            document.dispatchEvent(new CustomEvent('tema:alterado', { detail: { preferencia: this.preferencia() } }));
+        }
+    };
 })();
