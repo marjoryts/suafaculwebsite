@@ -22,6 +22,17 @@
     --text-color: #404040;
     --text-light: #7A7A7A;
 
+    /* ---- Tokens de tema (claro por padrão; .dark-mode sobrescreve) ----
+       Use estes tokens para qualquer cor que precise mudar no modo noturno.
+       --second-color continua sendo branco "de marca" (texto sobre botões
+       laranja/roxos, rodapé), por isso fundos de cards/painéis devem usar
+       --surface-color, e não --second-color. */
+    --bg-color: var(--light-bg);        /* fundo da página */
+    --surface-color: #ffffff;           /* cards, header, modais, dropdowns */
+    --heading-color: var(--primary-dark); /* títulos h1–h4 */
+    --border-color: #e9ecef;            /* bordas de inputs, divisórias */
+    --footer-bg: var(--primary-dark);
+
     /* ---- Estados semânticos ---- */
     --success-color: #2e7d32;
     --success-bg: #d4edda;
@@ -66,6 +77,41 @@
 
     /* ---- Transições ---- */
     --transition: all 0.3s ease;
+
+    color-scheme: light;
+}
+
+/* ==========================================================================
+   Modo noturno
+   A classe .dark-mode é aplicada no <html> por /static/js/theme.js.
+   Só as variáveis mudam: todo CSS que usa var(--...) se adapta sozinho.
+   ========================================================================== */
+.dark-mode {
+    --primary-color: #9D4EDD;
+    --primary-light: #C77DFF;
+
+    --light-bg: #14111A;
+    --bg-color: #14111A;
+    --surface-color: #1F1A28;
+    --heading-color: #E0C3FF;
+    --border-color: #3A3247;
+    --footer-bg: #0E0B13;
+
+    --text-color: #E6E2EC;
+    --text-light: #A9A3B4;
+
+    --success-color: #81c784;
+    --success-bg: #1d3320;
+    --error-color: #ef9a9a;
+    --error-bg: #3d1e1e;
+    --warning-color: #ffd54f;
+    --warning-bg: #3a3116;
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
 }
 
 /* ---- Reset básico ---- */
@@ -82,8 +128,9 @@ html {
 body {
     font-family: 'Inter', sans-serif;
     color: var(--text-color);
-    background-color: var(--light-bg);
+    background-color: var(--bg-color);
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -115,7 +162,7 @@ body::-webkit-scrollbar-thumb {
 
 /* ---- Hierarquia tipográfica base ---- */
 h1, h2, h3, h4 {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     line-height: 1.25;
 }
 
@@ -195,8 +242,8 @@ p { color: var(--text-color); }
     margin-bottom: var(--space-4);
     font-size: var(--text-sm);
 }
-.alert.success { background: var(--success-bg); color: var(--success-color); border: 1px solid #c3e6cb; }
-.alert.error { background: var(--error-bg); color: var(--error-color); border: 1px solid #f5c6cb; }
+.alert.success { background: var(--success-bg); color: var(--success-color); border: 1px solid var(--success-color); }
+.alert.error { background: var(--error-bg); color: var(--error-color); border: 1px solid var(--error-color); }
 
 /* ==========================================================================
    Modal, formulários e loading — componentes compartilhados
@@ -216,7 +263,7 @@ p { color: var(--text-color); }
 }
 
 .modal-content {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     margin: 5% auto;
     padding: 30px;
     border-radius: var(--radius-md);
@@ -233,7 +280,7 @@ p { color: var(--text-color); }
 }
 
 .close {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
@@ -241,7 +288,7 @@ p { color: var(--text-color); }
 }
 
 .close:hover {
-    color: #000;
+    color: var(--text-color);
 }
 
 .form-group {
@@ -260,8 +307,10 @@ p { color: var(--text-color); }
 .form-group textarea {
     width: 100%;
     padding: 12px;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border-color);
     border-radius: 8px;
+    background-color: var(--surface-color);
+    color: var(--text-color);
     font-size: 1em;
     font-family: inherit;
     transition: border-color 0.3s ease;

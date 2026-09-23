@@ -37,7 +37,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
     box-shadow: var(--shadow-md);
@@ -104,7 +104,7 @@ body {
 
 .faq-section h2 {
     font-size: 1.5rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 15px;
 }
 

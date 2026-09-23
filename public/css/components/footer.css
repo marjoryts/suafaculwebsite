@@ -10,7 +10,7 @@
    ========================================================================== */
 
 footer {
-    background-color: var(--primary-dark);
+    background-color: var(--footer-bg);
     color: var(--second-color);
     padding: 3rem 1.5rem 0;
 }

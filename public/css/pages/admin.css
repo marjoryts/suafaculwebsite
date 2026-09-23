@@ -47,7 +47,7 @@
 
 .admin-tabs {
     display: flex;
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow: var(--shadow-md);
@@ -72,7 +72,7 @@
 
 .tab-content {
     display: none;
-    background: var(--second-color);
+    background: var(--surface-color);
     padding: 30px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
@@ -146,7 +146,7 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow: var(--shadow-md);
