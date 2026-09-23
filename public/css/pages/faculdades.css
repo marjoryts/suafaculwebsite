@@ -27,7 +27,7 @@
 
 /* 9. CONTAINER PRINCIPAL */
 .container {
-    background: var(--second-color); 
+    background: var(--surface-color); 
     width: min(90%, 55rem);
     margin: 2rem auto;              
     border-radius: var(--radius-md); 
@@ -135,7 +135,7 @@
 
 .results-header h2 {
     font-size: 1.8rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -155,7 +155,7 @@
 }
 
 .course-card {
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     padding: 1.5rem;
     box-shadow: var(--shadow-md);
@@ -182,7 +182,7 @@
 
 .course-header h3 {
     font-size: 1.2rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin: 0;
     flex: 1;
     min-width: 0;
@@ -281,7 +281,7 @@
 }
 
 .course-link:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     gap: 0.5rem;
 }
 
@@ -299,7 +299,7 @@
     border-radius: var(--radius-sm);
     text-decoration: none;
     color: var(--primary-color);
-    background: var(--second-color);
+    background: var(--surface-color);
     border: 1px solid #ddd;
     transition: var(--transition);
     display: flex;

@@ -26,7 +26,7 @@
 
 /* 9. CONTAINER PRINCIPAL */
 .container {
-    background: var(--second-color);
+    background: var(--surface-color);
     width: min(90%, 55rem);
     margin: 2rem auto;
     border-radius: var(--radius-md);
@@ -137,7 +137,7 @@
 
 .faculdades h2 {
     font-size: 2rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 2rem;
     text-align: center;
     position: relative;
@@ -157,7 +157,7 @@
 
 /* Título de faculdad */
 .faculdade h3 {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 0.5rem;
     font-size: 1.25rem;
 }
@@ -171,12 +171,12 @@
 
 /*  hover no link */
 .faculdade a:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     text-decoration: underline;
 }
 
 .faculdade {
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: var(--shadow-md);
@@ -211,7 +211,7 @@
 }
 
 .faculdade a:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     text-decoration: underline;
 }
 
@@ -301,7 +301,7 @@
 /* Título da seção */
 .vestibulares h2 {
     font-size: 2rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 2rem;
     text-align: center;
     position: relative;
@@ -343,7 +343,7 @@
 
 /* Cards de vestibular */
 .vestibular {
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: var(--shadow-md);
@@ -363,7 +363,7 @@
 
 /* Título do vestibular */
 .vestibular h3 {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 0.5rem;
     font-size: 1.25rem;
 }
@@ -400,7 +400,7 @@
 
 /*  hover no link */
 .vestibular a:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     text-decoration: underline;
 }
 
@@ -409,7 +409,7 @@
     padding: 4rem 1rem;
     max-width: 1400px;
     margin: 2rem auto;
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     position: relative;
@@ -418,7 +418,7 @@
 /* título da seção */
 .container-curso h1 {
     font-size: 2rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 1.5rem;
     text-align: center;
     position: relative;
@@ -446,7 +446,7 @@
 /* "Pesquise o curso" */
 .pesquisa-titulo {
     font-size: 1rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-top: 1rem;
     margin-bottom: 0.5rem;
     text-align: center;
@@ -543,7 +543,7 @@
 }
 
 .modal-content {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     margin: 2rem auto;
     padding: 2.5rem;
     border-radius: 20px;
@@ -600,7 +600,7 @@
 }
 
 .modal-header h2 {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     font-size: 1.8rem;
     margin: 0;
     flex: 1;
@@ -637,7 +637,7 @@
 
 .modal-info-item strong {
     display: block;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     font-size: 0.9rem;
     margin-bottom: 0.3rem;
     text-transform: uppercase;
@@ -688,7 +688,7 @@
 }
 
 .courses-grid .course-card {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
@@ -716,7 +716,7 @@
 
 .course-header h3 {
     font-size: 1.25rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin: 0;
     flex: 1;
     min-width: 0;
@@ -795,5 +795,5 @@
 }
 
 .course-link:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
 }

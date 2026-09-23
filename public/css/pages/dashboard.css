@@ -45,7 +45,7 @@
 }
 
 .dashboard-card {
-    background: var(--second-color);
+    background: var(--surface-color);
     padding: 25px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
@@ -150,7 +150,7 @@
 }
 
 .dashboard-tab-button:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
 }
 
 .dashboard-tab-content {

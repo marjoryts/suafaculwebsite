@@ -40,7 +40,7 @@
     align-items: center;
     max-width: 600px;
     margin: 0 auto;
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     border-radius: var(--radius-sm);
     padding: 8px;
     box-shadow: var(--shadow-md);
@@ -118,7 +118,7 @@
 
 .filters {
     flex: 0 0 280px; /* Define largura fixa para os filtros */
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     padding: 1.5rem;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
@@ -128,7 +128,7 @@
 
 .filters-content h3 {
     font-size: 1.4rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
@@ -271,7 +271,7 @@
 
 .vestibulares-header h2 {
     font-size: clamp(1.5rem, 3vw, 2.2rem);
-    color: var(--primary-dark);
+    color: var(--heading-color);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -294,7 +294,7 @@
 }
 
 .vestibular-card {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     padding: 1.8rem;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
@@ -394,7 +394,7 @@
 }
 
 .vestibular-link:hover {
-    color: var(--primary-dark);
+    color: var(--heading-color);
     transform: translateX(3px);
 }
 
@@ -406,7 +406,7 @@
 }
 
 .pagination a {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     color: var(--primary-color);
     text-decoration: none;
     padding: 0.7rem 1rem;
@@ -466,7 +466,7 @@
 
 .test-container h3 {
     font-size: 1.8rem;
-    color: var(--primary-dark);
+    color: var(--heading-color);
     margin-bottom: 1rem;
 }
 

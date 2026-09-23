@@ -43,7 +43,7 @@
 }
  
 .about-section {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     padding: 4rem 0;
 }
  
@@ -85,7 +85,7 @@
 }
  
 .mvv-card {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     padding: 2rem;
     border-radius: 10px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
@@ -114,7 +114,7 @@
 }
  
 .team-section {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     padding: 4rem 0;
     text-align: center;
 }
@@ -211,7 +211,7 @@ height: 50%;
 }
  
 .btn-secondary:hover {
-    background-color: var(--second-color);
+    background-color: var(--surface-color);
     color: var(--primary-color);
 }
  

@@ -18,7 +18,7 @@
    ========================================================================== */
 
 header {
-    background: var(--second-color);
+    background: var(--surface-color);
     box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
@@ -192,7 +192,7 @@ header {
     top: calc(100% + 0.5rem);
     right: 0;
     min-width: 200px;
-    background: var(--second-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     padding: 0.5rem;
@@ -239,6 +239,33 @@ header {
     color: var(--error-color);
 }
 
+/* ---- Botão de tema (sol/lua) ---- */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary-light);
+    transform: rotate(-15deg);
+}
+
+/* Mostra a lua no tema claro e o sol no tema escuro — sem JS, sem "piscar". */
+.theme-toggle .fa-sun { display: none; }
+.dark-mode .theme-toggle .fa-moon { display: none; }
+.dark-mode .theme-toggle .fa-sun { display: inline-block; color: var(--accent-color); }
+
 /* ---- Botão do menu mobile ---- */
 .mobile-menu {
     display: none;
@@ -284,7 +311,7 @@ header {
         top: 72px;
         left: 0;
         right: 0;
-        background: var(--second-color);
+        background: var(--surface-color);
         flex-direction: column;
         align-items: stretch;
         gap: 0;
@@ -298,7 +325,7 @@ header {
 
     .navbar a {
         padding: 0.75rem 0.25rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--border-color);
         width: 100%;
     }
 
@@ -316,6 +343,11 @@ header {
         display: flex;
     }
 
+    /* Com a navbar recolhida, empurra sol/lua para junto do hambúrguer. */
+    .theme-toggle {
+        margin-left: auto;
+    }
+
     .user-menu {
         margin-top: 0.75rem;
         width: 100%;
@@ -330,7 +362,7 @@ header {
     .user-menu-dropdown {
         position: static;
         box-shadow: none;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-color);
         margin-top: 0.4rem;
         width: 100%;
     }

@@ -37,6 +37,12 @@
             {% endif %}
             {% include 'partials/_auth_widget.html' %}
         </nav>
+        {# Alternância de tema — fora do <nav> para ficar visível também no mobile.
+           Comportamento em /static/js/theme.js (incluído no <head> de cada página). #}
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Ativar modo noturno" aria-pressed="false" title="Ativar modo noturno">
+            <i class="fas fa-moon" aria-hidden="true"></i>
+            <i class="fas fa-sun" aria-hidden="true"></i>
+        </button>
         <button class="mobile-menu" id="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
             <i class="fas fa-bars"></i>
         </button>
