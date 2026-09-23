@@ -26,6 +26,7 @@ from app.services import oauth_service
 from app.services import scheduler_service
 from app.services import censo_service
 from app.services import seed_service
+from app.services import busca_service
 from functools import wraps
 
 app = Flask(__name__,
@@ -404,6 +405,25 @@ def api_cursos_sugestoes():
         return jsonify({'sugestoes': []})
     sugestoes = Curso().sugestoes_por_nome(termo, limite=8)
     return jsonify({'sugestoes': sugestoes})
+
+@app.route('/api/busca/sugestoes', methods=['GET'])
+def api_busca_sugestoes():
+    """Busca dinâmica do card de pesquisa (home e /faculdades): sugestões
+    de localizações, faculdades e cursos que contêm o termo digitado
+    (sem diferenciar acentos/maiúsculas), agrupadas por tipo.
+
+    Parâmetros: q (termo, mín. 2 caracteres), tipos (opcional, lista
+    separada por vírgula: local,faculdade,curso), limite (por tipo, máx. 10)."""
+    termo = request.args.get('q', '').strip()
+    tipos = [t.strip() for t in request.args.get('tipos', '').split(',') if t.strip()]
+    tipos = tipos or list(busca_service.TIPOS)
+    try:
+        limite = int(request.args.get('limite', busca_service.LIMITE_PADRAO))
+    except ValueError:
+        limite = busca_service.LIMITE_PADRAO
+    resultados = busca_service.sugestoes(termo, tipos=tipos, limite=limite)
+    total = sum(len(v) for v in resultados.values())
+    return jsonify({'success': True, 'termo': termo, 'resultados': resultados, 'total': total})
 
 @app.route('/api/cursos/criar', methods=['POST'])
 def api_cursos_criar():

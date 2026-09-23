@@ -290,6 +290,17 @@ const applyFiltersDebounced = debounce(applyFilters, 450);
     }
 });
 
+// Escolher uma sugestão da busca dinâmica (busca-sugestoes.js) aplica o
+// filtro na hora, sem esperar o debounce da digitação.
+[cursoInput, faculdadeInput, cidadeInput].forEach(input => {
+    if (input) {
+        input.addEventListener('busca:selecionada', () => {
+            applyFiltersDebounced.cancel();
+            applyFilters();
+        });
+    }
+});
+
 // Clique no botão e Enter disparam na hora (comportamento original
 // preservado) — cancelam qualquer chamada debounced pendente pra não
 // rodar a busca duas vezes (uma na hora + uma pelo debounce atrasado).

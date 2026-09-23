@@ -1,6 +1,14 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection
+from config.database import get_connection, normalizar
+from app.services.busca_service import filtro_localizacao
+
+
+def _like_contem(texto):
+    """Padrão LIKE 'contém' já normalizado (sem acento/minúsculas) e com
+    os curingas % e _ escapados — comparar com normalizar(coluna)."""
+    texto = normalizar(texto.strip()).replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f"%{texto}%"
 
 
 class Faculdade:
@@ -17,15 +25,27 @@ class Faculdade:
             sql += f" AND {prefix}uf=?"
             params.append(filtros['uf'])
         if filtros.get('cidade'):
-            sql += f" AND {prefix}cidade LIKE ?"
-            params.append(f"%{filtros['cidade']}%")
+            # Aceita cidade (parte do nome), sigla de UF ('SP') ou região
+            # ('Sudeste') — os três tipos de localização sugeridos pela
+            # busca dinâmica (ver app/services/busca_service.py).
+            localizacao = filtro_localizacao(filtros['cidade'])
+            if localizacao and localizacao[0] == 'uf':
+                ufs = localizacao[1]
+                sql += f" AND UPPER(TRIM({prefix}uf)) IN ({','.join('?' * len(ufs))})"
+                params.extend(ufs)
+            elif localizacao:
+                sql += f" AND normalizar({prefix}cidade) LIKE ? ESCAPE '\\'"
+                params.append(_like_contem(filtros['cidade']))
         if filtros.get('busca'):
-            like = f"%{filtros['busca']}%"
-            sql += f" AND ({prefix}nome LIKE ? OR {prefix}sigla LIKE ? OR {prefix}cidade LIKE ?)"
+            like = _like_contem(filtros['busca'])
+            sql += (f" AND (normalizar({prefix}nome) LIKE ? ESCAPE '\\'"
+                    f" OR normalizar({prefix}sigla) LIKE ? ESCAPE '\\'"
+                    f" OR normalizar({prefix}cidade) LIKE ? ESCAPE '\\')")
             params.extend([like, like, like])
         if filtros.get('curso'):
-            sql += f" AND {prefix}id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL AND nome LIKE ?)"
-            params.append(f"%{filtros['curso']}%")
+            sql += (f" AND {prefix}id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL"
+                    f" AND normalizar(nome) LIKE ? ESCAPE '\\')")
+            params.append(_like_contem(filtros['curso']))
         if filtros.get('modalidade'):
             mods = filtros['modalidade'] if isinstance(filtros['modalidade'], list) else [filtros['modalidade']]
             mods = [m for m in mods if m]
