@@ -255,7 +255,7 @@ function openCourseModal(course) {
                     <p>${course.description || 'Descrição não disponível no momento.'}</p>
                 </div>
                 <div style="margin-top: 2rem; text-align: center;">
-                    <a href="/cursos" style="display: inline-block; padding: 0.8rem 2rem; background: var(--primary-color); color: white; text-decoration: none; border-radius: 5px; font-weight: 600;">
+                    <a href="/cursos" style="display: inline-block; padding: 0.8rem 2rem; background: var(--primary-color); color: var(--second-color); text-decoration: none; border-radius: 5px; font-weight: 600;">
                         Ver todos os cursos
                     </a>
                 </div>

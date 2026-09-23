@@ -53,7 +53,7 @@
 .card label {
     display: flex;
     /* faz ocupar linha inteira */
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-weight: 500;
     margin-bottom: 0.5rem;
     font-size: 1rem;
@@ -64,7 +64,7 @@
 .text-input {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--field-border);
     border-radius: var(--radius-sm);
     font-size: 1rem;
     transition: var(--transition);
@@ -75,7 +75,7 @@
 .text-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /*FILTROS */
@@ -155,24 +155,11 @@
 }
 
 
-/* Título de faculdad */
-.faculdade h3 {
-    color: var(--heading-color);
-    margin-bottom: 0.5rem;
-    font-size: 1.25rem;
-}
-
 /* Texto de faculdade */
 .faculdade p {
     color: var(--text-light);
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
-}
-
-/*  hover no link */
-.faculdade a:hover {
-    color: var(--heading-color);
-    text-decoration: underline;
 }
 
 .faculdade {
@@ -189,12 +176,12 @@
 
 .faculdade:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Estilo para o título da faculdade */
 .faculdade h3 {
-    color: #2c3e50;
+    color: var(--text-strong);
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1.2rem;
@@ -204,7 +191,7 @@
 .faculdade a {
     display: inline-block;
     margin-top: 1rem;
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-weight: 600;
     text-decoration: none;
     transition: var(--transition);
@@ -392,7 +379,7 @@
 .vestibular a {
     display: inline-block;
     margin-top: 1rem;
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-weight: 600;
     text-decoration: none;
     transition: var(--transition);
@@ -463,14 +450,15 @@
     transition: var(--transition);
     padding-right: 40px;
     /* espaço para o ícone */
-    background-color: var(--light-bg);
+    background-color: var(--field-bg);
+    color: var(--text-color);
 }
 
 /* Eeito quando o campo está em foco */
 .pesquisa-container input:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(255, 145, 0, 0.2);
+    box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 /* ícone de lupa (usando emoji) */
@@ -493,14 +481,15 @@
 
 /* Itens da lista de cursos */
 .curso-item {
-    background: var(--light-bg);
+    background: var(--surface-muted);
+    color: var(--text-color);
     padding: 1.5rem;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     text-align: center;
     transition: var(--transition);
     cursor: pointer;
-    border: 2px solid rgba(90, 24, 154, 0.1);
+    border: 2px solid var(--primary-border);
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -526,11 +515,18 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: var(--overlay);
     backdrop-filter: blur(4px);
     animation: fadeIn 0.3s ease;
     overflow-y: auto;
     padding: 2rem 1rem;
+}
+
+/* O JS abre o modal com display:flex; sem isto a caixa era esticada até a
+   altura da tela e o conteúdo longo vazava para fora dela. */
+.course-modal .modal-content {
+    flex-shrink: 0;
+    align-self: flex-start;
 }
 
 @keyframes fadeIn {
@@ -543,13 +539,13 @@
 }
 
 .modal-content {
-    background-color: var(--surface-color);
+    background-color: var(--surface-raised);
     margin: 2rem auto;
     padding: 2.5rem;
     border-radius: 20px;
     max-width: 900px;
     width: 100%;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
     position: relative;
     animation: slideUp 0.3s ease;
 }
@@ -584,8 +580,8 @@
 }
 
 .modal-close:hover {
-    color: var(--primary-color);
-    background-color: var(--light-bg);
+    color: var(--primary-text);
+    background-color: var(--surface-hover);
     transform: rotate(90deg);
 }
 
@@ -595,7 +591,7 @@
     align-items: flex-start;
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
-    border-bottom: 2px solid var(--light-bg);
+    border-bottom: 2px solid var(--border-color);
     gap: 1rem;
 }
 
@@ -618,18 +614,18 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    background-color: var(--light-bg);
+    background-color: var(--surface-muted);
     border-radius: 5px;
     transition: all 0.3s ease;
 }
 
 .modal-info-item:hover {
-    background-color: #f5f5f5;
+    background-color: var(--surface-hover);
     transform: translateX(5px);
 }
 
 .modal-info-item i {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.3rem;
     margin-top: 0.2rem;
     min-width: 24px;
@@ -653,11 +649,11 @@
 .modal-description {
     margin-top: 1rem;
     padding-top: 1.5rem;
-    border-top: 2px solid var(--light-bg);
+    border-top: 2px solid var(--border-color);
 }
 
 .modal-description h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.3rem;
     margin-bottom: 1rem;
     display: flex;
@@ -690,7 +686,7 @@
 .courses-grid .course-card {
     background-color: var(--surface-color);
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -703,7 +699,7 @@
 
 .courses-grid .course-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .course-header {
@@ -771,7 +767,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
     padding-top: 1rem;
 }
 
@@ -785,7 +781,7 @@
 }
 
 .course-link {
-    color: var(--primary-color);
+    color: var(--primary-text);
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;

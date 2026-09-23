@@ -58,7 +58,7 @@
 }
 
 .dashboard-card h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     margin-bottom: 15px;
     font-size: 1.3em;
 }
@@ -129,7 +129,7 @@
     display: flex;
     gap: 1rem;
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--light-bg);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .dashboard-tab-button {
@@ -145,7 +145,7 @@
 }
 
 .dashboard-tab-button.active {
-    color: var(--primary-color);
+    color: var(--primary-text);
     border-bottom-color: var(--primary-color);
 }
 
@@ -170,8 +170,8 @@
 
 .subtab-button {
     padding: 0.6rem 1.2rem;
-    background: var(--light-bg);
-    border: none;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-light);
     font-weight: 600;

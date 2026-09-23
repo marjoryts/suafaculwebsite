@@ -55,6 +55,7 @@
     border-radius: var(--radius-sm);
     outline: none;
     color: var(--text-color);
+    background: transparent;
 }
 
 .search-box input::placeholder {
@@ -98,15 +99,20 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg"><path fill="%23FCFBFF" fill-opacity="1" d="M0,96L48,90.7C96,85,192,75,288,74.7C384,75,480,85,576,80C672,75,768,59,864,64C960,69,1056,90,1152,90.7C1248,91,1344,75,1392,66.7L1440,59L1440,160L1392,160C1344,160,1248,160,1152,160C1056,160,960,160,864,160C768,160,672,160,576,160C480,160,384,160,288,160C192,160,96,160,48,160L0,160Z"></path></svg>');
-    background-size: cover;
+    /* A onda é uma máscara pintada com a cor de fundo da página, então
+       acompanha o tema (antes a cor #FCFBFF estava fixa dentro do SVG). */
+    background-color: var(--bg-color);
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg"><path fill="%23FCFBFF" fill-opacity="1" d="M0,96L48,90.7C96,85,192,75,288,74.7C384,75,480,85,576,80C672,75,768,59,864,64C960,69,1056,90,1152,90.7C1248,91,1344,75,1392,66.7L1440,59L1440,160L1392,160C1344,160,1248,160,1152,160C1056,160,960,160,864,160C768,160,672,160,576,160C480,160,384,160,288,160C192,160,96,160,48,160L0,160Z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg"><path fill="%23FCFBFF" fill-opacity="1" d="M0,96L48,90.7C96,85,192,75,288,74.7C384,75,480,85,576,80C672,75,768,59,864,64C960,69,1056,90,1152,90.7C1248,91,1344,75,1392,66.7L1440,59L1440,160L1392,160C1344,160,1248,160,1152,160C1056,160,960,160,864,160C768,160,672,160,576,160C480,160,384,160,288,160C192,160,96,160,48,160L0,160Z"></path></svg>');
+    -webkit-mask-size: cover;
+    mask-size: cover;
     transform: translateY(0);
     transition: transform 0.3s ease;
 }
 
 .vestibulares-section {
     padding: 3rem 0;
-    background-color: var(--light-bg);
+    background-color: var(--bg-color);
 }
 
 .vestibulares-container {
@@ -145,9 +151,9 @@
 
 .filter-group h4 {
     font-size: 1.1rem;
-    color: var(--primary-color);
+    color: var(--primary-text);
     margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--border-subtle);
     padding-bottom: 0.5rem;
 }
 
@@ -158,9 +164,9 @@
 }
 
 .filter-options button {
-    background-color: var(--light-bg);
+    background-color: var(--surface-muted);
     color: var(--text-color);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
     padding: 0.6rem 1rem;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -194,9 +200,9 @@
 .filtro-curso-select {
     width: 100%;
     padding: 0.6rem 1rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--field-border);
     border-radius: var(--radius-sm);
-    background-color: var(--light-bg);
+    background-color: var(--field-bg);
     color: var(--text-color);
     font-size: 0.9rem;
     font-family: inherit;
@@ -224,7 +230,7 @@
 }
 
 .filter-options label:hover {
-    color: var(--primary-color);
+    color: var(--primary-text);
 }
 
 .filter-options input[type="checkbox"] {
@@ -266,7 +272,7 @@
     align-items: center;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .vestibulares-header h2 {
@@ -302,7 +308,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-subtle);
 }
 
 .vestibular-card:hover {
@@ -320,7 +326,7 @@
 
 .vestibular-header h3 {
     font-size: 1.3rem;
-    color: var(--primary-color);
+    color: var(--primary-text);
     margin: 0;
     flex: 1;
 }
@@ -367,7 +373,7 @@
     justify-content: space-between;
     align-items: center;
     padding-top: 1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid var(--border-subtle);
     margin-top: auto;
 }
 
@@ -380,11 +386,11 @@
 }
 
 .vestibular-info span i {
-    color: var(--primary-color);
+    color: var(--primary-text);
 }
 
 .vestibular-link {
-    color: var(--primary-color);
+    color: var(--primary-text);
     text-decoration: none;
     font-weight: 600;
     display: flex;
@@ -407,7 +413,7 @@
 
 .pagination a {
     background-color: var(--surface-color);
-    color: var(--primary-color);
+    color: var(--primary-text);
     text-decoration: none;
     padding: 0.7rem 1rem;
     border-radius: var(--radius-sm);
@@ -455,7 +461,7 @@
 }
 
 .test-container {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: color-mix(in srgb, var(--surface-color) 92%, transparent);
     padding: 2.5rem;
     border-radius: var(--radius-md);
     max-width: 700px;
@@ -646,18 +652,18 @@
 }
 
 .btn-favorito:hover {
-    background-color: var(--light-bg);
-    color: var(--primary-color);
+    background-color: var(--surface-hover);
+    color: var(--primary-text);
     transform: scale(1.1);
 }
 
 .btn-favorito.favoritado {
-    color: #e74c3c;
+    color: var(--favorite-color);
 }
 
 .btn-favorito.favoritado:hover {
-    color: #c0392b;
-    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--favorite-hover);
+    background-color: var(--favorite-soft);
 }
 
 .btn-favorito i {
@@ -666,5 +672,5 @@
 
 .btn-favorito:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }

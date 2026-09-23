@@ -47,6 +47,13 @@ header {
     width: 80px;
     height: 60px;
     object-fit: contain;
+    transition: filter 0.3s ease;
+}
+
+/* A logo é roxo-escuro e quase sumia no header escuro: clareia sem
+   trocar a cor da marca. */
+.dark-mode .header-content .logo img {
+    filter: brightness(1.9) saturate(1.1);
 }
 
 .navbar {
@@ -81,7 +88,7 @@ header {
 
 .navbar a:hover,
 .navbar a.active {
-    color: var(--primary-color);
+    color: var(--primary-text);
 }
 
 .navbar a:hover::after,
@@ -113,7 +120,7 @@ header {
 /* ---- Variante do botão para "Sair" (logout) ---- */
 .navbar a.btn-nav.btn-nav-outline {
     background: transparent;
-    color: var(--primary-color);
+    color: var(--primary-text);
     border: 2px solid var(--primary-color);
     padding: calc(0.6rem - 2px) calc(1.4rem - 2px);
     box-shadow: none;
@@ -145,7 +152,7 @@ header {
 
 .user-menu-toggle:hover,
 .user-menu.open .user-menu-toggle {
-    background: var(--light-bg);
+    background: var(--surface-hover);
 }
 
 .user-avatar {
@@ -192,7 +199,8 @@ header {
     top: calc(100% + 0.5rem);
     right: 0;
     min-width: 200px;
-    background: var(--surface-color);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     padding: 0.5rem;
@@ -227,8 +235,8 @@ header {
 }
 
 .user-menu-dropdown a:hover {
-    background: var(--light-bg);
-    color: var(--primary-color);
+    background: var(--surface-hover);
+    color: var(--primary-text);
 }
 
 .user-menu-dropdown a.user-menu-logout {
@@ -239,33 +247,6 @@ header {
     color: var(--error-color);
 }
 
-/* ---- Botão de tema (sol/lua) ---- */
-.theme-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--primary-color);
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.theme-toggle:hover {
-    border-color: var(--primary-light);
-    transform: rotate(-15deg);
-}
-
-/* Mostra a lua no tema claro e o sol no tema escuro — sem JS, sem "piscar". */
-.theme-toggle .fa-sun { display: none; }
-.dark-mode .theme-toggle .fa-moon { display: none; }
-.dark-mode .theme-toggle .fa-sun { display: inline-block; color: var(--accent-color); }
-
 /* ---- Botão do menu mobile ---- */
 .mobile-menu {
     display: none;
@@ -275,7 +256,7 @@ header {
     min-height: 44px;
     background: none;
     border: none;
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0.25rem;
@@ -325,7 +306,7 @@ header {
 
     .navbar a {
         padding: 0.75rem 0.25rem;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-subtle);
         width: 100%;
     }
 
@@ -362,7 +343,7 @@ header {
     .user-menu-dropdown {
         position: static;
         box-shadow: none;
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--border-subtle);
         margin-top: 0.4rem;
         width: 100%;
     }

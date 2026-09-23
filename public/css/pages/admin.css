@@ -1,21 +1,5 @@
-:root {
-    --primary-color: #5A189A;
-    --primary-dark: #30045c;
-    --primary-light: #9D4EDD;
-    --second-color: #ffffff;
-    --accent-color: #FF9100;
-    --accent-dark: #E65100;
-    --light-bg: #FCFBFF;
-    --text-color: #404040;
-    --text-light: #7A7A7A;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-    --radius-sm: 5px;
-    --radius-md: 10px;
-    --radius-lg: 20px;
-    --transition: all 0.3s ease;
-}
+/* Tokens de marca/tema vivem em /static/css/base.css (o :root duplicado
+   que existia aqui anulava o modo noturno nesta página). */
 
 .admin-container {
     max-width: 1400px;
@@ -57,7 +41,7 @@
 .tab-button {
     flex: 1;
     padding: 20px;
-    background: var(--light-bg);
+    background: var(--surface-muted);
     border: none;
     cursor: pointer;
     font-size: 1.1em;
@@ -95,6 +79,8 @@
     border: 2px solid var(--primary-light);
     border-radius: var(--radius-md);
     font-size: 1em;
+    background-color: var(--field-bg);
+    color: var(--text-color);
     transition: border-color 0.3s ease;
 }
 
@@ -156,7 +142,7 @@
 .users-table td {
     padding: 15px;
     text-align: left;
-    border-bottom: 1px solid var(--light-bg);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .users-table th {
@@ -166,7 +152,7 @@
 }
 
 .users-table tr:hover {
-    background: var(--light-bg);
+    background: var(--surface-hover);
 }
 
 .user-actions {
@@ -185,30 +171,30 @@
 }
 
 .stat-card {
-    background: white;
+    background: var(--surface-color);
     padding: 25px;
     border-radius: 15px;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-number {
     font-size: 2.5em;
     font-weight: bold;
-    color: #667eea;
+    color: var(--primary-text);
     margin-bottom: 10px;
 }
 
 .stat-label {
-    color: #666;
+    color: var(--text-light);
     font-size: 1.1em;
 }
 
 /* Forma base do .badge já definida em base.css; aqui só os estados
    específicos de validação de vestibulares que faltam no conjunto padrão. */
-.badge.badge-ativo { background: #d4edda; color: #155724; }
-.badge.badge-encerrado { background: #e2e3e5; color: #383d41; }
-.badge.badge-data_invalida { background: #f8d7da; color: #721c24; }
+.badge.badge-ativo { background: var(--success-bg); color: var(--success-color); }
+.badge.badge-encerrado { background: var(--neutral-bg); color: var(--neutral-color); }
+.badge.badge-data_invalida { background: var(--error-bg); color: var(--error-color); }
 
 .import-bar {
     display: flex;
@@ -216,7 +202,7 @@
     margin-bottom: 20px;
     align-items: center;
     flex-wrap: wrap;
-    background: var(--light-bg);
+    background: var(--surface-muted);
     padding: 15px;
     border-radius: var(--radius-md);
 }
@@ -227,6 +213,8 @@
     padding: 12px 20px;
     border: 2px solid var(--primary-light);
     border-radius: var(--radius-md);
+    background-color: var(--field-bg);
+    color: var(--text-color);
 }
 
 .import-bar small {
