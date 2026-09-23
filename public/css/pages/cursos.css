@@ -55,10 +55,11 @@
     font-size: 1rem;
     padding: 0.5rem;
     color: var(--text-color);
+    background: transparent;
 }
 
 .search-box i {
-    color: var(--light-bg);
+    color: var(--text-light);
     align-items: center;
 
 }
@@ -85,7 +86,7 @@
 
 /* Wave Divider */
 .wave {
-    background-color: var(--light-bg);
+    background-color: var(--bg-color);
     height: 100px;
     position: relative;
     overflow: hidden;
@@ -101,7 +102,7 @@
 
 .courses-section {
     padding: 3rem 0;
-    background-color: var(--light-bg);
+    background-color: var(--bg-color);
 }
 
 .courses-container {
@@ -119,7 +120,7 @@
 }
 
 .filters-content h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.3rem;
     margin-bottom: 1.5rem;
     display: flex;
@@ -129,7 +130,7 @@
 
 .filter-group {
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 1.5rem;
 }
 
@@ -150,8 +151,9 @@
     text-align: left;
     padding: 0.7rem 1rem;
     margin-bottom: 0.5rem;
-    background-color: var(--light-bg);
-    border: 1px solid #eee;
+    background-color: var(--surface-muted);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-color);
     font-weight: 500;
@@ -163,7 +165,7 @@
 }
 
 .filter-options button:hover {
-    background-color: #f0f0f0;
+    background-color: var(--surface-hover);
     border-color: var(--primary-light);
 }
 
@@ -222,11 +224,11 @@
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .courses-header h2 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.5rem;
     display: flex;
     align-items: center;
@@ -328,7 +330,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
     padding-top: 1rem;
 }
 
@@ -342,7 +344,7 @@
 }
 
 .course-link {
-    color: var(--primary-color);
+    color: var(--primary-text);
     text-decoration: none;
     font-weight: 600;
     transition: var(--transition);
@@ -372,8 +374,8 @@
     height: 38px;
     border-radius: 50%;
     background-color: var(--surface-color);
-    border: 1px solid #eee;
-    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
     text-decoration: none;
     font-weight: 600;
     transition: var(--transition);
@@ -406,6 +408,9 @@
     align-items: center;
     justify-content: center;
     gap: 0.8rem;
+    /* Seção de cor fixa (laranja): títulos em roxo-escuro de marca nos dois
+       temas, em vez da cor global de títulos (lilás no modo noturno). */
+    color: var(--primary-dark);
 }
 
 .test-container {
@@ -428,10 +433,12 @@
     font-size: 1.1rem;
     margin-bottom: 2rem;
     opacity: 0.9;
+    color: var(--text-on-bright);
 }
 
 .btn-test {
-    background: var(--surface-color);
+    /* botão branco sobre o laranja nos dois temas */
+    background: var(--second-color);
     color: var(--accent-color);
     border: none;
     border-radius: var(--radius-sm);
@@ -447,7 +454,7 @@
 }
 
 .btn-test:hover {
-    background: #f0f0f0;
+    background: color-mix(in srgb, var(--second-color) 90%, var(--accent-color));
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
 }
@@ -584,18 +591,18 @@
 }
 
 .btn-favorito:hover {
-    background-color: var(--light-bg);
-    color: var(--primary-color);
+    background-color: var(--surface-hover);
+    color: var(--primary-text);
     transform: scale(1.1);
 }
 
 .btn-favorito.favoritado {
-    color: #e74c3c;
+    color: var(--favorite-color);
 }
 
 .btn-favorito.favoritado:hover {
-    color: #c0392b;
-    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--favorite-hover);
+    background-color: var(--favorite-soft);
 }
 
 .btn-favorito i {
@@ -604,7 +611,7 @@
 
 .btn-favorito:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Modal de Detalhes do Curso */
@@ -616,11 +623,18 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: var(--overlay);
     backdrop-filter: blur(4px);
     animation: fadeIn 0.3s ease;
     overflow-y: auto;
     padding: 2rem 1rem;
+}
+
+/* O JS abre o modal com display:flex; sem isto a caixa era esticada até a
+   altura da tela e o conteúdo longo vazava para fora dela. */
+.course-modal .modal-content {
+    flex-shrink: 0;
+    align-self: flex-start;
 }
 
 @keyframes fadeIn {
@@ -633,7 +647,7 @@
 }
 
 .modal-content {
-    background-color: var(--surface-color);
+    background-color: var(--surface-raised);
     margin: 2rem auto;
     padding: 2.5rem;
     border-radius: var(--radius-lg);
@@ -674,8 +688,8 @@
 }
 
 .modal-close:hover {
-    color: var(--primary-color);
-    background-color: var(--light-bg);
+    color: var(--primary-text);
+    background-color: var(--surface-hover);
     transform: rotate(90deg);
 }
 
@@ -685,7 +699,7 @@
     align-items: flex-start;
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
-    border-bottom: 2px solid var(--light-bg);
+    border-bottom: 2px solid var(--border-color);
     gap: 1rem;
 }
 
@@ -708,18 +722,18 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    background-color: var(--light-bg);
+    background-color: var(--surface-muted);
     border-radius: var(--radius-sm);
     transition: var(--transition);
 }
 
 .modal-info-item:hover {
-    background-color: #f5f5f5;
+    background-color: var(--surface-hover);
     transform: translateX(5px);
 }
 
 .modal-info-item i {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.3rem;
     margin-top: 0.2rem;
     min-width: 24px;
@@ -743,11 +757,11 @@
 .modal-description {
     margin-top: 1rem;
     padding-top: 1.5rem;
-    border-top: 2px solid var(--light-bg);
+    border-top: 2px solid var(--border-color);
 }
 
 .modal-description h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.3rem;
     margin-bottom: 1rem;
     display: flex;

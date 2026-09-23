@@ -16,8 +16,8 @@
     right: 0;
     top: 100%;
     margin-top: 4px;
-    background: var(--surface-color);
-    border: 1px solid rgba(90, 24, 154, 0.15);
+    background: var(--surface-raised);
+    border: 1px solid var(--primary-border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     max-height: 280px;
@@ -31,13 +31,13 @@
 .curso-autocomplete-item {
     padding: 0.6rem 1rem;
     cursor: pointer;
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 0.95rem;
 }
 
 .curso-autocomplete-item:hover,
 .curso-autocomplete-item.is-highlighted {
-    background: var(--light-bg);
+    background: var(--surface-hover);
 }
 
 .curso-autocomplete-item strong {

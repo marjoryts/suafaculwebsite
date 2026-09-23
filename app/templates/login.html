@@ -6,11 +6,17 @@
     <title>SuaFacul - Login</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="/static/css/base.css">
+    <script src="/static/js/theme.js"></script>
     <link rel="stylesheet" href="/static/css/pages/loginstyle.css">
 </head>
 <body>
     <button type="button" onclick="window.location.href='/home';" class="voltar-btn" aria-label="Voltar para a home">
         <i class='bx bx-arrow-back'></i> Voltar
+    </button>
+    {# Esta página não tem o header padrão: o botão de tema fica flutuante. #}
+    <button type="button" class="theme-toggle theme-toggle--floating" id="theme-toggle" aria-label="Ativar modo noturno" aria-pressed="false" title="Ativar modo noturno">
+        <i class='bx bx-moon icon-moon' aria-hidden="true"></i>
+        <i class='bx bx-sun icon-sun' aria-hidden="true"></i>
     </button>
     <div class="container" id="container">
         <!-- Formulário de Login -->

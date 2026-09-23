@@ -52,6 +52,7 @@ body {
     font-size: 1rem;
     padding: 0.5rem;
     color: var(--text-color);
+    background: transparent;
 }
 
 .search-box .btn-search  {
@@ -90,7 +91,7 @@ body {
 }
 
 .faq-section {
-    background-color: white;
+    background-color: var(--surface-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
     padding: 30px;
@@ -125,7 +126,7 @@ body {
 }
 
 .faq-list a {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-weight: 600;
     text-decoration: none;
 }

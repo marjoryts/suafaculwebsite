@@ -1,11 +1,7 @@
 
-:root {
-    --secondary-color: var(--accent-color);
-    --bg-light: var(--light-bg);
-    --white: var(--second-color);
-    --gray-border: #e5e0ee;
-    --shadow: var(--shadow-md);
-}
+/* Os aliases que existiam aqui (--white, --bg-light, --gray-border…) foram
+   removidos: um :root em CSS de página sobrescreve os tokens do base.css e
+   anulava o modo noturno. Use sempre os tokens globais. */
 
 ul {
     list-style: none;
@@ -26,25 +22,25 @@ a {
 /* --- HERO --- */
 .hero {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-    color: var(--white);
+    color: var(--second-color);
     padding: 80px 0;
     text-align: center;
     position: relative;
 }
 
 .hero-content h1 {
-    color: var(--white);
+    color: var(--second-color);
     font-size: 3rem;
     margin-bottom: 20px;
     line-height: 1.2;
 }
 
 .hero-content h1 span {
-    color: var(--secondary-color);
+    color: var(--accent-color);
 }
 
 .hero-content p {
-    color: var(--white);
+    color: var(--second-color);
     font-size: 1.2rem;
     max-width: 700px;
     margin: 0 auto 40px;
@@ -59,8 +55,8 @@ a {
 }
 
 .btn-start-test, .btn-start-test-bottom {
-    background-color: var(--secondary-color);
-    color: var(--white);
+    background-color: var(--accent-color);
+    color: var(--second-color);
     border: none;
     padding: 15px 35px;
     border-radius: 50px;
@@ -75,14 +71,14 @@ a {
 }
 
 .btn-start-test:hover, .btn-start-test-bottom:hover {
-    background-color: #f57c00;
+    background-color: var(--accent-dark);
     transform: translateY(-3px);
 }
 
 .btn-outline {
     background: transparent;
-    border: 2px solid var(--white);
-    color: var(--white);
+    border: 2px solid var(--second-color);
+    color: var(--second-color);
     padding: 13px 30px;
     border-radius: 50px;
     font-weight: 600;
@@ -112,14 +108,14 @@ a {
 
 .how-it-works-section h2 {
     font-size: 2.2rem;
-    color: var(--primary-color);
+    color: var(--primary-text);
     margin-bottom: 15px;
 }
 
 .section-description {
     max-width: 700px;
     margin: 0 auto 50px;
-    color: #666;
+    color: var(--text-light);
 }
 
 .steps-grid {
@@ -130,10 +126,10 @@ a {
 }
 
 .step-card {
-    background: var(--white);
+    background: var(--surface-color);
     padding: 30px;
     border-radius: 15px;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
     transition: 0.3s;
     position: relative;
     overflow: hidden;
@@ -147,7 +143,7 @@ a {
     width: 50px;
     height: 50px;
     background: var(--primary-color);
-    color: var(--white);
+    color: var(--second-color);
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -163,8 +159,8 @@ a {
 }
 
 .important-note {
-    background-color: #e3f2fd;
-    color: #0d47a1;
+    background-color: var(--info-bg);
+    color: var(--info-color);
     padding: 15px;
     border-radius: 8px;
     display: inline-block;
@@ -190,21 +186,21 @@ a {
 }
 
 #vocational-form .form-section {
-    background-color: var(--white);
+    background-color: var(--surface-color);
     padding: 30px;
     border-radius: 12px;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
     margin-bottom: 40px;
-    border: 1px solid var(--gray-border);
+    border: 1px solid var(--border-color);
     display: block;
 }
 
 /* Título da Pergunta */
 #vocational-form .form-section h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 1.5rem;
     margin-bottom: 25px;
-    border-bottom: 2px solid var(--bg-light);
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
     text-align: left;
 }
@@ -225,21 +221,29 @@ a {
     width: 100%;
     padding: 15px;
     margin-bottom: 10px;
-    background-color: #fafafa;
-    border: 1px solid var(--gray-border);
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 400;
-    color: #555;
+    color: var(--text-color);
     text-align: left;
 }
 
 /* Hover na opção */
 #vocational-form .question label:hover {
-    background-color: #f3e5f5;
-    border-color: var(--primary-color);
+    background-color: var(--primary-soft);
+    border-color: var(--primary-light);
     transform: translateX(5px);
+}
+
+/* Opção selecionada (antes só havia hover) */
+#vocational-form .question label:has(input:checked) {
+    background-color: var(--primary-soft);
+    border-color: var(--primary-color);
+    color: var(--text-strong);
+    font-weight: 500;
 }
 
 /* Bolinha do Radio */
@@ -258,10 +262,10 @@ a {
 
 /* RESULTADOS */
 .vocational-result {
-    background-color: var(--white);
+    background-color: var(--surface-color);
     padding: 40px;
     border-radius: 15px;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
     margin-top: 50px;
     text-align: center;
     border: 2px solid var(--primary-color);
@@ -271,7 +275,7 @@ a {
 }
 
 .vocational-result h3 {
-    color: var(--primary-color);
+    color: var(--primary-text);
     font-size: 2rem;
     margin-bottom: 20px;
 }
@@ -291,13 +295,13 @@ a {
 }
 
 .suggested-courses-list li span {
-    color: #777;
+    color: var(--text-light);
     margin-left: 4px;
 }
 
 /* --- DEPOIMENTOS --- */
 .testimonials-section {
-    background-color: var(--white);
+    background-color: var(--surface-color);
     padding: 80px 0;
     text-align: center;
 }
@@ -310,7 +314,8 @@ a {
 }
 
 .testimonial-card {
-    background-color: var(--bg-light);
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
     padding: 30px;
     border-radius: 15px;
     text-align: left;
@@ -318,7 +323,7 @@ a {
 
 .testimonial-card p {
     font-style: italic;
-    color: #555;
+    color: var(--text-color);
     margin-bottom: 20px;
 }
 
@@ -337,7 +342,7 @@ a {
 
 .author-info span {
     font-weight: 600;
-    color: var(--primary-color);
+    color: var(--primary-text);
 }
 
 /* --- RESPONSIVIDADE --- */

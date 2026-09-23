@@ -51,7 +51,7 @@
 /* Rótulos dos campos */
 .card label {
     display: flex;                 
-    color: var(--primary-color);    
+    color: var(--primary-text);    
     font-weight: 500;
     margin-bottom: 0.5rem;
     font-size: 1rem;
@@ -62,7 +62,7 @@
 .text-input {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--field-border);
     border-radius: var(--radius-sm);
     font-size: 1rem;
     transition: var(--transition); /*transição fofinha*/
@@ -72,7 +72,7 @@
 .text-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /*FILTROS */
@@ -121,7 +121,7 @@
 /* SEÇÃO DE RESULTADOS */
 .results-section {
     padding: 3rem 1rem;
-    background: var(--light-bg);
+    background: var(--bg-color);
 }
 
 .results-header {
@@ -205,28 +205,28 @@
 }
 
 .tag.presencial {
-    background: #E3F2FD;
-    color: #1976D2;
+    background: var(--tag-blue-bg);
+    color: var(--tag-blue-fg);
 }
 
 .tag.ead {
-    background: #F3E5F5;
-    color: #7B1FA2;
+    background: var(--tag-purple-bg);
+    color: var(--tag-purple-fg);
 }
 
 .tag.semipresencial {
-    background: #FFF3E0;
-    color: #F57C00;
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange-fg);
 }
 
 .tag.publica {
-    background: #E8F5E9;
-    color: #2E7D32;
+    background: var(--tag-green-bg);
+    color: var(--tag-green-fg);
 }
 
 .tag.privada {
-    background: #FCE4EC;
-    color: #AD1457;
+    background: var(--tag-pink-bg);
+    color: var(--tag-pink-fg);
 }
 
 .institution {
@@ -252,7 +252,7 @@
     align-items: center;
     margin-top: auto;
     padding-top: 1rem;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
 }
 
 .course-info {
@@ -270,7 +270,7 @@
 }
 
 .course-link {
-    color: var(--primary-color);
+    color: var(--primary-text);
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
@@ -298,9 +298,9 @@
     padding: 0.5rem 1rem;
     border-radius: var(--radius-sm);
     text-decoration: none;
-    color: var(--primary-color);
+    color: var(--primary-text);
     background: var(--surface-color);
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     transition: var(--transition);
     display: flex;
     align-items: center;
@@ -337,7 +337,7 @@
 }
 
 .error {
-    color: #d32f2f;
+    color: var(--error-color);
 }
 
 /* responsividade*/
@@ -385,18 +385,18 @@
 }
 
 .btn-favorito:hover {
-    background-color: var(--light-bg);
-    color: var(--primary-color);
+    background-color: var(--surface-hover);
+    color: var(--primary-text);
     transform: scale(1.1);
 }
 
 .btn-favorito.favoritado {
-    color: #e74c3c;
+    color: var(--favorite-color);
 }
 
 .btn-favorito.favoritado:hover {
-    color: #c0392b;
-    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--favorite-hover);
+    background-color: var(--favorite-soft);
 }
 
 .btn-favorito i {
@@ -405,5 +405,5 @@
 
 .btn-favorito:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(90, 24, 154, 0.2);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }

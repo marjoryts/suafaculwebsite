@@ -9,37 +9,77 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
-    /* ---- Cores de marca (paleta roxa + laranja) ---- */
+    /* ---- Cores de marca (paleta roxa + laranja) ----
+       --primary-color é PREENCHIMENTO (fundo de botão, aba ativa, hero) e
+       sempre recebe texto --second-color por cima. Para TEXTO roxo (links,
+       rótulos, ícones) use --primary-text, que clareia no modo noturno. */
     --primary-color: #5A189A;
     --primary-dark: #30045c;
     --primary-light: #9D4EDD;
+    --primary-text: #5A189A;
+    --primary-soft: #f3e5f5;                    /* realce sutil: opção hover/selecionada */
+    --primary-border: rgba(90, 24, 154, 0.1);   /* contorno roxo discreto */
+    --focus-ring: rgba(90, 24, 154, 0.2);       /* anel de foco (box-shadow) */
 
-    --second-color: #ffffff;
+    --second-color: #ffffff;                    /* branco de marca: texto sobre roxo/laranja */
+    --text-on-bright: #404040;                  /* texto escuro sobre laranja/branco — igual nos dois temas */
     --accent-color: #FF9100;
     --accent-dark: #E65100;
-    --light-bg: #FCFBFF;
+    --accent-ring: rgba(255, 145, 0, 0.2);
 
-    --text-color: #404040;
-    --text-light: #7A7A7A;
+    /* ---- Superfícies (do fundo para a frente) ----
+       bg        → fundo da página e seções "de fundo"
+       surface   → cards, painéis, header, seções em destaque
+       muted     → áreas neutras DENTRO de um card (chips, itens, faixas)
+       hover     → realce de hover/linha selecionada sobre surface/muted
+       raised    → camadas flutuantes: modais, dropdowns, menus
+       field     → fundo de inputs, selects e textareas */
+    --bg-color: #FCFBFF;
+    --surface-color: #ffffff;
+    --surface-muted: #FCFBFF;
+    --surface-hover: #F4EFFA;
+    --surface-raised: #ffffff;
+    --field-bg: #ffffff;
+    --overlay: rgba(0, 0, 0, 0.5);
+    --light-bg: var(--surface-muted);           /* legado: prefira os tokens acima */
 
-    /* ---- Tokens de tema (claro por padrão; .dark-mode sobrescreve) ----
-       Use estes tokens para qualquer cor que precise mudar no modo noturno.
-       --second-color continua sendo branco "de marca" (texto sobre botões
-       laranja/roxos, rodapé), por isso fundos de cards/painéis devem usar
-       --surface-color, e não --second-color. */
-    --bg-color: var(--light-bg);        /* fundo da página */
-    --surface-color: #ffffff;           /* cards, header, modais, dropdowns */
-    --heading-color: var(--primary-dark); /* títulos h1–h4 */
-    --border-color: #e9ecef;            /* bordas de inputs, divisórias */
+    /* ---- Texto ---- */
+    --heading-color: var(--primary-dark);       /* títulos h1–h4 */
+    --text-strong: #2c3e50;                     /* títulos de card, ênfase */
+    --text-color: #404040;                      /* corpo */
+    --text-light: #7A7A7A;                      /* secundário, legendas, ícones neutros */
+    --text-muted: #888888;                      /* placeholders */
+
+    /* ---- Bordas ---- */
+    --border-color: #eeeeee;                    /* divisórias e contornos de card */
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    --field-border: #dddddd;                    /* contorno de inputs */
+
     --footer-bg: var(--primary-dark);
 
     /* ---- Estados semânticos ---- */
     --success-color: #2e7d32;
     --success-bg: #d4edda;
+    --success-border: #c3e6cb;
     --error-color: #c0392b;
     --error-bg: #f8d7da;
+    --error-border: #f5c6cb;
     --warning-color: #8a6d1a;
     --warning-bg: #fff3cd;
+    --info-color: #0d47a1;
+    --info-bg: #e3f2fd;
+    --neutral-color: #383d41;
+    --neutral-bg: #e2e3e5;
+    --favorite-color: #e74c3c;                  /* coração "favoritado" */
+    --favorite-hover: #c0392b;
+    --favorite-soft: rgba(231, 76, 60, 0.1);
+
+    /* ---- Tags (chips suaves: fundo claro + texto saturado) ---- */
+    --tag-blue-bg: #E3F2FD;    --tag-blue-fg: #1976D2;
+    --tag-purple-bg: #F3E5F5;  --tag-purple-fg: #7B1FA2;
+    --tag-orange-bg: #FFF3E0;  --tag-orange-fg: #F57C00;
+    --tag-green-bg: #E8F5E9;   --tag-green-fg: #2E7D32;
+    --tag-pink-bg: #FCE4EC;    --tag-pink-fg: #AD1457;
 
     /* ---- Sombras ---- */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -79,37 +119,75 @@
     --transition: all 0.3s ease;
 
     color-scheme: light;
+    accent-color: var(--primary-color);         /* checkboxes, radios, range */
 }
 
 /* ==========================================================================
    Modo noturno
    A classe .dark-mode é aplicada no <html> por /static/js/theme.js.
    Só as variáveis mudam: todo CSS que usa var(--...) se adapta sozinho.
+   Regra de ouro: NUNCA redefina estas variáveis em :root dentro de um CSS
+   de página — isso anula o modo noturno (o :root da página vence).
+
+   Paleta: neutros com leve tom roxo (não preto puro) para manter a
+   identidade; cada camada é um pouco mais clara que a anterior, e as
+   sombras ganham um contorno de 1px porque sombra escura some no escuro.
    ========================================================================== */
 .dark-mode {
-    --primary-color: #9D4EDD;
-    --primary-light: #C77DFF;
+    --primary-color: #7B2CBF;                   /* roxo mais vivo: destaca no escuro, texto branco 6.6:1 */
+    --primary-dark: #3C096C;
+    --primary-light: #9D4EDD;
+    --primary-text: #C9A3F5;                    /* roxo claro legível sobre superfícies escuras */
+    --primary-soft: rgba(157, 78, 221, 0.16);
+    --primary-border: rgba(201, 163, 245, 0.16);
+    --focus-ring: rgba(201, 163, 245, 0.3);
+    --accent-ring: rgba(255, 145, 0, 0.3);
 
-    --light-bg: #14111A;
-    --bg-color: #14111A;
-    --surface-color: #1F1A28;
-    --heading-color: #E0C3FF;
-    --border-color: #3A3247;
+    --bg-color: #13101A;
+    --surface-color: #1D1826;
+    --surface-muted: #262030;
+    --surface-hover: #2F283B;
+    --surface-raised: #242030;
+    --field-bg: #17131F;
+    --overlay: rgba(6, 4, 10, 0.72);
+
+    --heading-color: #E9DAFB;
+    --text-strong: #F3EFF8;
+    --text-color: #DAD5E2;
+    --text-light: #A59EB2;
+    --text-muted: #857D93;
+
+    --border-color: #362E43;
+    --border-subtle: rgba(255, 255, 255, 0.07);
+    --field-border: #483F57;
+
     --footer-bg: #0E0B13;
 
-    --text-color: #E6E2EC;
-    --text-light: #A9A3B4;
+    --success-color: #86d993;
+    --success-bg: rgba(46, 125, 50, 0.22);
+    --success-border: rgba(134, 217, 147, 0.35);
+    --error-color: #ff9b91;
+    --error-bg: rgba(192, 57, 43, 0.22);
+    --error-border: rgba(255, 155, 145, 0.35);
+    --warning-color: #ffd666;
+    --warning-bg: rgba(255, 193, 7, 0.16);
+    --info-color: #9ccaff;
+    --info-bg: rgba(25, 118, 210, 0.2);
+    --neutral-color: #c9c3d3;
+    --neutral-bg: #2F283B;
+    --favorite-color: #ff6f61;
+    --favorite-hover: #ff8f84;
+    --favorite-soft: rgba(255, 111, 97, 0.14);
 
-    --success-color: #81c784;
-    --success-bg: #1d3320;
-    --error-color: #ef9a9a;
-    --error-bg: #3d1e1e;
-    --warning-color: #ffd54f;
-    --warning-bg: #3a3116;
+    --tag-blue-bg: rgba(25, 118, 210, 0.2);   --tag-blue-fg: #90CAF9;
+    --tag-purple-bg: rgba(157, 78, 221, 0.22); --tag-purple-fg: #DDB8FF;
+    --tag-orange-bg: rgba(255, 145, 0, 0.18);  --tag-orange-fg: #FFB95C;
+    --tag-green-bg: rgba(46, 125, 50, 0.24);   --tag-green-fg: #9BE0A2;
+    --tag-pink-bg: rgba(216, 27, 96, 0.2);     --tag-pink-fg: #F8A5C2;
 
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 10px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 12px 24px rgba(0, 0, 0, 0.55);
 
     color-scheme: dark;
 }
@@ -152,12 +230,12 @@ body::-webkit-scrollbar {
     width: 0.8em;
 }
 body::-webkit-scrollbar-track {
-    background: var(--light-bg);
+    background: var(--bg-color);
 }
 body::-webkit-scrollbar-thumb {
     background-color: var(--primary-color);
     border-radius: 10px;
-    border: 2px solid var(--light-bg);
+    border: 2px solid var(--bg-color);
 }
 
 /* ---- Hierarquia tipográfica base ---- */
@@ -172,6 +250,29 @@ h3 { font-size: var(--text-xl); }
 h4 { font-size: var(--text-lg); }
 
 p { color: var(--text-color); }
+
+::selection {
+    background: var(--primary-light);
+    color: var(--second-color);
+}
+
+/* ---- Campos de formulário ----
+   :where() mantém especificidade zero: qualquer classe de página
+   (.text-input, .search-input…) continua podendo sobrescrever. */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"]), select, textarea) {
+    background-color: var(--field-bg);
+    color: var(--text-color);
+}
+
+::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+:where(input, select, textarea, button):disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 /* ---- Container padrão ---- */
 .page-container {
@@ -215,12 +316,49 @@ p { color: var(--text-color); }
 
 .btn-outline {
     background: transparent;
-    color: var(--primary-color);
+    color: var(--primary-text);
     border: 2px solid var(--primary-color);
 }
 .btn-outline:hover {
     background: var(--primary-color);
     color: var(--second-color);
+}
+
+/* ---- Botão de tema (sol/lua) ----
+   Usado no header (todas as páginas) e, flutuante, no login.
+   Mostra a lua no tema claro e o sol no escuro — só com CSS, sem "piscar". */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: var(--surface-muted);
+    color: var(--primary-text);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary-light);
+    background: var(--surface-hover);
+    transform: rotate(-15deg);
+}
+
+.theme-toggle .icon-sun { display: none; }
+.dark-mode .theme-toggle .icon-moon { display: none; }
+.dark-mode .theme-toggle .icon-sun { display: inline-block; color: var(--accent-color); }
+
+.theme-toggle--floating {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    box-shadow: var(--shadow-md);
 }
 
 /* ---- Badges / status pills ---- */
@@ -242,8 +380,8 @@ p { color: var(--text-color); }
     margin-bottom: var(--space-4);
     font-size: var(--text-sm);
 }
-.alert.success { background: var(--success-bg); color: var(--success-color); border: 1px solid var(--success-color); }
-.alert.error { background: var(--error-bg); color: var(--error-color); border: 1px solid var(--error-color); }
+.alert.success { background: var(--success-bg); color: var(--success-color); border: 1px solid var(--success-border); }
+.alert.error { background: var(--error-bg); color: var(--error-color); border: 1px solid var(--error-border); }
 
 /* ==========================================================================
    Modal, formulários e loading — componentes compartilhados
@@ -259,11 +397,11 @@ p { color: var(--text-color); }
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--overlay);
 }
 
 .modal-content {
-    background-color: var(--surface-color);
+    background-color: var(--surface-raised);
     margin: 5% auto;
     padding: 30px;
     border-radius: var(--radius-md);
@@ -307,9 +445,9 @@ p { color: var(--text-color); }
 .form-group textarea {
     width: 100%;
     padding: 12px;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--field-border);
     border-radius: 8px;
-    background-color: var(--surface-color);
+    background-color: var(--field-bg);
     color: var(--text-color);
     font-size: 1em;
     font-family: inherit;
