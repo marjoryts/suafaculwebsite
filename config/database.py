@@ -5,10 +5,28 @@ import unicodedata
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'suafacul.db')
 
 
+# Na Vercel (e em qualquer serverless), o diretório do código (/var/task) é
+# SOMENTE LEITURA — o único lugar gravável é /tmp. Sem isso o
+# sqlite3.connect() em database/suafacul.db falha com "unable to open
+# database file" já no import do app, e TODA rota responde 500.
+# A Vercel define VERCEL=1 automaticamente em build e runtime.
+VERCEL_DB_PATH = '/tmp/suafacul.db'
+
+
 def _resolve_db_path():
-    # Permite que os testes apontem para um banco temporário sem precisar
-    # recarregar módulos já importados (ver tests/conftest.py).
-    return os.environ.get('SUAFACUL_DB_PATH', DB_PATH)
+    # Ordem: SUAFACUL_DB_PATH (testes ou caminho explícito) > /tmp na
+    # Vercel > database/suafacul.db (desenvolvimento local).
+    caminho = os.environ.get('SUAFACUL_DB_PATH', '').strip()
+    if caminho:
+        return caminho
+    if os.environ.get('VERCEL'):
+        return VERCEL_DB_PATH
+    return DB_PATH
+
+
+def get_db_path():
+    """Caminho efetivo do banco no ambiente atual."""
+    return _resolve_db_path()
 
 
 def normalizar(texto):

@@ -66,9 +66,14 @@ oauth_service.init_app(app)
 # "pai" (watcher) e um processo "filho" (o que realmente serve requisições,
 # marcado por WERKZEUG_RUN_MAIN=true); sem essa checagem o scheduler
 # iniciaria duas vezes e a rotina diária rodaria em duplicidade.
-_debug_mode = os.environ.get('FLASK_DEBUG', '1') == '1'  # mesmo padrão usado no app.run() abaixo
+_IS_VERCEL = bool(os.environ.get('VERCEL'))
+# Na Vercel o debug fica sempre desligado (não depende de FLASK_DEBUG).
+_debug_mode = (not _IS_VERCEL) and os.environ.get('FLASK_DEBUG', '1') == '1'  # mesmo padrão usado no app.run() abaixo
 app.config['DEBUG'] = _debug_mode
-if not _debug_mode or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+# Na Vercel (serverless) a instância é congelada entre requisições, então um
+# BackgroundScheduler não roda no horário — lá a mesma rotina diária é
+# disparada pelo Vercel Cron (vercel.json -> /api/cron/validar-vestibulares).
+if not _IS_VERCEL and (not _debug_mode or os.environ.get('WERKZEUG_RUN_MAIN') == 'true'):
     scheduler_service.start(app)
 
 
@@ -809,6 +814,21 @@ def api_vestibulares_validar():
     POST com aplicar=true grava status_validacao/cadastrado_ok/faculdade_id."""
     aplicar = request.values.get('aplicar', 'false').lower() == 'true'
     return jsonify(vestibular_service.validar_vestibulares(aplicar=aplicar))
+
+
+@app.route('/api/cron/validar-vestibulares', methods=['GET'])
+def api_cron_validar_vestibulares():
+    """Equivalente serverless do job diário do scheduler_service (usado na
+    Vercel, onde não há processo contínuo). O Vercel Cron chama esta rota
+    com `Authorization: Bearer <CRON_SECRET>`; sem CRON_SECRET configurado
+    a rota fica desativada (nunca aberta ao público)."""
+    import hmac
+    segredo = os.environ.get('CRON_SECRET', '').strip()
+    recebido = request.headers.get('Authorization', '')
+    if not segredo or not hmac.compare_digest(recebido, f'Bearer {segredo}'):
+        return jsonify({'success': False, 'message': 'Não autorizado.'}), 401
+    scheduler_service.rodar_validacao_vestibulares_diaria()
+    return jsonify({'success': True})
 
 # ──────────────────────────────────────────────
 # API — Admin: dashboard de controle

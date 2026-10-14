@@ -1,0 +1,23 @@
+[project]
+name = "suafacul"
+version = "1.0.0"
+description = "SuaFacul - sistema de apoio à escolha de cursos e instituições"
+requires-python = ">=3.12"
+# Mantenha em sincronia com requirements.txt (dependências de runtime).
+dependencies = [
+    "flask>=3.0.0",
+    "werkzeug>=3.0.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "authlib>=1.3.0",
+    "python-dotenv>=1.0.0",
+    "apscheduler>=3.10.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0.0"]
+
+[tool.vercel]
+# Carrega o Flask via wsgi.py: `app.py` sozinho é "escondido" pelo pacote
+# `app/` quando importado como módulo (ver docstring de wsgi.py).
+entrypoint = "wsgi:app"

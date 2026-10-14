@@ -279,3 +279,10 @@ Resposta no formato `{"data": ..., "meta": {...}}` (listagem) ou
 `{"data": {...}}` (detalhe); `404` com `{"error": ...}` quando não
 encontrado.
 
+
+## Deploy na Vercel
+
+- Entrypoint: `wsgi.py` (configurado em `pyproject.toml` → `[tool.vercel] entrypoint`). O `app.py` não pode ser carregado direto como módulo porque o pacote `app/` tem o mesmo nome. Localmente nada muda: `python app.py`.
+- Banco: na Vercel o código fica em disco somente leitura; o SQLite é criado em `/tmp/suafacul.db` (detectado pela variável `VERCEL`). **Esse arquivo é temporário**: some quando a instância é reciclada e não é compartilhado entre instâncias. Para dados permanentes (usuários, favoritos) em produção é preciso um banco externo.
+- Automação diária de vestibulares: na Vercel roda via Vercel Cron (`vercel.json` → `/api/cron/validar-vestibulares`, 06:00 UTC = 03:00 em São Paulo), protegida por `CRON_SECRET`.
+- Variáveis em *Settings → Environment Variables*: `FLASK_SECRET_KEY`, `CRON_SECRET` e, para login com Google, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` (https do domínio da Vercel).

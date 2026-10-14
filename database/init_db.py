@@ -4,10 +4,31 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config.database import DB_PATH, get_connection
+from config.database import get_db_path, get_connection
 
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    """Cria tabelas e dados iniciais. Serializado por uma trava de arquivo:
+    quando vários processos sobem juntos com o banco ainda vazio (vários
+    workers do gunicorn, instâncias concorrentes na Vercel), o padrão
+    "conferir e depois inserir" do seed abaixo fazia dois processos
+    criarem o admin padrão ao mesmo tempo — um deles quebrava com
+    "UNIQUE constraint failed: usuarios.email" e o worker não subia.
+    Com a trava, o segundo processo espera e encontra o seed já feito."""
+    caminho_db = get_db_path()
+    os.makedirs(os.path.dirname(caminho_db), exist_ok=True)
+    try:
+        import fcntl  # Linux/macOS (Vercel, gunicorn)
+    except ImportError:  # Windows: sem fcntl; dev local roda 1 processo só
+        return _init_db_sem_trava()
+    with open(caminho_db + '.init.lock', 'w') as trava:
+        fcntl.flock(trava, fcntl.LOCK_EX)
+        try:
+            return _init_db_sem_trava()
+        finally:
+            fcntl.flock(trava, fcntl.LOCK_UN)
+
+
+def _init_db_sem_trava():
     conn = get_connection()
     c = conn.cursor()
 
@@ -403,7 +424,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print(f"Banco de dados inicializado em: {DB_PATH}")
+    print(f"Banco de dados inicializado em: {get_db_path()}")
 
 if __name__ == '__main__':
     init_db()

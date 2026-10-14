@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/static/:path*", "destination": "/:path*" }
+  ],
+  "functions": {
+    "wsgi.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{tests/**,.env,database/*.db,database/*.db-wal,database/*.db-shm,database/*.lock}"
+    }
+  },
+  "crons": [
+    { "path": "/api/cron/validar-vestibulares", "schedule": "0 6 * * *" }
+  ]
+}
