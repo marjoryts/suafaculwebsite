@@ -163,6 +163,29 @@ class Faculdade:
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
 
+    def ids_por_sigla(self, siglas):
+        """{sigla: id} das faculdades com essas siglas, numa única consulta.
+        Usado pela página inicial para ligar os cards fixos de "Faculdades
+        em destaque" ao registro do banco (botão de favoritar). Se houver
+        mais de uma faculdade com a mesma sigla (ex.: após importar o
+        e-MEC), fica a cadastrada primeiro."""
+        siglas = [s for s in siglas if s]
+        if not siglas:
+            return {}
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                f"SELECT sigla, MIN(id) AS id FROM faculdades "
+                f"WHERE sigla IN ({','.join('?' * len(siglas))}) GROUP BY sigla",
+                siglas
+            )
+            resultado = {row['sigla']: row['id'] for row in c.fetchall()}
+            conn.close()
+            return resultado
+        except Exception:
+            return {}
+
     def buscar_por_nome_exato(self, nome):
         try:
             conn = get_connection()

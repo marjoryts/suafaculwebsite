@@ -144,7 +144,12 @@ def admin_required(f):
 @app.route('/')
 @app.route('/home')
 def home():
-    return render_template('home.html', proximos_vestibulares=Vestibular().proximos(limite=8))
+    return render_template(
+        'home.html',
+        proximos_vestibulares=Vestibular().proximos(limite=8),
+        # IDs das faculdades em destaque, para o botão de favoritar
+        faculdades_destaque=Faculdade().ids_por_sigla(['USP', 'FATEC', 'UNICAMP', 'UNIFESP']),
+    )
 
 @app.route('/login')
 def login():

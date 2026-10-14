@@ -284,6 +284,12 @@ function openCourseModal(course) {
 document.addEventListener('DOMContentLoaded', () => {
     carregarListaDeCursosDaHome();
     ativarBuscaDeCursosDaHome();
+
+    // Corações dos carrosséis "Faculdades em destaque" e "Próximos vestibulares"
+    if (typeof inicializarFavoritos === 'function') {
+        inicializarFavoritos('faculdade');
+        inicializarFavoritos('vestibular');
+    }
 });
 
 // Campo "Pesquisar curso" da seção Cursos: abre o mesmo modal de resultados

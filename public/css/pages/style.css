@@ -82,6 +82,24 @@
     box-shadow: 0 8px 20px var(--focus-ring);
 }
 
+/* Foto + botão de favoritar sobre ela */
+.faculdade-media {
+    position: relative;
+}
+
+.faculdade-media .btn-favorito {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    border-color: transparent;
+    box-shadow: var(--shadow-md);
+}
+
+/* Sobre a foto, o fundo translúcido do estado "favoritado" sumia */
+.faculdade-media .btn-favorito.favoritado {
+    background: var(--surface-color);
+}
+
 .faculdade img {
     display: block;
     width: 100%;
@@ -139,6 +157,19 @@
 
 .vestibular:hover {
     border-color: var(--primary-light);
+}
+
+/* Data da prova + botão de favoritar */
+.vestibular-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.vestibular-topo .vestibular-data {
+    margin-bottom: 0;
 }
 
 .vestibular-data {

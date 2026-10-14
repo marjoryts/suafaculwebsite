@@ -44,41 +44,30 @@
                         <i class="fas fa-chevron-left" aria-hidden="true"></i>
                     </button>
                     <div class="faculdades-lista" id="faculdades-lista">
+                        {% set destaques = [
+                            {'sigla': 'USP', 'img': 'usp.jpg', 'alt': 'Campus da USP', 'nome': 'USP (Universidade de São Paulo)', 'local': 'Butantã - SP', 'url': 'https://www5.usp.br/'},
+                            {'sigla': 'FATEC', 'img': 'fatecfv.jpeg', 'alt': 'Fachada da FATEC Ferraz de Vasconcelos', 'nome': 'FATEC (Faculdade de Tecnologia)', 'local': 'Ferraz de Vasconcelos - SP', 'url': 'https://fatecferraz.edu.br/'},
+                            {'sigla': 'UNICAMP', 'img': 'unicamp.jpg', 'alt': 'Vista aérea da UNICAMP', 'nome': 'UNICAMP (Universidade de Campinas)', 'local': 'Campinas - SP', 'url': 'https://www.unicamp.br/'},
+                            {'sigla': 'UNIFESP', 'img': 'unifesp.jpg', 'alt': 'Prédio da UNIFESP', 'nome': 'UNIFESP (Universidade Federal de São Paulo)', 'local': 'São Paulo - SP', 'url': 'https://www.unifesp.br/'},
+                        ] %}
+                        {% for f in destaques %}
+                        {% set faculdade_id = (faculdades_destaque or {}).get(f.sigla) %}
                         <article class="faculdade">
-                            <img src="/static/imagens/usp.jpg" alt="Campus da USP" loading="lazy">
+                            <div class="faculdade-media">
+                                <img src="/static/imagens/{{ f.img }}" alt="{{ f.alt }}" loading="lazy">
+                                {% if faculdade_id %}
+                                <button type="button" class="btn-favorito" data-tipo="faculdade" data-item-id="{{ faculdade_id }}" data-nome-item="{{ f.nome }}" title="Adicionar aos favoritos" aria-label="Favoritar {{ f.nome }}">
+                                    <i class="far fa-heart" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                             <div class="faculdade-body">
-                                <h3>USP (Universidade de São Paulo)</h3>
-                                <p>Butantã - SP</p>
-                                <a href="https://www5.usp.br/" target="_blank" rel="noopener">Saiba mais</a>
+                                <h3>{{ f.nome }}</h3>
+                                <p>{{ f.local }}</p>
+                                <a href="{{ f.url }}" target="_blank" rel="noopener">Saiba mais</a>
                             </div>
                         </article>
-
-                        <article class="faculdade">
-                            <img src="/static/imagens/fatecfv.jpeg" alt="Fachada da FATEC Ferraz de Vasconcelos" loading="lazy">
-                            <div class="faculdade-body">
-                                <h3>FATEC (Faculdade de Tecnologia)</h3>
-                                <p>Ferraz de Vasconcelos - SP</p>
-                                <a href="https://fatecferraz.edu.br/" target="_blank" rel="noopener">Saiba mais</a>
-                            </div>
-                        </article>
-
-                        <article class="faculdade">
-                            <img src="/static/imagens/unicamp.jpg" alt="Vista aérea da UNICAMP" loading="lazy">
-                            <div class="faculdade-body">
-                                <h3>UNICAMP (Universidade de Campinas)</h3>
-                                <p>Campinas - SP</p>
-                                <a href="https://www.unicamp.br/" target="_blank" rel="noopener">Saiba mais</a>
-                            </div>
-                        </article>
-
-                        <article class="faculdade">
-                            <img src="/static/imagens/unifesp.jpg" alt="Prédio da UNIFESP" loading="lazy">
-                            <div class="faculdade-body">
-                                <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
-                                <p>São Paulo - SP</p>
-                                <a href="https://www.unifesp.br/" target="_blank" rel="noopener">Saiba mais</a>
-                            </div>
-                        </article>
+                        {% endfor %}
                     </div>
                     <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="faculdades-lista">
                         <i class="fas fa-chevron-right" aria-hidden="true"></i>
@@ -105,7 +94,12 @@
                     <div class="vestibulares-lista" id="vestibulares-lista">
                         {% for v in proximos_vestibulares %}
                         <article class="vestibular">
-                            <p class="vestibular-data"><span>Prova</span> {{ (v.data_prova | data_br)[:5] }}</p>
+                            <div class="vestibular-topo">
+                                <p class="vestibular-data"><span>Prova</span> {{ (v.data_prova | data_br)[:5] }}</p>
+                                <button type="button" class="btn-favorito" data-tipo="vestibular" data-item-id="{{ v.id }}" data-nome-item="{{ v.nome }}" title="Adicionar aos favoritos" aria-label="Favoritar {{ v.nome }}">
+                                    <i class="far fa-heart" aria-hidden="true"></i>
+                                </button>
+                            </div>
                             <h3>{{ v.nome }}</h3>
                             <p class="vestibular-inst">{{ v.instituicao or 'Instituição não informada' }}</p>
                             <a href="{{ v.link_edital or '/vestibulares' }}"{% if v.link_edital %} target="_blank" rel="noopener"{% endif %}>Ver edital</a>

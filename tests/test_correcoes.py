@@ -110,3 +110,24 @@ def test_inicial_nao_promete_comparacao(client):
 
 def test_pasta_css_antiga_removida():
     assert not os.path.exists(os.path.join(RAIZ, 'public', 'pages'))
+
+
+# ── Favoritar na página inicial ──
+
+def test_inicial_tem_favoritar_nas_faculdades_em_destaque(app, client):
+    ids = app.Faculdade().ids_por_sigla(['USP', 'FATEC', 'UNICAMP', 'UNIFESP'])
+    assert set(ids) == {'USP', 'FATEC', 'UNICAMP', 'UNIFESP'}
+    html = client.get('/').get_data(as_text=True)
+    for faculdade_id in ids.values():
+        assert f'data-tipo="faculdade" data-item-id="{faculdade_id}"' in html
+
+
+def test_inicial_tem_favoritar_nos_proximos_vestibulares(app, client):
+    html = client.get('/').get_data(as_text=True)
+    for v in app.Vestibular().proximos(limite=8):
+        assert f'data-tipo="vestibular" data-item-id="{v["id"]}"' in html
+
+
+def test_ids_por_sigla_ignora_sigla_inexistente(app):
+    assert app.Faculdade().ids_por_sigla(['NAOEXISTE']) == {}
+    assert app.Faculdade().ids_por_sigla([]) == {}
