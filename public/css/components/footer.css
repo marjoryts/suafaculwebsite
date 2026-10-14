@@ -10,9 +10,26 @@
    ========================================================================== */
 
 footer {
+    position: relative;
     background-color: var(--footer-bg);
     color: var(--second-color);
     padding: 3.5rem 1.5rem 0;
+}
+
+/* Entrada curva do rodapé, no mesmo desenho das ondas dos banners.
+   Sobe sobre o espaço final da última seção; decorativa. */
+footer::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% - 1px);
+    height: 60px;
+    background: var(--footer-bg);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,42 C300,112 640,112 960,64 C1160,34 1320,38 1440,66 L1440,120 L0,120 Z'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,42 C300,112 640,112 960,64 C1160,34 1320,38 1440,66 L1440,120 L0,120 Z'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+    transform: scaleX(-1);
+    pointer-events: none;
 }
 
 .footer-grid {
@@ -96,6 +113,12 @@ footer {
 
     .footer-about {
         grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    footer::before {
+        height: 36px;
     }
 }
 

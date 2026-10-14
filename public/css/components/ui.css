@@ -930,3 +930,275 @@
     white-space: nowrap;
     border: 0;
 }
+
+/* ==========================================================================
+   Ondas e formas orgânicas
+   Mesma linguagem visual do Teste Vocacional: a curva é um recorte em SVG
+   (mask) preenchido com a cor do fundo seguinte, então acompanha o modo
+   noturno sozinha. Tudo é decorativo (aria-hidden e pointer-events: none).
+
+   Uso:
+     1) Na base de um banner/bloco posicionado:
+        <div class="wave-divider wave--a" aria-hidden="true"></div>
+        Cor: --wave-color (padrão: fundo da página).
+     2) Entre duas seções com fundos diferentes:
+        <div class="section-wave wave--b" style="--wave-top: …; --wave-bottom: …"
+             aria-hidden="true"></div>
+        Atalhos: .section-wave--to-surface e .section-wave--to-bg
+   Variações de desenho: .wave--a (igual ao Teste Vocacional), --b, --c, --d,
+   e .wave--flip para espelhar. Cada página combina de um jeito diferente.
+   ========================================================================== */
+
+html {
+    /* Variáveis só das ondas (em html, não em :root: ver tests/test_theme.py) */
+    --wave-h: 88px;
+    --wave-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,70 C240,120 480,10 720,40 C960,70 1200,120 1440,50 L1440,120 L0,120 Z'/%3E%3C/svg%3E");
+    --wave-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,42 C300,112 640,112 960,64 C1160,34 1320,38 1440,66 L1440,120 L0,120 Z'/%3E%3C/svg%3E");
+    --wave-c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,84 C300,22 660,18 1020,64 C1200,88 1340,92 1440,78 L1440,120 L0,120 Z'/%3E%3C/svg%3E");
+    --wave-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,58 C480,124 960,-6 1440,60 L1440,120 L0,120 Z'/%3E%3C/svg%3E");
+}
+
+.wave--a { --wave-shape: var(--wave-a); }
+.wave--b { --wave-shape: var(--wave-b); }
+.wave--c { --wave-shape: var(--wave-c); }
+.wave--d { --wave-shape: var(--wave-d); }
+
+/* 1) Onda sobreposta à base de um bloco */
+.wave-divider {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    z-index: 1;
+    height: var(--wave-h);
+    background: var(--wave-color, var(--bg-color));
+    -webkit-mask: var(--wave-shape, var(--wave-a)) no-repeat 0 0 / 100% 100%;
+            mask: var(--wave-shape, var(--wave-a)) no-repeat 0 0 / 100% 100%;
+    pointer-events: none;
+}
+
+/* 2) Transição curva entre duas seções */
+.section-wave {
+    position: relative;
+    height: calc(var(--wave-h) * 0.8);
+    margin: -1px 0;
+    background: var(--wave-top, var(--bg-color));
+    pointer-events: none;
+}
+
+.section-wave::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wave-bottom, var(--surface-color));
+    -webkit-mask: var(--wave-shape, var(--wave-a)) no-repeat 0 0 / 100% 100%;
+            mask: var(--wave-shape, var(--wave-a)) no-repeat 0 0 / 100% 100%;
+}
+
+.section-wave--to-surface { --wave-top: var(--bg-color); --wave-bottom: var(--surface-color); }
+.section-wave--to-bg { --wave-top: var(--surface-color); --wave-bottom: var(--bg-color); }
+
+/* Seção em destaque com fundo lilás da marca (roxo bem claro; no modo
+   noturno, um roxo escuro um pouco acima do fundo). */
+.section--tint {
+    background: var(--surface-hover);
+}
+
+.section-wave--to-tint { --wave-top: var(--bg-color); --wave-bottom: var(--surface-hover); }
+.section-wave--from-tint { --wave-top: var(--surface-hover); --wave-bottom: var(--bg-color); }
+
+.wave--flip,
+.section-wave.wave--flip::after {
+    transform: scaleX(-1);
+}
+
+/* Com as curvas, as seções em destaque dispensam as linhas retas */
+.section-wave + .section--muted,
+.section--muted:has(+ .section-wave) {
+    border-top: 0;
+    border-bottom: 0;
+}
+
+/* A curva já separa as seções: reduz o espaço vertical em volta dela */
+.section:has(+ .section-wave) {
+    padding-bottom: 2rem;
+}
+
+.section-wave + .section {
+    padding-top: 1.75rem;
+}
+
+/* ---- Banner com onda e formas ---- */
+.page-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    padding-bottom: calc(3.25rem + var(--wave-h));
+}
+
+.page-hero--compact {
+    padding-bottom: calc(2.5rem + var(--wave-h));
+}
+
+.page-hero > .container {
+    position: relative;
+    z-index: 2;
+}
+
+/* Formas: um círculo grande e um anel, translúcidos, atrás do conteúdo.
+   A posição muda por página com .hero-shapes--* */
+.page-hero::before,
+.page-hero::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.page-hero::before {
+    width: 380px;
+    height: 380px;
+    right: -120px;
+    top: -140px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.page-hero::after {
+    width: 180px;
+    height: 180px;
+    left: 5%;
+    bottom: calc(var(--wave-h) - 40px);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-shapes--left::before {
+    right: auto;
+    left: -140px;
+    top: auto;
+    bottom: -60px;
+}
+
+.hero-shapes--left::after {
+    left: auto;
+    right: 7%;
+    top: 28px;
+    bottom: auto;
+    width: 120px;
+    height: 120px;
+}
+
+.hero-shapes--split::before {
+    width: 300px;
+    height: 300px;
+    right: -90px;
+    top: auto;
+    bottom: 10px;
+}
+
+.hero-shapes--split::after {
+    left: -60px;
+    top: -60px;
+    bottom: auto;
+    width: 220px;
+    height: 220px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Grade de pontos, como no Teste Vocacional — usar com moderação */
+.hero-dots {
+    position: absolute;
+    z-index: 0;
+    width: 176px;
+    height: 110px;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.26) 2.5px, transparent 3px);
+    background-size: 22px 22px;
+    pointer-events: none;
+}
+
+.hero-dots--tl { top: 32px; left: 4%; }
+.hero-dots--tr { top: 32px; right: 5%; }
+
+/* ---- Chamada para o teste: formas suaves dentro do card ---- */
+.cta-band-inner {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.cta-band-inner::before,
+.cta-band-inner::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.cta-band-inner::before {
+    width: 220px;
+    height: 220px;
+    right: -60px;
+    top: -90px;
+    background: var(--primary-border);
+}
+
+.cta-band-inner::after {
+    width: 120px;
+    height: 120px;
+    right: 22%;
+    bottom: -70px;
+    border: 2px solid var(--primary-border);
+}
+
+@media (max-width: 860px) {
+    html { --wave-h: 64px; }
+
+    .page-hero::before {
+        width: 260px;
+        height: 260px;
+    }
+
+    .page-hero::after,
+    .hero-dots {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    html { --wave-h: 44px; }
+
+    .page-hero {
+        padding-bottom: calc(2.25rem + var(--wave-h));
+    }
+
+    .page-hero::before {
+        width: 200px;
+        height: 200px;
+        right: -90px;
+        top: -90px;
+    }
+
+    .hero-shapes--left::before {
+        left: -100px;
+        top: auto;
+        bottom: -40px;
+    }
+
+    .cta-band-inner::after {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wave-divider,
+    .section-wave::after {
+        transition: background-color 0.3s ease;
+    }
+}
+
+/* Espaço para a curva do rodapé (components/footer.css) */
+main {
+    padding-bottom: calc(var(--wave-h) * 0.5);
+}

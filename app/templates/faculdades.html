@@ -20,12 +20,13 @@
     {% include 'partials/_header.html' %}
 
     <main>
-        <section class="page-hero">
+        <section class="page-hero hero-shapes--split">
             <div class="container">
                 <h1>Encontre a sua <span>faculdade</span> ideal</h1>
                 <p class="page-hero-lead">Combine curso, instituição e cidade para ver as faculdades cadastradas e os cursos de cada uma.</p>
                 {% include 'partials/_busca_faculdades.html' %}
             </div>
+            <div class="wave-divider wave--c wave--flip" aria-hidden="true"></div>
         </section>
 
         <!-- Resultados: exibidos e preenchidos por /static/js/faculdades.js -->

@@ -21,11 +21,13 @@
 
     <main class="home">
         <section class="page-hero home-hero">
+            <div class="hero-dots hero-dots--tl" aria-hidden="true"></div>
             <div class="container">
                 <h1>Seu <span>futuro</span> em um só lugar</h1>
                 <p class="page-hero-lead">Pesquise cursos, faculdades e cidades e compare as opções antes de decidir onde estudar.</p>
                 {% include 'partials/_busca_faculdades.html' %}
             </div>
+            <div class="wave-divider wave--a" aria-hidden="true"></div>
         </section>
 
         <section class="section faculdades">
@@ -85,7 +87,9 @@
             </div>
         </section>
 
-        <section class="section section--muted vestibulares">
+        <div class="section-wave section-wave--to-tint wave--c" aria-hidden="true"></div>
+
+        <section class="section section--tint vestibulares">
             <div class="container">
                 <div class="section-head">
                     <div>
@@ -121,6 +125,8 @@
                 </div>
             </div>
         </section>
+
+        <div class="section-wave section-wave--from-tint wave--b wave--flip" aria-hidden="true"></div>
 
         <section class="section container-curso">
             <div class="container">

@@ -5,10 +5,6 @@
    a lista de cursos da home.
    ========================================================================== */
 
-.home-hero {
-    padding-bottom: 4rem;
-}
-
 /* ---- Carrosséis (Faculdades em destaque / Próximos vestibulares) ----
    Rolagem controlada por /static/js/home-carousel.js. */
 .carousel-wrapper {
