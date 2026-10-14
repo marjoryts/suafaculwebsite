@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/components/header.css">
     <link rel="stylesheet" href="/static/css/components/footer.css">
     <link rel="stylesheet" href="/static/css/components/busca-sugestoes.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
     <link rel="stylesheet" href="/static/css/pages/faculdades.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -19,50 +20,26 @@
     {% include 'partials/_header.html' %}
 
     <main>
-        <section class="hero">
-            <h1>Encontre a sua <em><strong>faculdade</strong></em> ideal!</h1>
+        <section class="page-hero">
             <div class="container">
-                <div class="container-input">
-                    <div class="card">
-                        <label for="curso"> Qual curso deseja estudar?</label>
-                        <input type="text" class="text-input" placeholder="Digite o curso">
-                        <div class="filtros1">
-                            <label><input type="checkbox"> Presencial</label>
-                            <label><input type="checkbox"> Híbrido</label>
-                            <label><input type="checkbox"> EaD</label>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <label for="faculdade"> Em qual faculdade?</label>
-                        <input type="text" class="text-input" placeholder="Digite a faculdade">
-                        <div class="filtros">
-                            <label><input type="radio">Pública</label>
-                            <label><input type="radio">Particular</label>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <label for="cidade">Em que cidade quer estudar?</label>
-                        <input type="text" class="text-input" placeholder="Digite a cidade">
-                        <div class="filtros">
-                            <button class="btn-buscar">Buscar</button>
-                        </div>
-                    </div>
-                </div>
+                <h1>Encontre a sua <span>faculdade</span> ideal</h1>
+                <p class="page-hero-lead">Combine curso, instituição e cidade para ver as faculdades cadastradas e os cursos de cada uma.</p>
+                {% include 'partials/_busca_faculdades.html' %}
             </div>
         </section>
 
-        <!-- Seção de Resultados (será criada dinamicamente pelo JavaScript) -->
-        <section class="results-section" style="display: none;">
+        <!-- Resultados: exibidos e preenchidos por /static/js/faculdades.js -->
+        <section class="section results-section" style="display: none;">
             <div class="container">
-                <div class="results-header">
-                    <h2><i class="fas fa-search"></i> Resultados da Busca</h2>
-                    <div class="results-count">0-0 de 0 faculdades encontradas</div>
+                <div class="list-header results-header">
+                    <h2>Resultados da busca</h2>
+                    <div class="list-count results-count" aria-live="polite">0-0 de 0 faculdades encontradas</div>
                 </div>
                 <div class="courses-grid">
-                    <!-- Os cursos serão carregados dinamicamente via JavaScript -->
+                    <!-- Os cards são carregados dinamicamente via JavaScript -->
                 </div>
                 <div class="pagination">
-                    <!-- A paginação será gerada dinamicamente via JavaScript -->
+                    <!-- A paginação é gerada dinamicamente via JavaScript -->
                 </div>
             </div>
         </section>

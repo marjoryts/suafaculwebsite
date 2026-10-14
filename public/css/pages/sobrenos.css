@@ -1,224 +1,144 @@
-/* Tokens de marca, reset, body, scrollbar e header agora vivem em
-   /static/css/base.css e /static/css/components/header.css */
+/* ==========================================================================
+   Sobre nós
+   Hero, seções, cabeçalhos e chamada final vêm de components/ui.css.
+   ========================================================================== */
 
-.container {
-    width: 90%;
-    max-width: 1200px;
+/* ---- História e propósito ---- */
+.about-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 3rem;
+    align-items: center;
+}
+
+.about-text h2 {
+    margin-bottom: 1rem;
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+}
+
+.about-text p {
+    color: var(--text-color);
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+.about-text p + p {
+    margin-top: 1rem;
+}
+
+.about-image img {
+    display: block;
+    width: 100%;
+    max-width: 460px;
+    height: auto;
     margin: 0 auto;
 }
 
-.hero-content h1{
-    color: var(--second-color);
-    font-size: clamp(2rem, 5vw, 3.25rem);
-    font-weight: 600;
-    margin-bottom: 3rem;
-    line-height: 1.2;
-    margin-top: 1%;
-}
- 
-.hero-content p {
-    color: var(--second-color);
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    opacity: 0.9;
-}
- 
-.hero {
-    background: linear-gradient(135deg,  var(--primary-color) 0%, var(--primary-dark) 100%);
-    color: var(--second-color);
-    padding: 4rem 0;
-    text-align: center;
-}
- 
-.hero h1 strong {
-    color: var(--accent-color);
-}
- 
-.wave {
-    height: 30px;
-    background: var(--surface-color);
-    margin-top: -20px;
-    border-top-left-radius: 100% 20px;
-    border-top-right-radius: 100% 20px;
-}
- 
-.about-section {
-    background-color: var(--surface-color);
-    padding: 4rem 0;
-}
- 
-.about-content {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-}
- 
-.about-text {
-    flex: 1;
-}
- 
-.about-image {
-    flex: 1;
-    text-align: center;
-}
- 
-.about-image img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 10px;
-}
- 
-.mission-vision-values {
-    background-color: var(--bg-color);
-    padding: 4rem 0;
-    text-align: center;
-}
- 
+/* ---- Missão, visão e valores ---- */
 .mvv-grid {
-    display: flex;
-    justify-content: space-around;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
 }
- 
+
 .mvv-card {
-    background-color: var(--surface-color);
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm);
-    flex: 1;
-    max-width: 320px;
-}
- 
-.mvv-card h3 {
-    margin-top: 1rem;
-    color: var(--primary-text);
-}
- 
-.mvv-card i {
-    font-size: 2.5rem;
-    color: var(--accent-color);
-}
- 
-.mvv-card ul {
-    list-style: none;
-    padding: 0;
-    text-align: left;
-}
- 
-.mvv-card li {
-    margin: 0.5rem 0;
-}
- 
-.team-section {
-    background-color: var(--surface-color);
-    padding: 4rem 0;
-    text-align: center;
-}
- 
-.team-grid {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-top: 2rem;
-}
- 
-.team-member-card {
-    background-color: var(--surface-muted);
     padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm);
-    max-width: 150px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 14px;
 }
- 
-.team-member-card img {
-    width: 110%;
-    border-radius: 10%;
-    margin-bottom: 1rem;
+
+.mvv-card h3 {
+    margin-bottom: 0.6rem;
+    color: var(--text-strong);
+    font-size: var(--text-lg);
 }
- 
-.foto_1 {
-    width: 30%;
-    height: 50%;
+
+.mvv-card p {
+    color: var(--text-color);
+    line-height: 1.65;
 }
- 
-.foto_2{
- width: 30%;
- height: 50%;
+
+.mvv-valores {
+    margin: 0;
 }
- 
-.foto_3 {
-width: 30%;
-height: 50%;
+
+.mvv-valores dt {
+    color: var(--text-strong);
+    font-weight: 600;
 }
- 
-.foto_4 {
-width: 30%;
-height: 50%;
+
+.mvv-valores dd {
+    margin: 0 0 0.6rem;
+    color: var(--text-light);
+    font-size: var(--text-sm);
+    line-height: 1.5;
 }
- 
- 
-.team-member-card h3 {
-    color: var(--primary-text);
+
+.mvv-valores dd:last-child {
+    margin-bottom: 0;
 }
- 
-.social-links a {
-    margin: 0 0.5rem;
-    color: var(--accent-color);
-    font-size: 1.2rem;
-    transition: color 0.3s;
+
+/* ---- Equipe ---- */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 240px));
+    justify-content: center;
+    gap: 1.25rem;
 }
- 
-.social-links a:hover {
-    color: var(--accent-dark);
-}
- 
-.call-to-action {
-    background-color: var(--primary-color);
-    color: var(--second-color);
-    padding: 3rem 0;
+
+.team-member-card {
+    padding: 1.5rem 1.25rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
     text-align: center;
 }
 
-/* Texto sobre o fundo roxo: sempre branco de marca (o h2 herdava a cor
-   global de títulos, roxo-escuro sobre roxo — ilegível nos dois temas). */
-.call-to-action h2,
-.call-to-action p {
-    color: var(--second-color);
+.team-member-card img {
+    display: block;
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-hover);
+    border: 3px solid var(--primary-soft);
 }
- 
-.call-to-action .btn-primary,
-.call-to-action .btn-secondary {
-    display: inline-block;
-    margin: 1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 30px;
-    font-weight: bold;
-    text-decoration: none;
-    transition: background 0.3s;
+
+.team-member-card h3 {
+    color: var(--text-strong);
+    font-size: 1.05rem;
 }
- 
-.btn-primary {
-    background-color: var(--accent-color);
-    color: var(--second-color);
+
+.team-member-card .role {
+    margin-top: 0.25rem;
+    color: var(--text-light);
+    font-size: var(--text-sm);
 }
- 
-.btn-primary:hover {
-    background-color: var(--accent-dark);
+
+@media (max-width: 860px) {
+    .about-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .about-image {
+        order: -1;
+    }
+
+    .about-image img {
+        max-width: 340px;
+    }
+
+    .mvv-grid {
+        grid-template-columns: 1fr;
+    }
 }
- 
-.btn-secondary {
-    background-color: transparent;
-    border: 2px solid var(--second-color);
-    color: var(--second-color);
+
+@media (max-width: 480px) {
+    .team-grid {
+        grid-template-columns: 1fr;
+    }
 }
- 
-.btn-secondary:hover {
-    background-color: var(--surface-color);
-    color: var(--primary-text);
-}
- 

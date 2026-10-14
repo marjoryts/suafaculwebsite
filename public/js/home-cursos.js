@@ -283,7 +283,26 @@ function openCourseModal(course) {
 // Adicionar event listeners aos itens de curso
 document.addEventListener('DOMContentLoaded', () => {
     carregarListaDeCursosDaHome();
+    ativarBuscaDeCursosDaHome();
 });
+
+// Campo "Pesquisar curso" da seção Cursos: abre o mesmo modal de resultados
+// usado pelos itens da lista (antes o campo existia mas não fazia nada).
+function ativarBuscaDeCursosDaHome() {
+    const form = document.getElementById('home-curso-busca');
+    const input = document.getElementById('home-curso-input');
+    if (!form || !input) return;
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const termo = input.value.trim();
+        if (!termo) {
+            input.focus();
+            return;
+        }
+        openCourseSearchModal(termo);
+    });
+}
 
 // Busca os cursos reais cadastrados e monta a lista de "cursos em destaque"
 // dinamicamente — antes essa lista era um HTML fixo, dessincronizado da

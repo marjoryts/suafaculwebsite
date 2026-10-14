@@ -238,7 +238,7 @@ function createQuizWizard(form) {
       const pending = firstPending();
       if (pending === -1) return false;
       goTo(pending);
-      showFeedback(`Faltam ${total - answeredCount()} pergunta(s). Responda todas para ver seu resultado 😊`);
+      showFeedback(`Faltam ${total - answeredCount()} pergunta(s). Responda todas para ver seu resultado.`);
       shake(steps[pending].querySelector('.quiz-options'));
       return true;
     }

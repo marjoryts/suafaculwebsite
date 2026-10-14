@@ -19,7 +19,7 @@
 
 header {
     background: var(--surface-color);
-    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -99,11 +99,10 @@ header {
 /* ---- Botão de ação do header (Entrar / Dashboard) ---- */
 .navbar a.btn-nav {
     background: var(--accent-color);
-    color: var(--second-color);
-    padding: 0.6rem 1.4rem;
-    border-radius: var(--radius-sm);
+    color: var(--text-on-bright);
+    padding: 0.6rem 1.5rem;
+    border-radius: var(--radius-pill);
     font-weight: 600;
-    box-shadow: var(--shadow-sm);
 }
 
 .navbar a.btn-nav::after {
@@ -113,8 +112,6 @@ header {
 .navbar a.btn-nav:hover {
     background: var(--accent-dark);
     color: var(--second-color);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
 }
 
 /* ---- Variante do botão para "Sair" (logout) ---- */
@@ -267,15 +264,17 @@ header {
    Responsividade
    ========================================================================== */
 
-/* Tablet: reduz o espaçamento entre os links antes de colapsar */
-@media (max-width: 992px) {
+/* Telas médias: reduz o espaçamento entre os links antes de colapsar */
+@media (max-width: 1100px) {
     .navbar {
         gap: 1.1rem;
     }
 }
 
-/* Mobile: navbar vira um menu suspenso controlado pelo botão hambúrguer */
-@media (max-width: 768px) {
+/* Tablet e celular: navbar vira um menu suspenso controlado pelo botão
+   hambúrguer (antes só a partir de 768px, e em tablets de ~820px os links
+   não cabiam e geravam rolagem horizontal). */
+@media (max-width: 992px) {
     .header-content {
         height: 72px;
         padding: 0 1rem;

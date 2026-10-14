@@ -1,0 +1,41 @@
+{# ==========================================================================
+   Painel de busca de faculdades — usado na Inicial e em Faculdades.
+   Os scripts dependem destes seletores e textos (não renomear):
+     - inputs .text-input com placeholder "Digite o curso / a faculdade / a cidade"
+       (home-search.js, faculdades.js, busca-sugestoes.js)
+     - checkboxes dentro de .filtros1; o texto do rótulo vira o valor
+       (Presencial, Híbrido, EaD)
+     - radios dentro de .filtros; o texto do rótulo vira o valor
+       (Pública, Particular)
+     - botão .btn-buscar
+   ========================================================================== #}
+<div class="search-panel container-input">
+    <div class="search-panel-fields">
+        <div class="search-field">
+            <label for="busca-curso">Curso</label>
+            <input type="text" id="busca-curso" class="text-input" placeholder="Digite o curso" autocomplete="off">
+        </div>
+        <div class="search-field">
+            <label for="busca-faculdade">Faculdade</label>
+            <input type="text" id="busca-faculdade" class="text-input" placeholder="Digite a faculdade" autocomplete="off">
+        </div>
+        <div class="search-field">
+            <label for="busca-cidade">Cidade</label>
+            <input type="text" id="busca-cidade" class="text-input" placeholder="Digite a cidade" autocomplete="off">
+        </div>
+    </div>
+    <div class="search-panel-options">
+        <fieldset class="option-group filtros1">
+            <legend>Modalidade</legend>
+            <label class="check"><input type="checkbox">Presencial</label>
+            <label class="check"><input type="checkbox">Híbrido</label>
+            <label class="check"><input type="checkbox">EaD</label>
+        </fieldset>
+        <fieldset class="option-group filtros">
+            <legend>Instituição</legend>
+            <label class="check"><input type="radio" name="tipo-instituicao">Pública</label>
+            <label class="check"><input type="radio" name="tipo-instituicao">Particular</label>
+        </fieldset>
+        <button type="button" class="btn-buscar">Buscar</button>
+    </div>
+</div>

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/components/header.css">
     <link rel="stylesheet" href="/static/css/components/footer.css">
     <link rel="stylesheet" href="/static/css/components/busca-sugestoes.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
     <link rel="stylesheet" href="/static/css/pages/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -18,151 +19,154 @@
     {% set active_page = 'home' %}
     {% include 'partials/_header.html' %}
 
-    <main>
-        <section class="hero">
-            <h1>Seu <em><strong>futuro</strong></em> em um só lugar!</h1>
+    <main class="home">
+        <section class="page-hero home-hero">
             <div class="container">
-                <div class="container-input">
-                    <div class="card">
-                        <label for="curso"> Qual curso deseja estudar?</label>
-                        <input type="text" class="text-input" placeholder="Digite o curso">
-                        <div class="filtros1">
-                            <label><input type="checkbox"> Presencial</label>
-                            <label><input type="checkbox"> Híbrido</label>
-                            <label><input type="checkbox"> EaD</label>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <label for="faculdade"> Em qual faculdade?</label>
-                        <input type="text" class="text-input" placeholder="Digite a faculdade">
-                        <div class="filtros">
-                            <label><input type="radio">Pública</label>
-                            <label><input type="radio">Particular</label>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <label for="cidade">Em que cidade quer estudar?</label>
-                        <input type="text" class="text-input" placeholder="Digite a cidade">
-                        <div class="filtros">
-                            <button class="btn-buscar">Buscar</button>
-                        </div>
-                    </div>
-                </div>
+                <h1>Seu <span>futuro</span> em um só lugar</h1>
+                <p class="page-hero-lead">Pesquise cursos, faculdades e cidades e compare as opções antes de decidir onde estudar.</p>
+                {% include 'partials/_busca_faculdades.html' %}
             </div>
-            <div class="container-filtros">
-                <div class="filtros">
+        </section>
+
+        <section class="section faculdades">
+            <div class="container">
+                <div class="section-head">
+                    <div>
+                        <h2>Faculdades em destaque</h2>
+                        <p>Instituições públicas reconhecidas no estado de São Paulo.</p>
+                    </div>
+                    <a href="/faculdades" class="section-link">Ver todas as faculdades <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="faculdades-lista">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <div class="faculdades-lista" id="faculdades-lista">
+                        <article class="faculdade">
+                            <img src="/static/imagens/usp.jpg" alt="Campus da USP" loading="lazy">
+                            <div class="faculdade-body">
+                                <h3>USP (Universidade de São Paulo)</h3>
+                                <p>Butantã - SP</p>
+                                <a href="https://www5.usp.br/" target="_blank" rel="noopener">Saiba mais</a>
+                            </div>
+                        </article>
+
+                        <article class="faculdade">
+                            <img src="/static/imagens/fatecfv.jpeg" alt="Fachada da FATEC Ferraz de Vasconcelos" loading="lazy">
+                            <div class="faculdade-body">
+                                <h3>FATEC (Faculdade de Tecnologia)</h3>
+                                <p>Ferraz de Vasconcelos - SP</p>
+                                <a href="https://fatecferraz.edu.br/" target="_blank" rel="noopener">Saiba mais</a>
+                            </div>
+                        </article>
+
+                        <article class="faculdade">
+                            <img src="/static/imagens/unicamp.jpg" alt="Vista aérea da UNICAMP" loading="lazy">
+                            <div class="faculdade-body">
+                                <h3>UNICAMP (Universidade de Campinas)</h3>
+                                <p>Campinas - SP</p>
+                                <a href="https://www.unicamp.br/" target="_blank" rel="noopener">Saiba mais</a>
+                            </div>
+                        </article>
+
+                        <article class="faculdade">
+                            <img src="/static/imagens/unifesp.jpg" alt="Prédio da UNIFESP" loading="lazy">
+                            <div class="faculdade-body">
+                                <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
+                                <p>São Paulo - SP</p>
+                                <a href="https://www.unifesp.br/" target="_blank" rel="noopener">Saiba mais</a>
+                            </div>
+                        </article>
+                    </div>
+                    <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="faculdades-lista">
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </section>
 
-        <section class="faculdades">
-            <h2>Faculdades em destaque</h2>
-            <div class="carousel-wrapper">
-                <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="faculdades-lista">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="faculdades-lista" id="faculdades-lista">
-                    <div class="faculdade">
-                        <img src="/static/imagens/usp.jpg">
-                        <h3>USP (Universidade de São Paulo)</h3>
-                        <p>Butantã - SP</p>
-                        <a href="https://www5.usp.br/">Saiba Mais</a>
+        <section class="section section--muted vestibulares">
+            <div class="container">
+                <div class="section-head">
+                    <div>
+                        <h2>Próximos vestibulares</h2>
+                        <p>Provas com data marcada, da mais próxima para a mais distante.</p>
                     </div>
-
-                    <div class="faculdade">
-                        <img src="/static/imagens/fatecfv.jpeg">
-                        <h3>FATEC (Faculdade de Tecnologia)</h3>
-                        <p>Ferraz de Vasconcelos - SP </p>
-                        <a href="https://fatecferraz.edu.br/">Saiba Mais</a>
-                    </div>
-                    
-                    <div class="faculdade">
-                        <img src="/static/imagens/unicamp.jpg">
-                        <h3>UNICAMP (Universidade de Campinas)</h3>
-                        <p>Campinas - SP</p>
-                        <a href="https://www.unicamp.br/">Saiba Mais</a>
-                    </div>
-
-                    <div class="faculdade">
-                        <img src="/static/imagens/unifesp.jpg">
-                        <h3>UNIFESP (Universidade Federal de São Paulo)</h3>
-                        <p> São Paulo - SP</p>
-                        <a href="https://www.unifesp.br/">Saiba Mais</a>
-                    </div>
+                    <a href="/vestibulares" class="section-link vestibulares-ver-todos">Ver todos os vestibulares <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
-                <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="faculdades-lista">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="vestibulares-lista">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <div class="vestibulares-lista" id="vestibulares-lista">
+                        {% for v in proximos_vestibulares %}
+                        <article class="vestibular">
+                            <p class="vestibular-data"><span>Prova</span> {{ (v.data_prova | data_br)[:5] }}</p>
+                            <h3>{{ v.nome }}</h3>
+                            <p class="vestibular-inst">{{ v.instituicao or 'Instituição não informada' }}</p>
+                            <a href="{{ v.link_edital or '/vestibulares' }}"{% if v.link_edital %} target="_blank" rel="noopener"{% endif %}>Ver edital</a>
+                        </article>
+                        {% else %}
+                        <article class="vestibular">
+                            <p class="vestibular-data"><span>Prova</span> Em breve</p>
+                            <h3>Nenhuma prova próxima</h3>
+                            <p class="vestibular-inst">Confira todos os processos seletivos na página de vestibulares.</p>
+                            <a href="/vestibulares">Ver vestibulares</a>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="vestibulares-lista">
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
         </section>
 
-        <section class="vestibulares">
-            <h2>Próximos vestibulares</h2>
-            <div class="carousel-wrapper">
-                <button class="carousel-btn carousel-prev" type="button" aria-label="Anterior" data-target="vestibulares-lista">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="vestibulares-lista" id="vestibulares-lista">
-                    {% for v in proximos_vestibulares %}
-                    <div class="vestibular">
-                        <h3>{{ v.nome }}</h3>
-                        <p>{{ (v.data_prova | data_br)[:5] }}</p>
-                        <p>{{ v.instituicao or 'Instituição não informada' }}</p>
-                        <a href="{{ v.link_edital or '/vestibulares' }}"{% if v.link_edital %} target="_blank" rel="noopener"{% endif %}>Saiba mais</a>
+        <section class="section container-curso">
+            <div class="container">
+                <div class="section-head">
+                    <div>
+                        <h2>Cursos</h2>
+                        <p>Escolha um curso para ver em quais instituições ele é oferecido.</p>
                     </div>
-                    {% else %}
-                    <div class="vestibular">
-                        <h3>Nenhuma prova próxima</h3>
-                        <p>Em breve</p>
-                        <p>Confira todos os processos seletivos na página de vestibulares.</p>
-                        <a href="/vestibulares">Ver vestibulares</a>
-                    </div>
-                    {% endfor %}
+                    <a href="/cursos" class="section-link">Ver todos os cursos <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
-                <button class="carousel-btn carousel-next" type="button" aria-label="Próximo" data-target="vestibulares-lista">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-            <p class="vestibulares-ver-todos"><a href="/vestibulares">Ver todos os vestibulares <i class="fas fa-arrow-right"></i></a></p>
-        </section>
-        
-        
-        <div class="container-curso">
-            <h1>Cursos</h1>
-            
-            <div>
-                <div class="pesquisa-container">
-                    <div class="pesquisa-titulo">Pesquise o curso</div>
-                    <input type="text" placeholder="Digite o curso">
-                </div>
+
+                <form class="search-box pesquisa-container" id="home-curso-busca" role="search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <label for="home-curso-input" class="sr-only">Pesquisar curso</label>
+                    <input type="text" id="home-curso-input" placeholder="Pesquisar curso pelo nome" autocomplete="off">
+                    <button type="submit" class="btn-search">Pesquisar</button>
+                </form>
 
                 <div class="cursos-lista" id="cursos-lista-home">
                     <p class="loading">Carregando cursos...</p>
                 </div>
             </div>
-        </div>
+        </section>
+
+        {% include 'partials/_cta_teste.html' %}
     </main>
 
     {% include 'partials/_footer.html' %}
 
     <!-- Modal de Cursos -->
     <div id="courseSearchModal" class="course-modal">
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content modal-content--wide">
             <span class="modal-close">&times;</span>
             <div class="modal-header">
                 <h2 id="modal-course-title">Cursos encontrados</h2>
             </div>
             <div class="modal-body">
-                <div id="modal-courses-grid" class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                <div id="modal-courses-grid" class="courses-grid">
                     <!-- Cursos serão carregados aqui -->
                 </div>
-                <div id="modal-loading" style="text-align: center; padding: 2rem;">
+                <div id="modal-loading" class="loading">
                     <p>Buscando cursos...</p>
                 </div>
-                <div id="modal-no-results" style="text-align: center; padding: 2rem; display: none;">
-                    <i class="fas fa-search" style="font-size: 3rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                <div id="modal-no-results" class="modal-vazio" style="display: none;">
                     <p>Nenhum curso encontrado com esse nome.</p>
-                    <a href="/cursos" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">Ver todos os cursos</a>
+                    <a href="/cursos" class="section-link">Ver todos os cursos</a>
                 </div>
             </div>
         </div>

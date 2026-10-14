@@ -1,6 +1,7 @@
 // Script para a página de favoritos
 const API_BASE_URL = '/api';
-const FAVORITOS_API_BASE_URL = '/api/favoritos';
+// FAVORITOS_API_BASE_URL já é declarada em favoritos.js (carregado antes
+// nesta página); declarar de novo dava erro e impedia este script de rodar.
 
 // Tabs
 const tabButtons = document.querySelectorAll('.tab-button');
@@ -24,9 +25,17 @@ tabButtons.forEach(button => {
 });
 
 // Função para carregar favoritos
-async function loadFavorites(tipo) {
+// As abas usam o plural (cursos, vestibulares, faculdades) e a API e os
+// cards usam o singular (curso, vestibular, faculdade). Antes a página
+// pedia ?tipo=cursos e a lista sempre vinha vazia.
+const TIPO_SINGULAR = { cursos: 'curso', vestibulares: 'vestibular', faculdades: 'faculdade' };
+const TIPO_PLURAL = { curso: 'cursos', vestibular: 'vestibulares', faculdade: 'faculdades' };
+
+async function loadFavorites(tipoAba) {
+    const tipo = TIPO_PLURAL[tipoAba] || tipoAba;          // plural: ids das abas
+    const tipoApi = TIPO_SINGULAR[tipo] || tipoAba;        // singular: API e cards
     try {
-        const response = await fetch(`${FAVORITOS_API_BASE_URL}/listar?tipo=${tipo}`, {
+        const response = await fetch(`${FAVORITOS_API_BASE_URL}/listar?tipo=${tipoApi}`, {
             method: 'GET',
             credentials: 'same-origin'
         });
@@ -53,7 +62,7 @@ async function loadFavorites(tipo) {
         }
 
         // Buscar detalhes dos itens favoritados
-        await renderFavorites(tipo, data.favoritos, grid);
+        await renderFavorites(tipoApi, data.favoritos, grid);
     } catch (error) {
         console.error('Erro ao carregar favoritos:', error);
     }

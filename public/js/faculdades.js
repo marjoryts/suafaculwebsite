@@ -390,6 +390,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (preencherFiltrosDaURL()) {
         applyFilters();
     } else {
+        // Visita direta (sem filtros na URL): mostra a lista sem rolar a
+        // página, para o painel de busca continuar visível no topo.
+        const resultsSection = document.querySelector('.results-section');
+        if (resultsSection) resultsSection.style.display = 'block';
         await loadFaculdades();
     }
 });

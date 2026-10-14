@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/static/css/base.css">
     <script src="/static/js/theme.js"></script>
     <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
     <link rel="stylesheet" href="/static/css/pages/ajuda.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -17,47 +19,83 @@
     {% include 'partials/_header.html' %}
 
     <main>
-        <section class="hero ajuda-hero">
+        <section class="page-hero page-hero--compact">
             <div class="container">
-                <div class="hero-content">
-                    <h1>Como podemos <span>ajudar você</span>?</h1>
-                    <p>Encontre respostas para suas dúvidas, explore nossos recursos ou entre em contato com nossa equipe de suporte.</p>
-                    
-                    <div class="search-box">
-                        <input type="text" placeholder="Pesquise por uma dúvida ou tópico">
-                        <button class="btn-search">
-                            Buscar <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
+                <h1>Como podemos <span>ajudar</span>?</h1>
+                <p class="page-hero-lead">Respostas para as dúvidas mais comuns sobre a conta, o teste vocacional e as buscas do site.</p>
+                <form class="search-box" id="faq-busca" role="search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="text" id="faq-busca-input" placeholder="Pesquise por uma dúvida ou tópico" aria-label="Pesquisar nas perguntas frequentes" autocomplete="off">
+                    <button type="submit" class="btn-search">Buscar</button>
+                </form>
             </div>
         </section>
-        
-        <div class="wave"></div>
-        
-        <section class="help-content-section">
-            <div class="container">
-                <div class="help-sections-grid">
-                    <div class="faq-section">
-                        <h2><i class="fas fa-question-circle"></i> Perguntas Frequentes (FAQ)</h2>
-                        <ul class="faq-list">
-                            <li><strong>Como me cadastrar no site?</strong><br> Basta clicar no botão "Entrar" e seguir as instruções para criar sua conta.</li>
-                            <li><strong>O teste vocacional é gratuito?</strong><br> Sim! Nosso teste é 100% gratuito e online.</li>
-                            <li><strong>Como encontro faculdades perto de mim?</strong><br> Use nosso buscador e permita o acesso à sua localização.</li>
-                        </ul>
+
+        <section class="section help-content-section">
+            <div class="container help-layout">
+                <div class="faq" id="faq">
+                    <div class="list-header">
+                        <h2>Perguntas frequentes</h2>
+                        <p class="list-count" id="faq-status" aria-live="polite"></p>
                     </div>
-                    <div class="faq-section">
-                        <h2><i class="fas fa-info-circle"></i> Ainda com dúvidas?</h2>
-                        <ul class="faq-list">
-                            <li><strong>Conheça o SuaFacul</strong><br> Saiba mais sobre nossa missão e como ajudamos estudantes a escolher o futuro certo na página <a href="/sobrenos">Sobre nós</a>.</li>
-                            <li><strong>Explore os vestibulares</strong><br> Acompanhe datas e informações de vestibulares em todo o Brasil na página <a href="/vestibulares">Vestibulares</a>.</li>
-                        </ul>
+                    <div class="faq-group" data-grupo="conta">
+                        <h3>Conta e acesso</h3>
+                        <details class="faq-item">
+                            <summary>Como me cadastrar no site?</summary>
+                            <p>Clique em "Entrar", no menu do topo da página, e siga as instruções para criar sua conta. Também é possível entrar com uma conta Google.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Como salvo cursos, faculdades e vestibulares?</summary>
+                            <p>Clique no ícone de coração nos cards de cursos, faculdades ou vestibulares. É preciso estar logado; os itens salvos ficam em "Meus favoritos", no menu do seu usuário.</p>
+                        </details>
                     </div>
+                    <div class="faq-group" data-grupo="teste">
+                        <h3>Teste vocacional</h3>
+                        <details class="faq-item">
+                            <summary>O teste vocacional é gratuito?</summary>
+                            <p>Sim. O teste é gratuito e online, com 10 perguntas sobre interesses, habilidades e expectativas de carreira.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Onde vejo o resultado do meu teste depois?</summary>
+                            <p>Se você estiver logado ao finalizar o teste, o resultado fica salvo e aparece em "Meu perfil".</p>
+                        </details>
+                    </div>
+                    <div class="faq-group" data-grupo="busca">
+                        <h3>Busca de cursos, faculdades e vestibulares</h3>
+                        <details class="faq-item">
+                            <summary>Como encontro faculdades perto de mim?</summary>
+                            <p>Na página <a href="/faculdades">Faculdades</a>, preencha o campo "Cidade" com a cidade onde quer estudar. Você também pode combinar com o curso, a faculdade, a modalidade e o tipo de instituição.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Onde vejo as datas dos vestibulares?</summary>
+                            <p>Na página <a href="/vestibulares">Vestibulares</a> estão o período de inscrição, a data da prova, a taxa e o link do edital. Use os filtros de região e mês da prova para refinar a lista.</p>
+                        </details>
+                    </div>
+                    <p class="no-results" id="faq-vazio" hidden>Nenhuma pergunta encontrada para essa busca. Tente outras palavras ou veja os links ao lado.</p>
                 </div>
+
+                <aside class="help-aside">
+                    <h2>Ainda com dúvidas?</h2>
+                    <a class="help-link" href="/sobrenos">
+                        <strong>Conheça o SuaFacul</strong>
+                        <span>Saiba mais sobre nossa missão e como ajudamos estudantes a escolher o futuro certo.</span>
+                    </a>
+                    <a class="help-link" href="/vestibulares">
+                        <strong>Explore os vestibulares</strong>
+                        <span>Acompanhe datas e informações de vestibulares em todo o Brasil.</span>
+                    </a>
+                    <a class="help-link" href="/testevocacional">
+                        <strong>Faça o teste vocacional</strong>
+                        <span>Descubra áreas e cursos que combinam com o seu perfil.</span>
+                    </a>
+                </aside>
             </div>
         </section>
     </main>
 
+    {% include 'partials/_footer.html' %}
+
     <script src="/static/js/header.js"></script>
+    <script src="/static/js/ajuda.js"></script>
 </body>
 </html>

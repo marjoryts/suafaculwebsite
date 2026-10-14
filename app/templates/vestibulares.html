@@ -8,6 +8,7 @@
     <script src="/static/js/theme.js"></script>
     <link rel="stylesheet" href="/static/css/components/header.css">
     <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
     <link rel="stylesheet" href="/static/css/pages/vestibulares.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
@@ -18,37 +19,31 @@
     {% include 'partials/_header.html' %}
 
     <main>
-        <section class="hero">
+        <section class="page-hero">
             <div class="container">
-                <div class="hero-content">
-                    <h1>Seu caminho para a universidade começa aqui: <span>Vestibulares</span></h1>
-                    <p>Encontre os principais vestibulares do Brasil, datas importantes, editais e dicas de estudo para garantir sua vaga.</p>
-                    
-                    <div class="search-box">
-                        <input type="text" placeholder="Pesquise por vestibular, instituição, cidade ou curso">
-                        <button class="btn-search">
-                            Buscar <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                <h1>Calendário de <span>vestibulares</span></h1>
+                <p class="page-hero-lead">Datas de inscrição e de prova, taxas e editais dos principais vestibulares do Brasil.</p>
+                <div class="search-box" role="search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="text" placeholder="Pesquise por vestibular, instituição, cidade ou curso" aria-label="Pesquisar vestibulares">
+                    <button type="button" class="btn-search">Buscar</button>
                 </div>
             </div>
         </section>
-        
-        <div class="wave"></div>
-        
-        <section class="vestibulares-section">
+
+        <section class="section vestibulares-section">
             <div class="container">
-                <div class="vestibulares-container">
-                    <div class="filters">
+                <div class="listing vestibulares-container">
+                    <aside class="filters" aria-label="Filtros">
                         <div class="filters-content">
-                            <h3><i class="fas fa-filter"></i> Filtros</h3>
+                            <h3>Filtros</h3>
                             
                             <div class="filter-group" data-filtro="instituicao">
                                 <h4>Instituição</h4>
                                 <div class="filter-options">
-                                    <button><i class="fas fa-university"></i> Universidades Públicas</button>
-                                    <button><i class="fas fa-school"></i> Universidades Privadas</button>
-                                    <button class="active"><i class="fas fa-ellipsis-h"></i> Todas as Instituições</button>
+                                    <button type="button">Universidades Públicas</button>
+                                    <button type="button">Universidades Privadas</button>
+                                    <button type="button" class="active">Todas as Instituições</button>
                                 </div>
                             </div>
                             
@@ -116,7 +111,7 @@
                             </div>
 
                             <div class="filter-group">
-                                <h4>Curso</h4>
+                                <h4><label for="filtro-curso">Curso</label></h4>
                                 <div class="filter-options">
                                     <select id="filtro-curso" class="filtro-curso-select">
                                         <option value="">Todos os cursos</option>
@@ -124,14 +119,14 @@
                                 </div>
                             </div>
                             
-                            <button class="btn-apply">Aplicar Filtros</button>
+                            <button type="button" class="btn-apply">Aplicar filtros</button>
                         </div>
-                    </div>
+                    </aside>
                     
                     <div class="vestibulares-list">
-                        <div class="vestibulares-header">
-                            <h2><i class="fas fa-clipboard-list"></i> Próximos Vestibulares</h2>
-                            <div class="vestibulares-count">Carregando...</div>
+                        <div class="list-header vestibulares-header">
+                            <h2>Próximos vestibulares</h2>
+                            <div class="list-count vestibulares-count" aria-live="polite">Carregando...</div>
                         </div>
                         
                         <div class="vestibulares-grid">
@@ -146,19 +141,7 @@
             </div>
         </section>
         
-        <section class="vocational-test">
-            <div class="container">
-                <h2><i class="fas fa-question-circle"></i> Não sabe qual curso escolher?</h2>
-                
-                <div class="test-container">
-                    <h3>Faça nosso Teste Vocacional!</h3>
-                    <p>Responda algumas perguntas simples e descubra quais cursos combinam mais com seu perfil e interesses.</p>
-                    <button class="btn-test">
-                        Começar Teste <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-        </section>
+        {% include 'partials/_cta_teste.html' %}
     </main>
     
     {% include 'partials/_footer.html' %}

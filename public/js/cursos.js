@@ -16,9 +16,12 @@ let currentFilters = {
 const coursesGrid = document.querySelector('.courses-grid');
 const paginationContainer = document.querySelector('.pagination');
 const coursesCountElement = document.querySelector('.courses-count');
-const areaButtons = document.querySelectorAll('.filter-options button');
-const modalityCheckboxes = document.querySelectorAll('.filter-group:nth-child(2) input[type="checkbox"]');
-const institutionCheckboxes = document.querySelectorAll('.filter-group:nth-child(3) input[type="checkbox"]');
+// Grupos identificados por data-filtro (antes era por posição com
+// :nth-child, que pegava o grupo errado: "Modalidade" ia como tipo de
+// instituição e "Pública/Privada" não filtrava nada).
+const areaButtons = document.querySelectorAll('[data-filtro="area"] .filter-options button');
+const modalityCheckboxes = document.querySelectorAll('[data-filtro="modalidade"] input[type="checkbox"]');
+const institutionCheckboxes = document.querySelectorAll('[data-filtro="tipo-instituicao"] input[type="checkbox"]');
 const applyFiltersButton = document.querySelector('.btn-apply');
 const searchInput = document.querySelector('.search-box input[type="text"]');
 const searchButton = document.querySelector('.btn-search');
@@ -216,8 +219,10 @@ async function loadCourses() {
 
         const filters = {
             area: currentFilters.area,
-            modalidade: currentFilters.modalidade.length > 0 ? currentFilters.modalidade[0] : null,
-            tipo_instituicao: currentFilters.tipo_instituicao.length > 0 ? currentFilters.tipo_instituicao[0] : null,
+            // Listas: fetchCourses percorre com forEach e a API aceita vários
+            // valores (antes ia só o primeiro, como texto, e o forEach falhava).
+            modalidade: currentFilters.modalidade,
+            tipo_instituicao: currentFilters.tipo_instituicao,
             busca: currentFilters.busca
         };
 
@@ -226,7 +231,7 @@ async function loadCourses() {
         const mappedCourses = data.cursos.map(mapCourseData);
         renderCourses(mappedCourses);
         
-        const startDisplay = ((currentPage - 1) * coursesPerPage) + 1;
+        const startDisplay = data.total > 0 ? ((currentPage - 1) * coursesPerPage) + 1 : 0;
         const endDisplay = Math.min(currentPage * coursesPerPage, data.total);
         updateCoursesCount(startDisplay, endDisplay, data.total);
         
@@ -239,7 +244,7 @@ async function loadCourses() {
 
 // Função para aplicar os filtros
 function applyFilters() {
-    const selectedArea = document.querySelector('.filter-options button.active')?.textContent.trim() || 'Todas as áreas';
+    const selectedArea = document.querySelector('[data-filtro="area"] .filter-options button.active')?.textContent.trim() || 'Todas as áreas';
     const selectedModalities = Array.from(modalityCheckboxes)
         .filter(checkbox => checkbox.checked)
         .map(checkbox => checkbox.nextSibling.textContent.trim().toLowerCase());
@@ -395,11 +400,19 @@ function closeCourseModal() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const todasAreasButton = document.querySelector('.filter-options button.active');
+    const todasAreasButton = document.querySelector('[data-filtro="area"] .filter-options button.active');
     if (todasAreasButton) {
         todasAreasButton.classList.add('active');
     }
     
+    // Termo vindo de outra página (ex.: "Ver cursos" em Faculdades usa
+    // /cursos?busca=<nome da faculdade>).
+    const buscaDaURL = new URLSearchParams(window.location.search).get('busca');
+    if (buscaDaURL && searchInput) {
+        searchInput.value = buscaDaURL;
+        currentFilters.busca = buscaDaURL.trim();
+    }
+
     await loadCourses();
     
     // Inicializar favoritos após carregar os cursos
