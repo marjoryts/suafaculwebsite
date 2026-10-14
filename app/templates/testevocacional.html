@@ -21,55 +21,66 @@
         <section class="hero teste-vocacional-hero">
             <div class="container">
                 <div class="hero-content">
+                    <span class="hero-eyebrow"><i class="fas fa-compass" aria-hidden="true"></i> Orientação de carreira</span>
                     <h1>Descubra seu futuro com nosso <span>Teste Vocacional</span></h1>
                     <p>Responda a perguntas simples e encontre os cursos e áreas que mais combinam com sua personalidade, habilidades e interesses.</p>
-                    
+
                     <div class="hero-actions">
                         <button class="btn-start-test" id="scroll-to-test-top">
-                            Começar Teste Agora <i class="fas fa-arrow-right"></i>
+                            Começar Teste Agora <i class="fas fa-arrow-right" aria-hidden="true"></i>
                         </button>
-                        <a href="#how-it-works" class="btn-outline">Como funciona<i class="fas fa-question"></i></a>
+                        <a href="#how-it-works" class="btn-outline">Como funciona <i class="fas fa-question" aria-hidden="true"></i></a>
                     </div>
+
+                    <ul class="hero-highlights">
+                        <li><i class="fas fa-list-ol" aria-hidden="true"></i> 10 perguntas</li>
+                        <li><i class="fas fa-bolt" aria-hidden="true"></i> Resultado na hora</li>
+                        <li><i class="fas fa-gift" aria-hidden="true"></i> Gratuito</li>
+                    </ul>
                 </div>
             </div>
+            <div class="wave" aria-hidden="true"></div>
         </section>
-        
-        <div class="wave"></div>
-        
+
         <section class="how-it-works-section" id="how-it-works">
             <div class="container">
-                <h2><i class="fas fa-lightbulb"></i> Como funciona o Teste Vocacional?</h2>
+                <span class="section-eyebrow">Passo a passo</span>
+                <h2>Como funciona o Teste Vocacional?</h2>
                 <p class="section-description">Nosso teste foi desenvolvido para te guiar na descoberta de suas aptidões e te ajudar a tomar a melhor decisão para sua carreira.</p>
 
-                <div class="steps-grid">
-                    <div class="step-card">
-                        <div class="step-icon">1</div>
+                <ol class="steps-grid">
+                    <li class="step-card">
+                        <div class="step-icon"><i class="fas fa-comments" aria-hidden="true"></i></div>
+                        <span class="step-number">Passo 1</span>
                         <h3>Perguntas Interativas</h3>
                         <p>Responda a uma série de perguntas sobre suas preferências, hobbies e o que te motiva.</p>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon">2</div>
+                    </li>
+                    <li class="step-card">
+                        <div class="step-icon"><i class="fas fa-chart-pie" aria-hidden="true"></i></div>
+                        <span class="step-number">Passo 2</span>
                         <h3>Análise Personalizada</h3>
                         <p>Nosso sistema analisa suas respostas para identificar padrões e áreas de maior compatibilidade.</p>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon">3</div>
+                    </li>
+                    <li class="step-card">
+                        <div class="step-icon"><i class="fas fa-lightbulb" aria-hidden="true"></i></div>
+                        <span class="step-number">Passo 3</span>
                         <h3>Resultados e Sugestões</h3>
                         <p>Receba sugestões de cursos e áreas profissionais, além de faculdades que oferecem essas opções.</p>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon">4</div>
+                    </li>
+                    <li class="step-card">
+                        <div class="step-icon"><i class="fas fa-flag-checkered" aria-hidden="true"></i></div>
+                        <span class="step-number">Passo 4</span>
                         <h3>Explore e Decida</h3>
                         <p>Com base nos resultados, explore os detalhes de cursos e faculdades e dê o próximo passo!</p>
-                    </div>
-                </div>
+                    </li>
+                </ol>
 
-                <div class="important-note">
-                    <p><i class="fas fa-info-circle"></i> O teste é gratuito e leva apenas alguns minutos para ser concluído. Suas respostas são confidenciais.</p>
+                <div class="cta-box">
+                    <p class="important-note"><i class="fas fa-shield-halved" aria-hidden="true"></i> O teste é gratuito e leva apenas alguns minutos para ser concluído. Suas respostas são confidenciais.</p>
+                    <button class="btn-start-test-bottom" id="scroll-to-test">
+                        Iniciar meu Teste Vocacional <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <button class="btn-start-test-bottom" id="scroll-to-test">
-                    Iniciar meu Teste Vocacional <i class="fas fa-arrow-right"></i>
-                </button>
             </div>
         </section>
 
@@ -244,22 +255,25 @@
 
         <section class="testimonials-section">
             <div class="container">
-                <h2><i class="fas fa-quote-left"></i> O que dizem nossos usuários</h2>
+                <span class="section-eyebrow">Depoimentos</span>
+                <h2>O que dizem nossos usuários</h2>
                 <div class="testimonials-grid">
-                    <div class="testimonial-card">
-                        <p>"Eu estava super indecisa sobre qual curso fazer, mas o teste da SuaFacul me deu um direcionamento incrível! Descobri uma área que eu nem tinha pensado antes."</p>
-                        <div class="author-info">
-                            <img src="imagens/user_avatar_1.png" alt="Avatar da Maria S.">
-                            <span>Maria S. - Estudante</span>
-                        </div>
-                    </div>
-                    <div class="testimonial-card">
-                        <p>"Fiz o teste por curiosidade e me surpreendi com a precisão dos resultados. Me ajudou a confirmar a minha escolha e me sentir mais confiante."</p>
-                        <div class="author-info">
-                            <img src="imagens/user_avatar_2.png" alt="Avatar do João L.">
-                            <span>João L. - Vestibulando</span>
-                        </div>
-                    </div>
+                    <figure class="testimonial-card">
+                        <span class="testimonial-quote" aria-hidden="true">&ldquo;</span>
+                        <blockquote>Eu estava super indecisa sobre qual curso fazer, mas o teste da SuaFacul me deu um direcionamento incrível! Descobri uma área que eu nem tinha pensado antes.</blockquote>
+                        <figcaption class="author-info">
+                            <span class="author-avatar" aria-hidden="true">MS</span>
+                            <span class="author-text"><strong>Maria S.</strong><small>Estudante</small></span>
+                        </figcaption>
+                    </figure>
+                    <figure class="testimonial-card">
+                        <span class="testimonial-quote" aria-hidden="true">&ldquo;</span>
+                        <blockquote>Fiz o teste por curiosidade e me surpreendi com a precisão dos resultados. Me ajudou a confirmar a minha escolha e me sentir mais confiante.</blockquote>
+                        <figcaption class="author-info">
+                            <span class="author-avatar author-avatar-alt" aria-hidden="true">JL</span>
+                            <span class="author-text"><strong>João L.</strong><small>Vestibulando</small></span>
+                        </figcaption>
+                    </figure>
                 </div>
             </div>
         </section>
