@@ -25,7 +25,7 @@
                     <p>Encontre os principais vestibulares do Brasil, datas importantes, editais e dicas de estudo para garantir sua vaga.</p>
                     
                     <div class="search-box">
-                        <input type="text" placeholder="Pesquise por vestibular, instituição ou cidade">
+                        <input type="text" placeholder="Pesquise por vestibular, instituição, cidade ou curso">
                         <button class="btn-search">
                             Buscar <i class="fas fa-search"></i>
                         </button>
@@ -43,7 +43,7 @@
                         <div class="filters-content">
                             <h3><i class="fas fa-filter"></i> Filtros</h3>
                             
-                            <div class="filter-group">
+                            <div class="filter-group" data-filtro="instituicao">
                                 <h4>Instituição</h4>
                                 <div class="filter-options">
                                     <button><i class="fas fa-university"></i> Universidades Públicas</button>
@@ -52,40 +52,67 @@
                                 </div>
                             </div>
                             
-                            <div class="filter-group">
+                            <div class="filter-group" data-filtro="regiao">
                                 <h4>Região</h4>
                                 <div class="filter-options">
                                     <label>
-                                        <input type="checkbox"> Sudeste
+                                        <input type="checkbox" value="Sudeste"> Sudeste
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Sul
+                                        <input type="checkbox" value="Sul"> Sul
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Nordeste
+                                        <input type="checkbox" value="Nordeste"> Nordeste
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Norte
+                                        <input type="checkbox" value="Norte"> Norte
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Centro-Oeste
+                                        <input type="checkbox" value="Centro-Oeste"> Centro-Oeste
                                     </label>
                                 </div>
                             </div>
                             
-                            <div class="filter-group">
-                                <h4>Mês do Vestibular</h4>
-                                <div class="filter-options">
+                            <div class="filter-group" data-filtro="mes">
+                                <h4>Mês da Prova</h4>
+                                <div class="filter-options filter-options--meses">
                                     <label>
-                                        <input type="checkbox"> Janeiro
+                                        <input type="checkbox" value="1"> Janeiro
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Junho
+                                        <input type="checkbox" value="2"> Fevereiro
                                     </label>
                                     <label>
-                                        <input type="checkbox"> Novembro
+                                        <input type="checkbox" value="3"> Março
                                     </label>
-                                    </div>
+                                    <label>
+                                        <input type="checkbox" value="4"> Abril
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="5"> Maio
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="6"> Junho
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="7"> Julho
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="8"> Agosto
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="9"> Setembro
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="10"> Outubro
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="11"> Novembro
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" value="12"> Dezembro
+                                    </label>
+                                </div>
                             </div>
 
                             <div class="filter-group">
@@ -104,7 +131,7 @@
                     <div class="vestibulares-list">
                         <div class="vestibulares-header">
                             <h2><i class="fas fa-clipboard-list"></i> Próximos Vestibulares</h2>
-                            <div class="vestibulares-count">1-10 de 50 vestibulares</div>
+                            <div class="vestibulares-count">Carregando...</div>
                         </div>
                         
                         <div class="vestibulares-grid">

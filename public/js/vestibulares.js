@@ -5,7 +5,8 @@ const API_BASE_URL = '/api';
 const vestibularesPerPage = 10;
 let currentPage = 1;
 let currentFilters = {
-    tipo_instituicao: null,
+    // O botão "Todas as Instituições" já vem marcado na página
+    tipo_instituicao: 'Todas',
     regiao: [],
     meses: [],
     busca: '',
@@ -16,9 +17,11 @@ let currentFilters = {
 const vestibularesGrid = document.querySelector('.vestibulares-grid');
 const paginationContainer = document.querySelector('.pagination');
 const vestibularesCountElement = document.querySelector('.vestibulares-count');
-const institutionButtons = document.querySelectorAll('.filter-group:first-child .filter-options button');
-const regionCheckboxes = document.querySelectorAll('.filter-group:nth-child(2) input[type="checkbox"]');
-const monthCheckboxes = document.querySelectorAll('.filter-group:nth-child(3) input[type="checkbox"]');
+// Os grupos são identificados por data-filtro (e não pela posição no HTML,
+// que quebrava porque o <h3> "Filtros" também conta como filho do painel).
+const institutionButtons = document.querySelectorAll('[data-filtro="instituicao"] .filter-options button');
+const regionCheckboxes = document.querySelectorAll('[data-filtro="regiao"] input[type="checkbox"]');
+const monthCheckboxes = document.querySelectorAll('[data-filtro="mes"] input[type="checkbox"]');
 const cursoSelect = document.querySelector('#filtro-curso');
 const applyFiltersButton = document.querySelector('.btn-apply');
 const searchInput = document.querySelector('.search-box input[type="text"]');
@@ -29,11 +32,13 @@ async function fetchVestibulares(filters = {}, page = 1) {
     try {
         const params = new URLSearchParams();
         
-        // Por padrão, mostrar apenas vestibulares públicos
-        if (!filters.tipo_instituicao || filters.tipo_instituicao === 'Pública') {
-            // Não precisa adicionar parâmetro, a API já filtra por padrão
-        } else if (filters.tipo_instituicao === 'Todas') {
+        // Sem "incluir_privados" a API devolve só as públicas; para
+        // "Privadas" é preciso liberar as privadas E filtrar por tipo.
+        if (filters.tipo_instituicao === 'Todas') {
             params.append('incluir_privados', 'true');
+        } else if (filters.tipo_instituicao === 'Privada') {
+            params.append('incluir_privados', 'true');
+            params.append('tipo_instituicao', 'Privada');
         }
         
         if (filters.regiao && filters.regiao.length > 0) {
@@ -70,11 +75,52 @@ async function fetchVestibulares(filters = {}, page = 1) {
     }
 }
 
-// Função para formatar data
+// Função para formatar data. As datas vêm como "AAAA-MM-DD"; montar a Date
+// a partir das partes evita o deslocamento de fuso (new Date('2026-11-01')
+// é meia-noite UTC, que no Brasil vira 31/10).
+function parseDataISO(dateString) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateString || '');
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
 function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    const date = parseDataISO(dateString);
+    return date ? date.toLocaleDateString('pt-BR') : '';
+}
+
+// Escapa texto vindo da API antes de inserir no HTML do card.
+function escapeHtml(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+// Prova já realizada? (compara só a data, sem horário)
+function provaJaPassou(dateString) {
+    const data = parseDataISO(dateString);
+    if (!data) return false;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return data < hoje;
+}
+
+// Bloco "Mais detalhes" com taxa, cursos e requisitos (só o que existir).
+function renderDetalhes(vestibular) {
+    const itens = [
+        ['fa-graduation-cap', 'Cursos e vagas', vestibular.cursos_oferecidos],
+        ['fa-list-check', 'Requisitos', vestibular.requisitos],
+        ['fa-circle-info', 'Fonte', vestibular.fonte]
+    ].filter(([, , valor]) => valor);
+    if (itens.length === 0) return '';
+    return `
+            <details class="vestibular-detalhes">
+                <summary>Mais detalhes</summary>
+                <dl>
+                    ${itens.map(([icone, rotulo, valor]) => `
+                    <dt><i class="fas ${icone}"></i> ${rotulo}</dt>
+                    <dd>${escapeHtml(valor)}</dd>`).join('')}
+                </dl>
+            </details>`;
 }
 
 // Função para renderizar os vestibulares na grade
@@ -105,34 +151,42 @@ function renderVestibulares(vestibulares) {
         vestibularCard.classList.add('vestibular-card');
 
         const dataProva = formatDate(vestibular.data_prova);
+        const encerrado = provaJaPassou(vestibular.data_prova);
+        if (encerrado) vestibularCard.classList.add('vestibular-card--encerrado');
         const cidadeRegiao = vestibular.cidade && vestibular.regiao 
             ? `${vestibular.cidade} - ${vestibular.regiao}`
             : vestibular.cidade || vestibular.regiao || 'Nacional';
 
         vestibularCard.innerHTML = `
             <div class="vestibular-header">
-                <h3>${vestibular.nome}</h3>
+                <h3>${escapeHtml(vestibular.nome)}</h3>
                 <div class="vestibular-header-actions">
-                    <span class="tag instituicao" title="${vestibular.instituicao || 'Instituição não informada'}">${extrairSiglaInstituicao(vestibular.instituicao)}</span>
-                    <button class="btn-favorito" data-tipo="vestibular" data-item-id="${vestibular.id}" data-nome-item="${vestibular.nome}" title="Adicionar aos favoritos">
+                    <span class="tag instituicao" title="${escapeHtml(vestibular.instituicao || 'Instituição não informada')}">${escapeHtml(extrairSiglaInstituicao(vestibular.instituicao))}</span>
+                    <button class="btn-favorito" data-tipo="vestibular" data-item-id="${vestibular.id}" data-nome-item="${escapeHtml(vestibular.nome)}" title="Adicionar aos favoritos">
                         <i class="far fa-heart"></i>
                     </button>
                 </div>
             </div>
             <p class="periodo">
-                <i class="fas fa-calendar-alt"></i> Inscrições: ${vestibular.periodo_inscricao || 'A definir'}
+                <i class="fas fa-calendar-alt"></i> Inscrições: ${escapeHtml(vestibular.periodo_inscricao || 'A definir')}
             </p>
             <p class="data">
                 <i class="fas fa-calendar-check"></i> Prova: ${dataProva || 'A definir'}
+                ${encerrado ? '<span class="tag status-encerrado">Prova realizada</span>' : ''}
             </p>
+            ${vestibular.taxa_inscricao ? `
+            <p class="taxa">
+                <i class="fas fa-receipt"></i> Taxa: ${escapeHtml(vestibular.taxa_inscricao)}
+            </p>` : ''}
             <p class="description">
-                ${vestibular.descricao || ''}
+                ${escapeHtml(vestibular.descricao || '')}
             </p>
+            ${renderDetalhes(vestibular)}
             <div class="vestibular-footer">
                 <div class="vestibular-info">
-                    <span><i class="fas fa-map-marker-alt"></i> ${cidadeRegiao}</span>
+                    <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(cidadeRegiao)}</span>
                 </div>
-                <a href="${vestibular.link_edital || '#'}" class="vestibular-link" ${vestibular.link_edital ? 'target="_blank"' : ''}>
+                <a href="${escapeHtml(vestibular.link_edital || '#')}" class="vestibular-link" ${vestibular.link_edital ? 'target="_blank" rel="noopener"' : ''}>
                     Ver edital <i class="fas fa-chevron-right"></i>
                 </a>
             </div>
@@ -221,7 +275,7 @@ async function loadVestibulares() {
 
         const filters = {
             tipo_instituicao: currentFilters.tipo_instituicao,
-            regiao: currentFilters.regiao.length > 0 ? currentFilters.regiao[0] : null,
+            regiao: currentFilters.regiao,
             meses: currentFilters.meses,
             busca: currentFilters.busca,
             curso: currentFilters.curso
@@ -231,7 +285,7 @@ async function loadVestibulares() {
         
         renderVestibulares(data.vestibulares);
         
-        const startDisplay = ((currentPage - 1) * vestibularesPerPage) + 1;
+        const startDisplay = data.total > 0 ? ((currentPage - 1) * vestibularesPerPage) + 1 : 0;
         const endDisplay = Math.min(currentPage * vestibularesPerPage, data.total);
         updateVestibularesCount(startDisplay, endDisplay, data.total);
         
@@ -246,25 +300,16 @@ async function loadVestibulares() {
 
 // Função para aplicar os filtros
 function applyFilters() {
-    const selectedInstitution = document.querySelector('.filter-group:first-child .filter-options button.active')?.textContent.trim() || 'Todas as Instituições';
+    const selectedInstitution = document.querySelector('[data-filtro="instituicao"] .filter-options button.active')?.textContent.trim() || 'Todas as Instituições';
     const selectedRegions = Array.from(regionCheckboxes)
         .filter(checkbox => checkbox.checked)
-        .map(checkbox => checkbox.nextSibling.textContent.trim());
+        .map(checkbox => checkbox.value.trim());
     
-    // Capturar meses selecionados e converter para números
+    // Meses selecionados: cada checkbox traz o número do mês em "value"
     const selectedMonths = Array.from(monthCheckboxes)
         .filter(checkbox => checkbox.checked)
-        .map(checkbox => {
-            const monthName = checkbox.nextSibling.textContent.trim();
-            // Mapear nome do mês para número
-            const monthMap = {
-                'Janeiro': 1,
-                'Junho': 6,
-                'Novembro': 11
-            };
-            return monthMap[monthName] || null;
-        })
-        .filter(m => m !== null);
+        .map(checkbox => parseInt(checkbox.value, 10))
+        .filter(m => m >= 1 && m <= 12);
     
     const searchTerm = searchInput ? searchInput.value.trim() : '';
     const selectedCurso = cursoSelect ? cursoSelect.value : '';

@@ -763,9 +763,9 @@ def api_vestibulares_listar():
     tipo_inst = request.args.get('tipo_instituicao', '')
     if tipo_inst:
         filtros['tipo_instituicao'] = tipo_inst
-    regiao = request.args.get('regiao', '')
-    if regiao:
-        filtros['regiao'] = regiao
+    regioes = [r for r in request.args.getlist('regiao') if r]
+    if regioes:
+        filtros['regiao'] = regioes
     busca = request.args.get('busca', '')
     if busca:
         filtros['busca'] = busca
@@ -801,7 +801,7 @@ def api_vestibulares_buscar():
 @app.route('/api/vestibulares/criar', methods=['POST'])
 @admin_required
 def api_vestibulares_criar():
-    dados = {k: request.form.get(k, '') for k in ['nome','instituicao','tipo_instituicao','cidade','regiao','periodo_inscricao','data_prova','descricao','link_edital']}
+    dados = {k: request.form.get(k, '') for k in ['nome','instituicao','tipo_instituicao','cidade','regiao','periodo_inscricao','data_prova','descricao','link_edital','taxa_inscricao','cursos_oferecidos','requisitos']}
     if not dados['nome'] or not dados['instituicao']:
         return jsonify({'success': False, 'message': 'Nome e instituição são obrigatórios.'})
     return jsonify(Vestibular().criar(dados))

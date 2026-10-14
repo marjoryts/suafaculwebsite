@@ -860,7 +860,8 @@ function salvarVestibular() {
     const campos = {
         nome: 'v-nome', instituicao: 'v-instituicao', tipo_instituicao: 'v-tipo', cidade: 'v-cidade',
         regiao: 'v-regiao', periodo_inscricao: 'v-inscricao', data_prova: 'v-data',
-        link_edital: 'v-edital', descricao: 'v-descricao'
+        link_edital: 'v-edital', descricao: 'v-descricao',
+        taxa_inscricao: 'v-taxa', cursos_oferecidos: 'v-cursos', requisitos: 'v-requisitos'
     };
     const formData = new FormData();
     Object.entries(campos).forEach(([chave, id]) => formData.append(chave, document.getElementById(id).value.trim()));

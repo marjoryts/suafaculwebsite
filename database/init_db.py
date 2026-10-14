@@ -90,6 +90,11 @@ def _init_db_sem_trava():
         data_prova TEXT,
         descricao TEXT,
         link_edital TEXT,
+        taxa_inscricao TEXT,
+        cursos_oferecidos TEXT,
+        requisitos TEXT,
+        fonte TEXT,
+        seed_versao INTEGER DEFAULT 0,
         status_validacao TEXT DEFAULT 'nao_validado',
         cadastrado_ok INTEGER DEFAULT 0,
         ultima_validacao TIMESTAMP,
@@ -146,6 +151,14 @@ def _init_db_sem_trava():
     _add_column_if_missing('vestibulares', 'status_validacao', "status_validacao TEXT DEFAULT 'nao_validado'")
     _add_column_if_missing('vestibulares', 'cadastrado_ok', "cadastrado_ok INTEGER DEFAULT 0")
     _add_column_if_missing('vestibulares', 'ultima_validacao', "ultima_validacao TIMESTAMP")
+    # Detalhes do processo seletivo (taxa, cursos, requisitos e fonte da informação)
+    _add_column_if_missing('vestibulares', 'taxa_inscricao', "taxa_inscricao TEXT")
+    _add_column_if_missing('vestibulares', 'cursos_oferecidos', "cursos_oferecidos TEXT")
+    _add_column_if_missing('vestibulares', 'requisitos', "requisitos TEXT")
+    _add_column_if_missing('vestibulares', 'fonte', "fonte TEXT")
+    # Versão do catálogo que gerou/atualizou o registro (0 = cadastrado pelo admin)
+    _add_column_if_missing('vestibulares', 'seed_versao', "seed_versao INTEGER DEFAULT 0")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_vestibulares_nome ON vestibulares(nome COLLATE NOCASE)")
 
     # ── Importação de cursos via Censo da Educação Superior (INEP) ──
     _add_column_if_missing('cursos', 'codigo_inep_curso', "codigo_inep_curso TEXT")
@@ -318,113 +331,73 @@ def _init_db_sem_trava():
                 c.execute("UPDATE cursos SET faculdade_id=? WHERE id=?", (mapa_faculdades[instituicao], curso_id))
         conn.commit()
 
-    # Seed vestibulares if empty — datas reais e atuais (pesquisadas em
-    # fontes oficiais/jornalísticas em 22/08/2026). UFMG, UFRJ e UFBA não
-    # possuem mais vestibular tradicional próprio (ingresso majoritariamente
-    # via SISU/ENEM); UFMG passou a ter o "Seriado" (30% das vagas) a partir
-    # de 2025 e por isso está representada por ele aqui.
-    c.execute("SELECT COUNT(*) FROM vestibulares")
-    if c.fetchone()[0] == 0:
-        vestibulares = [
-            ('Fuvest 2027', 'USP - Universidade de São Paulo', 'Pública', 'São Paulo', 'Sudeste',
-             '17/08 a 09/10/2026', '2026-11-01',
-             'Vestibular da Fuvest para ingresso na USP em 2027. 1ª fase em 01/11/2026; 2ª fase em 06 e 07/12/2026.',
-             'https://www.fuvest.br/vestibular-da-usp'),
-            ('Enem 2026', 'INEP', 'Pública', 'Nacional', 'Nacional', '25/05 a 05/06/2026', '2026-11-08',
-             'Exame Nacional do Ensino Médio, aplicado em dois domingos: 8 e 15 de novembro de 2026. Usado para ingresso via SISU, ProUni e FIES.',
-             'https://www.gov.br/inep'),
-            ('Vestibular Unicamp 2027', 'UNICAMP - Universidade Estadual de Campinas', 'Pública', 'Campinas', 'Sudeste',
-             '03/08 a 31/08/2026', '2026-10-18',
-             'Vestibular da Comvest para ingresso na Unicamp em 2027. 1ª fase em 18/10/2026; 2ª fase em 29 e 30/11/2026.',
-             'https://www.comvest.unicamp.br'),
-            ('Vestibular UNESP 2027', 'UNESP - Universidade Estadual Paulista', 'Pública', 'São Paulo', 'Sudeste',
-             '04/09 a 20/10/2026', '2026-11-22',
-             'Vestibular da Fundação Vunesp para ingresso na UNESP em 2027. 1ª fase em 22/11/2026; 2ª fase em 13 e 14/12/2026.',
-             'https://www.vunesp.com.br'),
-            ('Seriado UFMG 2026', 'UFMG - Universidade Federal de Minas Gerais', 'Pública', 'Belo Horizonte', 'Sudeste',
-             '15/06 a 22/07/2026', '2026-12-13',
-             'A UFMG não tem mais vestibular tradicional (extinto em 2013): 70% das vagas são pelo SISU/ENEM e 30% pelo novo Vestibular Seriado, com provas em 12 e 13/12/2026.',
-             'https://www.ufmg.br'),
-            ('Vestibular UFRJ (ingresso via SISU)', 'UFRJ - Universidade Federal do Rio de Janeiro', 'Pública', 'Rio de Janeiro', 'Sudeste',
-             '25/05 a 05/06/2026 (inscrição no Enem)', '2026-11-15',
-             'A UFRJ não possui vestibular próprio: o ingresso é feito exclusivamente pela nota do Enem via SISU.',
-             'https://ufrj.br'),
-            ('Vestibular Unificado UFSC/IFC 2027', 'UFSC - Universidade Federal de Santa Catarina', 'Pública', 'Florianópolis', 'Sul',
-             '12/08 a 17/09/2026', '2026-12-05',
-             'Vestibular da Coperve para ingresso na UFSC (e no IFC) em 2027, com provas em 05 e 06/12/2026.',
-             'https://vestibular.coperve.ufsc.br'),
-            ('Vestibular UFRGS 2026', 'UFRGS - Universidade Federal do Rio Grande do Sul', 'Pública', 'Porto Alegre', 'Sul',
-             'Consulte o edital da Coperse', '2026-11-29',
-             'Vestibular da Coperse, responsável por 70% das vagas de graduação da UFRGS; os outros 30% são pelo SISU. Provas em 29 e 30/11/2026.',
-             'https://www.ufrgs.br/ingresso/'),
-            ('Vestibular UFBA (ingresso via SISU)', 'UFBA - Universidade Federal da Bahia', 'Pública', 'Salvador', 'Nordeste',
-             '25/05 a 05/06/2026 (inscrição no Enem)', '2026-11-15',
-             'A UFBA não possui vestibular próprio: o ingresso é feito exclusivamente pela nota do Enem via SISU.',
-             'https://www.ufba.br'),
-            ('Vestibular Tradicional UnB 2027', 'UnB - Universidade de Brasília', 'Pública', 'Brasília', 'Centro-Oeste',
-             'Edital previsto para 20/08/2026', '2026-11-21',
-             'Vestibular Tradicional da UnB (Cebraspe) para ingresso em 2027, com provas em 21 e 22/11/2026. A UnB também seleciona pelo PAS (avaliação seriada) e pelo SISU.',
-             'https://www.cebraspe.org.br'),
-            ('Vestibular FATEC - 1º semestre de 2027', 'FATEC - Faculdade de Tecnologia do Estado de São Paulo', 'Pública', 'São Paulo', 'Sudeste',
-             '14/09 a 06/11/2026 (previsão)', None,
-             'Vestibular das Fatecs para o 1º semestre de 2027. Período de inscrição é previsão inicial; data da prova ainda não divulgada oficialmente.',
-             'https://vestibular.fatec.sp.gov.br'),
-        ]
-        c.executemany(
-            "INSERT INTO vestibulares (nome, instituicao, tipo_instituicao, cidade, regiao, periodo_inscricao, data_prova, descricao, link_edital) VALUES (?,?,?,?,?,?,?,?,?)",
-            vestibulares
-        )
-        conn.commit()
+    # Vestibulares: catálogo pesquisado em fontes oficiais (ver
+    # database/vestibulares_dados.py). Insere os que faltam e atualiza os
+    # registros semeados em versões anteriores — sem duplicar e sem apagar
+    # nada (IDs, favoritos e inscrições são preservados).
+    sincronizar_vestibulares(conn)
 
-        # Vincula os vestibulares recém-semeados às faculdades pelo nome da instituição
-        c.execute("SELECT id, nome FROM faculdades")
-        mapa_faculdades = {nome: id for id, nome in c.fetchall()}
-        c.execute("SELECT id, instituicao FROM vestibulares WHERE faculdade_id IS NULL")
-        for vest_id, instituicao in c.fetchall():
-            if instituicao in mapa_faculdades:
-                c.execute("UPDATE vestibulares SET faculdade_id=? WHERE id=?", (mapa_faculdades[instituicao], vest_id))
-        conn.commit()
-
-    # ── Migração: corrige vestibulares desatualizados em bancos já existentes
-    # (mesma lógica do seed acima, mas via UPDATE, para não perder favoritos
-    # e outros dados já vinculados aos registros antigos por ID).
-    _ATUALIZACOES_VESTIBULARES = {
-        'Fuvest 2025': dict(nome='Fuvest 2027', periodo_inscricao='17/08 a 09/10/2026', data_prova='2026-11-01',
-                             descricao='Vestibular da Fuvest para ingresso na USP em 2027. 1ª fase em 01/11/2026; 2ª fase em 06 e 07/12/2026.'),
-        'Enem 2024': dict(nome='Enem 2026', periodo_inscricao='25/05 a 05/06/2026', data_prova='2026-11-08',
-                           descricao='Exame Nacional do Ensino Médio, aplicado em dois domingos: 8 e 15 de novembro de 2026. Usado para ingresso via SISU, ProUni e FIES.'),
-        'Unicamp 2025': dict(nome='Vestibular Unicamp 2027', periodo_inscricao='03/08 a 31/08/2026', data_prova='2026-10-18',
-                              descricao='Vestibular da Comvest para ingresso na Unicamp em 2027. 1ª fase em 18/10/2026; 2ª fase em 29 e 30/11/2026.'),
-        'Vestibular UNESP 2025': dict(nome='Vestibular UNESP 2027', periodo_inscricao='04/09 a 20/10/2026', data_prova='2026-11-22',
-                                       descricao='Vestibular da Fundação Vunesp para ingresso na UNESP em 2027. 1ª fase em 22/11/2026; 2ª fase em 13 e 14/12/2026.'),
-        'Vestibular UFMG 2025': dict(nome='Seriado UFMG 2026', periodo_inscricao='15/06 a 22/07/2026', data_prova='2026-12-13',
-                                      descricao='A UFMG não tem mais vestibular tradicional (extinto em 2013): 70% das vagas são pelo SISU/ENEM e 30% pelo novo Vestibular Seriado, com provas em 12 e 13/12/2026.'),
-        'Vestibular UFRJ 2025': dict(nome='Vestibular UFRJ (ingresso via SISU)', periodo_inscricao='25/05 a 05/06/2026 (inscrição no Enem)', data_prova='2026-11-15',
-                                      descricao='A UFRJ não possui vestibular próprio: o ingresso é feito exclusivamente pela nota do Enem via SISU.'),
-        'Vestibular UFSC 2025': dict(nome='Vestibular Unificado UFSC/IFC 2027', periodo_inscricao='12/08 a 17/09/2026', data_prova='2026-12-05',
-                                      descricao='Vestibular da Coperve para ingresso na UFSC (e no IFC) em 2027, com provas em 05 e 06/12/2026.'),
-        'Vestibular UFRGS 2025': dict(nome='Vestibular UFRGS 2026', periodo_inscricao='Consulte o edital da Coperse', data_prova='2026-11-29',
-                                       descricao='Vestibular da Coperse, responsável por 70% das vagas de graduação da UFRGS; os outros 30% são pelo SISU. Provas em 29 e 30/11/2026.'),
-        'Vestibular UFBA 2025': dict(nome='Vestibular UFBA (ingresso via SISU)', periodo_inscricao='25/05 a 05/06/2026 (inscrição no Enem)', data_prova='2026-11-15',
-                                      descricao='A UFBA não possui vestibular próprio: o ingresso é feito exclusivamente pela nota do Enem via SISU.'),
-        'Vestibular UnB 2025': dict(nome='Vestibular Tradicional UnB 2027', periodo_inscricao='Edital previsto para 20/08/2026', data_prova='2026-11-21',
-                                     descricao='Vestibular Tradicional da UnB (Cebraspe) para ingresso em 2027, com provas em 21 e 22/11/2026. A UnB também seleciona pelo PAS (avaliação seriada) e pelo SISU.'),
-        'Vestibular FATEC 2025': dict(nome='Vestibular FATEC - 1º semestre de 2027', periodo_inscricao='14/09 a 06/11/2026 (previsão)', data_prova=None,
-                                       descricao='Vestibular das Fatecs para o 1º semestre de 2027. Período de inscrição é previsão inicial; data da prova ainda não divulgada oficialmente.'),
-    }
-    for nome_antigo, novos_dados in _ATUALIZACOES_VESTIBULARES.items():
-        c.execute("SELECT id FROM vestibulares WHERE nome=?", (nome_antigo,))
-        row = c.fetchone()
-        if row:
-            c.execute(
-                "UPDATE vestibulares SET nome=?, periodo_inscricao=?, data_prova=?, descricao=?, status_validacao='nao_validado' WHERE id=?",
-                (novos_dados['nome'], novos_dados['periodo_inscricao'], novos_dados['data_prova'], novos_dados['descricao'], row[0])
-            )
     conn.commit()
 
     conn.commit()
     conn.close()
     print(f"Banco de dados inicializado em: {get_db_path()}")
+
+_CAMPOS_VESTIBULAR = ('nome', 'instituicao', 'tipo_instituicao', 'cidade', 'regiao',
+                      'periodo_inscricao', 'data_prova', 'descricao', 'link_edital',
+                      'taxa_inscricao', 'cursos_oferecidos', 'requisitos', 'fonte')
+
+
+def sincronizar_vestibulares(conn):
+    """Garante que todos os vestibulares do catálogo existam no banco.
+
+    - Procura cada item pelo nome atual ou por um dos `nomes_anteriores`
+      (comparação sem diferenciar maiúsculas) para nunca duplicar.
+    - Se não existe: insere.
+    - Se existe e foi gerado por uma versão anterior do catálogo
+      (seed_versao < SEED_VERSAO): atualiza os campos e reabre a validação.
+      Registros já na versão atual não são tocados, então edições feitas
+      depois não são sobrescritas a cada inicialização.
+    - Vincula à faculdade cadastrada com o mesmo nome de instituição.
+    Retorna {'inseridos': n, 'atualizados': n}.
+    """
+    from database.vestibulares_dados import VESTIBULARES, SEED_VERSAO
+
+    c = conn.cursor()
+    inseridos = atualizados = 0
+    for item in VESTIBULARES:
+        nomes = [item['nome']] + list(item.get('nomes_anteriores', []))
+        row = None
+        for nome in nomes:
+            c.execute("SELECT id, seed_versao FROM vestibulares WHERE lower(nome)=lower(?) ORDER BY id LIMIT 1", (nome,))
+            row = c.fetchone()
+            if row:
+                break
+        valores = [item.get(campo) for campo in _CAMPOS_VESTIBULAR]
+        if row is None:
+            c.execute(
+                f"INSERT INTO vestibulares ({', '.join(_CAMPOS_VESTIBULAR)}, seed_versao) "
+                f"VALUES ({', '.join('?' * len(_CAMPOS_VESTIBULAR))}, ?)",
+                valores + [SEED_VERSAO]
+            )
+            inseridos += 1
+        elif (row[1] or 0) < SEED_VERSAO:
+            c.execute(
+                f"UPDATE vestibulares SET {', '.join(f'{campo}=?' for campo in _CAMPOS_VESTIBULAR)}, "
+                "seed_versao=?, status_validacao='nao_validado', updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                valores + [SEED_VERSAO, row[0]]
+            )
+            atualizados += 1
+
+    c.execute("SELECT id, nome FROM faculdades")
+    mapa_faculdades = {nome: id for id, nome in c.fetchall()}
+    c.execute("SELECT id, instituicao FROM vestibulares WHERE faculdade_id IS NULL")
+    for vest_id, instituicao in c.fetchall():
+        if instituicao in mapa_faculdades:
+            c.execute("UPDATE vestibulares SET faculdade_id=? WHERE id=?", (mapa_faculdades[instituicao], vest_id))
+    conn.commit()
+    return {'inseridos': inseridos, 'atualizados': atualizados}
+
 
 if __name__ == '__main__':
     init_db()

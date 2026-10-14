@@ -10,12 +10,20 @@ class Vestibular:
             sql += " AND tipo_instituicao=?"
             params.append(filtros['tipo_instituicao'])
         if filtros.get('regiao'):
-            sql += " AND regiao=?"
-            params.append(filtros['regiao'])
+            # Aceita uma região (str) ou várias (lista) — o painel de filtros
+            # permite marcar mais de uma.
+            regioes = filtros['regiao']
+            if isinstance(regioes, str):
+                regioes = [regioes]
+            regioes = [r for r in regioes if r]
+            if regioes:
+                sql += f" AND regiao IN ({','.join('?' * len(regioes))})"
+                params.extend(regioes)
         if filtros.get('busca'):
             like = f"%{filtros['busca']}%"
-            sql += " AND (nome LIKE ? OR instituicao LIKE ? OR cidade LIKE ?)"
-            params.extend([like, like, like])
+            sql += (" AND (nome LIKE ? OR instituicao LIKE ? OR cidade LIKE ?"
+                    " OR descricao LIKE ? OR cursos_oferecidos LIKE ?)")
+            params.extend([like] * 5)
         if filtros.get('meses'):
             meses = filtros['meses']
             clauses = []
@@ -28,8 +36,11 @@ class Vestibular:
         if filtros.get('apenas_publicos'):
             sql += " AND tipo_instituicao='Pública'"
         if filtros.get('curso'):
-            sql += " AND faculdade_id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL AND nome=?)"
-            params.append(filtros['curso'])
+            # Vestibulares da faculdade que oferece o curso OU que citam o
+            # curso na lista de cursos oferecidos do processo seletivo.
+            sql += (" AND (faculdade_id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL AND nome=?)"
+                    " OR cursos_oferecidos LIKE ?)")
+            params.extend([filtros['curso'], f"%{filtros['curso']}%"])
         return sql, params
 
     def listar(self, filtros={}):
@@ -37,7 +48,11 @@ class Vestibular:
             conn = get_connection()
             c = conn.cursor()
             where, params = self._build_where(filtros)
-            sql = "SELECT * FROM vestibulares" + where + " ORDER BY data_prova ASC"
+            # Próximas provas primeiro (da mais próxima para a mais distante),
+            # depois as que já passaram e, por último, as sem data definida.
+            sql = ("SELECT * FROM vestibulares" + where +
+                   " ORDER BY (data_prova IS NULL OR date(data_prova) IS NULL),"
+                   " (date(data_prova) < date('now')), data_prova ASC, nome ASC")
             if 'limit' in filtros and 'offset' in filtros:
                 sql += " LIMIT ? OFFSET ?"
                 params.extend([filtros['limit'], filtros['offset']])
@@ -76,10 +91,15 @@ class Vestibular:
         try:
             conn = get_connection()
             c = conn.cursor()
+            c.execute("SELECT id FROM vestibulares WHERE lower(nome)=lower(?)", (dados['nome'].strip(),))
+            if c.fetchone():
+                conn.close()
+                return {'success': False, 'message': 'Já existe um vestibular cadastrado com esse nome.'}
             c.execute(
-                "INSERT INTO vestibulares (nome, instituicao, tipo_instituicao, cidade, regiao, periodo_inscricao, data_prova, descricao, link_edital) VALUES (?,?,?,?,?,?,?,?,?)",
-                (dados['nome'], dados.get('instituicao',''), dados['tipo_instituicao'], dados['cidade'],
-                 dados['regiao'], dados['periodo_inscricao'], dados['data_prova'], dados['descricao'], dados['link_edital'])
+                "INSERT INTO vestibulares (nome, instituicao, tipo_instituicao, cidade, regiao, periodo_inscricao, data_prova, descricao, link_edital, taxa_inscricao, cursos_oferecidos, requisitos) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (dados['nome'].strip(), dados.get('instituicao',''), dados['tipo_instituicao'], dados['cidade'],
+                 dados['regiao'], dados['periodo_inscricao'], dados['data_prova'] or None, dados['descricao'], dados['link_edital'],
+                 dados.get('taxa_inscricao') or None, dados.get('cursos_oferecidos') or None, dados.get('requisitos') or None)
             )
             id = c.lastrowid
             conn.commit()

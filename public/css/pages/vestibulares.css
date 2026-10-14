@@ -674,3 +674,87 @@
     outline: none;
     box-shadow: 0 0 0 3px var(--focus-ring);
 }
+/* ── Filtro de meses: 12 opções em duas colunas ── */
+.filter-options--meses {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+}
+
+/* ── Detalhes extras do vestibular (taxa, cursos, requisitos) ── */
+.vestibular-card .taxa {
+    align-items: flex-start;
+}
+
+.vestibular-card .taxa i {
+    margin-top: 0.2rem;
+}
+
+.vestibular-card .description {
+    display: block;
+}
+
+.vestibular-card--encerrado {
+    opacity: 0.8;
+}
+
+.tag.status-encerrado {
+    background-color: var(--border-subtle);
+    color: var(--text-light);
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.vestibular-detalhes {
+    margin: -0.5rem 0 1.25rem;
+    font-size: 0.88rem;
+}
+
+.vestibular-detalhes summary {
+    cursor: pointer;
+    color: var(--primary-text);
+    font-weight: 600;
+    width: fit-content;
+}
+
+.vestibular-detalhes summary:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.vestibular-detalhes dl {
+    margin: 0.75rem 0 0;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.vestibular-detalhes dt {
+    font-weight: 600;
+    color: var(--heading-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vestibular-detalhes dt i {
+    color: var(--accent-color);
+}
+
+.vestibular-detalhes dd {
+    margin: 0 0 0.5rem;
+    color: var(--text-light);
+    line-height: 1.45;
+}
+
+.vestibular-footer {
+    gap: 0.75rem;
+}
+
+.vestibular-link {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
