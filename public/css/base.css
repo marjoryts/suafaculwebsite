@@ -508,3 +508,98 @@ textarea:focus-visible {
         scroll-behavior: auto !important;
     }
 }
+
+/* ==========================================================================
+   Aviso flutuante (favoritos: pedir login, erros) — substitui o alert()
+   do navegador. Criado por mostrarAviso() em /static/js/favoritos.js.
+   ========================================================================== */
+.aviso-flutuante {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    width: min(560px, calc(100% - 2rem));
+    padding: 0.85rem 0.85rem 0.85rem 1.15rem;
+    border-radius: 14px;
+    border: 1px solid var(--primary-border);
+    border-left: 4px solid var(--primary-color);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translate(-50%, 12px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.aviso-flutuante[hidden] {
+    display: none;
+}
+
+.aviso-flutuante.is-visivel {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.aviso-flutuante--erro {
+    border-left-color: var(--error-color);
+}
+
+.aviso-flutuante-texto {
+    flex: 1;
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+}
+
+.aviso-flutuante-acao {
+    flex-shrink: 0;
+    padding: 0.5rem 1.1rem;
+    border-radius: var(--radius-pill);
+    background: var(--primary-color);
+    color: var(--second-color);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.aviso-flutuante-acao:hover {
+    background: var(--primary-dark);
+}
+
+.aviso-flutuante-fechar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aviso-flutuante-fechar:hover {
+    background: var(--surface-hover);
+    color: var(--text-strong);
+}
+
+@media (max-width: 480px) {
+    .aviso-flutuante {
+        flex-wrap: wrap;
+        bottom: 1rem;
+    }
+
+    .aviso-flutuante-texto {
+        flex-basis: calc(100% - 44px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aviso-flutuante {
+        transition: none;
+    }
+}

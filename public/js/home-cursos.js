@@ -66,26 +66,26 @@ function renderCoursesInModal(courses, gridElement) {
 
         courseCard.innerHTML = `
             <div class="course-header">
-                <h3>${course.name}</h3>
+                <h3>${escaparHtml(course.name)}</h3>
                 <div class="course-header-actions">
-                    <span class="tag ${tagClass}">${course.modality.charAt(0).toUpperCase() + course.modality.slice(1)}</span>
-                    <button class="btn-favorito" data-tipo="curso" data-item-id="${course.id}" data-nome-item="${course.name}" title="Adicionar aos favoritos">
+                    <span class="tag ${tagClass}">${escaparHtml(course.modality.charAt(0).toUpperCase() + course.modality.slice(1))}</span>
+                    <button class="btn-favorito" data-tipo="curso" data-item-id="${escaparHtml(course.id)}" data-nome-item="${escaparHtml(course.name)}" title="Adicionar aos favoritos">
                         <i class="far fa-heart"></i>
                     </button>
                 </div>
             </div>
             <p class="institution">
-                <i class="fas fa-university"></i> ${course.institution}
+                <i class="fas fa-university"></i> ${escaparHtml(course.institution)}
             </p>
             <p class="description">
-                ${course.description ? (course.description.length > 120 ? course.description.substring(0, 120) + '...' : course.description) : 'Sem descrição disponível.'}
+                ${course.description ? escaparHtml(course.description.length > 120 ? course.description.substring(0, 120) + '...' : course.description) : 'Sem descrição disponível.'}
             </p>
             <div class="course-footer">
                 <div class="course-info">
-                    ${course.duration ? `<span><i class="fas fa-clock"></i> ${course.duration}</span>` : ''}
-                    ${course.degree ? `<span><i class="fas fa-graduation-cap"></i> ${course.degree}</span>` : ''}
+                    ${course.duration ? `<span><i class="fas fa-clock"></i> ${escaparHtml(course.duration)}</span>` : ''}
+                    ${course.degree ? `<span><i class="fas fa-graduation-cap"></i> ${escaparHtml(course.degree)}</span>` : ''}
                 </div>
-                <a href="#" class="course-link" data-course-id="${course.id}">
+                <a href="#" class="course-link" data-course-id="${escaparHtml(course.id)}">
                     Ver detalhes <i class="fas fa-chevron-right"></i>
                 </a>
             </div>
@@ -203,15 +203,15 @@ function openCourseModal(course) {
         <div class="modal-content">
             <span class="modal-close">&times;</span>
             <div class="modal-header">
-                <h2>${course.name}</h2>
-                <span class="tag ${tagClass}">${course.modality.charAt(0).toUpperCase() + course.modality.slice(1)}</span>
+                <h2>${escaparHtml(course.name)}</h2>
+                <span class="tag ${tagClass}">${escaparHtml(course.modality.charAt(0).toUpperCase() + course.modality.slice(1))}</span>
             </div>
             <div class="modal-body">
                 <div class="modal-info-item">
                     <i class="fas fa-university"></i>
                     <div>
                         <strong>Instituição:</strong>
-                        <p>${course.institution}</p>
+                        <p>${escaparHtml(course.institution)}</p>
                     </div>
                 </div>
                 ${course.area ? `
@@ -219,7 +219,7 @@ function openCourseModal(course) {
                     <i class="fas fa-tag"></i>
                     <div>
                         <strong>Área:</strong>
-                        <p>${course.area}</p>
+                        <p>${escaparHtml(course.area)}</p>
                     </div>
                 </div>
                 ` : ''}
@@ -228,7 +228,7 @@ function openCourseModal(course) {
                     <i class="fas fa-clock"></i>
                     <div>
                         <strong>Duração:</strong>
-                        <p>${course.duration}</p>
+                        <p>${escaparHtml(course.duration)}</p>
                     </div>
                 </div>
                 ` : ''}
@@ -237,7 +237,7 @@ function openCourseModal(course) {
                     <i class="fas fa-graduation-cap"></i>
                     <div>
                         <strong>Grau:</strong>
-                        <p>${course.degree}</p>
+                        <p>${escaparHtml(course.degree)}</p>
                     </div>
                 </div>
                 ` : ''}
@@ -246,13 +246,13 @@ function openCourseModal(course) {
                     <i class="fas fa-building"></i>
                     <div>
                         <strong>Tipo de Instituição:</strong>
-                        <p>${course.type}</p>
+                        <p>${escaparHtml(course.type)}</p>
                     </div>
                 </div>
                 ` : ''}
                 <div class="modal-description">
                     <h3>Sobre o Curso</h3>
-                    <p>${course.description || 'Descrição não disponível no momento.'}</p>
+                    <p>${course.description ? escaparHtml(course.description) : 'Descrição não disponível no momento.'}</p>
                 </div>
                 <div style="margin-top: 2rem; text-align: center;">
                     <a href="/cursos" style="display: inline-block; padding: 0.8rem 2rem; background: var(--primary-color); color: var(--second-color); text-decoration: none; border-radius: 5px; font-weight: 600;">

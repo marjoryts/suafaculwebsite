@@ -33,14 +33,21 @@ tanto para uma instalação nova quanto para atualizar um banco já existente
 ### Login padrão
 
 Se nenhum usuário administrador existir ainda, um é criado automaticamente
-no primeiro start:
+no primeiro start. A senha vem da variável de ambiente
+`SUAFACUL_ADMIN_PASSWORD`:
 
-```
-usuário: admin
-senha:   admin123
-```
+| Ambiente | `SUAFACUL_ADMIN_PASSWORD` definida | Não definida |
+|---|---|---|
+| Local | usa a senha da variável | `admin` / `admin123` |
+| Vercel | usa a senha da variável | senha aleatória (aviso no log) |
 
-**Troque essa senha assim que entrar** (Dashboard → Editar Perfil).
+**Na Vercel, defina `SUAFACUL_ADMIN_PASSWORD`** em Project Settings →
+Environment Variables. Lá o banco SQLite fica em `/tmp` e é recriado a
+cada inicialização, então trocar a senha pelo painel não persiste — a
+senha que vale é sempre a da variável. Por isso não existe senha padrão
+em produção.
+
+Localmente, troque a senha assim que entrar (Dashboard → Editar Perfil).
 
 ## Estrutura
 

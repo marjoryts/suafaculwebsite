@@ -6,6 +6,24 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config.database import get_db_path, get_connection
 
+def _senha_admin_inicial():
+    """Senha do admin criado automaticamente quando o banco não tem nenhum.
+
+    - SUAFACUL_ADMIN_PASSWORD definida: usa essa senha (qualquer ambiente).
+    - Na Vercel sem a variável: senha aleatória. Lá o banco fica em /tmp e
+      é recriado a cada inicialização, então uma senha padrão conhecida
+      voltaria sempre, mesmo que alguém a tivesse trocado pelo painel.
+    - Desenvolvimento local sem a variável: mantém admin123 (README/testes).
+    """
+    senha = os.environ.get('SUAFACUL_ADMIN_PASSWORD', '').strip()
+    if senha:
+        return senha, 'env'
+    if os.environ.get('VERCEL'):
+        import secrets
+        return secrets.token_urlsafe(24), 'aleatoria'
+    return 'admin123', 'padrao'
+
+
 def init_db():
     """Cria tabelas e dados iniciais. Serializado por uma trava de arquivo:
     quando vários processos sobem juntos com o banco ainda vazio (vários
@@ -202,11 +220,20 @@ def _init_db_sem_trava():
             print(f"[init_db] Usuário id={primeiro[0]} promovido a admin (nenhum admin existia).")
         else:
             from werkzeug.security import generate_password_hash
+            senha_admin, origem = _senha_admin_inicial()
             c.execute(
                 "INSERT INTO usuarios (nome_usuario, email, senha, tipo) VALUES (?,?,?,?)",
-                ('admin', 'admin@suafacul.local', generate_password_hash('admin123'), 'admin')
+                ('admin', 'admin@suafacul.local', generate_password_hash(senha_admin), 'admin')
             )
-            print("[init_db] Usuário admin padrão criado -> login: admin / senha: admin123 (TROQUE a senha).")
+            if origem == 'env':
+                print("[init_db] Usuário admin criado com a senha de SUAFACUL_ADMIN_PASSWORD.")
+            elif origem == 'aleatoria':
+                print("[init_db] AVISO: SUAFACUL_ADMIN_PASSWORD não está definida neste ambiente. "
+                      "O admin foi criado com uma senha aleatória (não há senha padrão em produção). "
+                      "Defina a variável nas configurações do projeto na Vercel para conseguir entrar.")
+            else:
+                print("[init_db] Usuário admin padrão criado -> login: admin / senha: admin123 "
+                      "(somente desenvolvimento local; em produção use SUAFACUL_ADMIN_PASSWORD).")
         conn.commit()
 
     # Seed cursos if empty
@@ -224,16 +251,16 @@ def _init_db_sem_trava():
              '5 anos', 'Bacharelado', 'Saúde', 'Privada'),
             ('Direito', 'USP - Universidade de São Paulo', 'presencial',
              'Desenvolve o raciocínio jurídico para atuação em diversas áreas do direito.',
-             '5 anos', 'Bacharelado', 'Direito', 'Privada'),
+             '5 anos', 'Bacharelado', 'Direito', 'Pública'),
             ('Administração', 'UFBA - Universidade Federal da Bahia', 'presencial',
              'Prepara líderes e gestores para os desafios do mercado corporativo.',
-             '4 anos', 'Bacharelado', 'Negócios', 'Privada'),
+             '4 anos', 'Bacharelado', 'Negócios', 'Pública'),
             ('Ciência da Computação', 'UFMG - Universidade Federal de Minas Gerais', 'presencial',
              'Estudo aprofundado de algoritmos, estruturas de dados e inteligência artificial.',
              '4 anos', 'Bacharelado', 'Tecnologia', 'Pública'),
             ('Nutrição', 'UNIFESP - Universidade Federal de São Paulo', 'semipresencial',
              'Foca na relação entre alimentação, saúde e qualidade de vida.',
-             '4 anos', 'Bacharelado', 'Saúde', 'Privada'),
+             '4 anos', 'Bacharelado', 'Saúde', 'Pública'),
             ('Engenharia Civil', 'USP - Universidade de São Paulo', 'presencial',
              'Projetos e construção de infraestruturas como edifícios, pontes e estradas.',
              '5 anos', 'Bacharelado', 'Engenharias', 'Pública'),
@@ -242,7 +269,7 @@ def _init_db_sem_trava():
              '4 anos', 'Bacharelado', 'Comunicação', 'Privada'),
             ('Arquitetura e Urbanismo', 'UFF - Universidade Federal Fluminense', 'presencial',
              'Planejamento e concepção de espaços urbanos e edificações.',
-             '5 anos', 'Bacharelado', 'Artes e Design', 'Privada'),
+             '5 anos', 'Bacharelado', 'Artes e Design', 'Pública'),
             ('Análise e Desenvolvimento de Sistemas', 'FATEC - Faculdade de Tecnologia do Estado de São Paulo', 'presencial',
              'Curso tecnólogo focado em desenvolvimento de software, banco de dados, engenharia de sistemas e metodologias ágeis para o mercado de trabalho.',
              '3 anos', 'Tecnólogo', 'Tecnologia', 'Pública'),
@@ -337,6 +364,19 @@ def _init_db_sem_trava():
     # nada (IDs, favoritos e inscrições são preservados).
     sincronizar_vestibulares(conn)
 
+    conn.commit()
+
+    # ── Migração: o tipo de instituição do curso segue o da faculdade a que
+    # ele está vinculado. Corrige bancos semeados com a lista antiga, que
+    # marcava como "Privada" cursos da USP, UFBA, UFF e UNIFESP.
+    c.execute("""
+        UPDATE cursos
+           SET tipo_instituicao = (SELECT f.tipo_instituicao FROM faculdades f WHERE f.id = cursos.faculdade_id)
+         WHERE faculdade_id IS NOT NULL
+           AND tipo_instituicao <> (SELECT f.tipo_instituicao FROM faculdades f WHERE f.id = cursos.faculdade_id)
+    """)
+    if c.rowcount:
+        print(f"[init_db] Tipo de instituição corrigido em {c.rowcount} curso(s).")
     conn.commit()
 
     conn.commit()

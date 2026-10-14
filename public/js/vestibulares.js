@@ -290,6 +290,12 @@ async function loadVestibulares() {
         updateVestibularesCount(startDisplay, endDisplay, data.total);
         
         renderPagination(data.total_pages);
+
+        // Ativa os corações dos cards recém-desenhados (antes só no
+        // carregamento inicial; após filtrar, buscar ou paginar, não funcionavam).
+        if (typeof inicializarFavoritos === 'function') {
+            await inicializarFavoritos('vestibular');
+        }
     } catch (error) {
         console.error('Erro ao carregar vestibulares:', error);
         if (vestibularesGrid) {
@@ -402,12 +408,8 @@ async function popularFiltroDeCursos() {
 // --- Inicialização ---
 document.addEventListener('DOMContentLoaded', async () => {
     // Carrega os vestibulares ao inicializar
+    // loadVestibulares() já ativa os botões de favorito de cada carga
     await loadVestibulares();
     await popularFiltroDeCursos();
-    
-    // Inicializar favoritos após carregar os vestibulares
-    if (typeof inicializarFavoritos === 'function') {
-        await inicializarFavoritos('vestibular');
-    }
 });
 

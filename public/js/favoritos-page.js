@@ -88,6 +88,13 @@ async function renderFavorites(tipo, favoritos, grid) {
                 if (data.success) {
                     itemData = data.vestibular;
                 }
+            } else if (tipo === 'faculdade') {
+                // Antes não havia este ramo: a aba Faculdades ficava sempre vazia.
+                const response = await fetch(`${API_BASE_URL}/faculdades/buscar?id=${favorito.item_id}`);
+                const data = await response.json();
+                if (data.success) {
+                    itemData = data.faculdade;
+                }
             }
 
             if (itemData) {
@@ -117,24 +124,24 @@ function createFavoriteCard(tipo, itemData, favorito) {
 
         card.innerHTML = `
             <div class="course-header">
-                <h3>${itemData.nome}</h3>
+                <h3>${escaparHtml(itemData.nome)}</h3>
                 <div class="course-header-actions">
-                    <span class="tag ${tagClass}">${itemData.modalidade.charAt(0).toUpperCase() + itemData.modalidade.slice(1)}</span>
-                    <button class="btn-favorito favoritado" data-tipo="curso" data-item-id="${itemData.id}" data-nome-item="${itemData.nome}" title="Remover dos favoritos">
+                    <span class="tag ${tagClass}">${escaparHtml(itemData.modalidade.charAt(0).toUpperCase() + itemData.modalidade.slice(1))}</span>
+                    <button class="btn-favorito favoritado" data-tipo="curso" data-item-id="${escaparHtml(itemData.id)}" data-nome-item="${escaparHtml(itemData.nome)}" title="Remover dos favoritos">
                         <i class="fas fa-heart"></i>
                     </button>
                 </div>
             </div>
             <p class="institution">
-                <i class="fas fa-university"></i> ${itemData.instituicao || 'Instituição não informada'}
+                <i class="fas fa-university"></i> ${escaparHtml(itemData.instituicao || 'Instituição não informada')}
             </p>
             <p class="description">
-                ${itemData.descricao ? (itemData.descricao.length > 150 ? itemData.descricao.substring(0, 150) + '...' : itemData.descricao) : 'Sem descrição disponível.'}
+                ${itemData.descricao ? escaparHtml(itemData.descricao.length > 150 ? itemData.descricao.substring(0, 150) + '...' : itemData.descricao) : 'Sem descrição disponível.'}
             </p>
             <div class="course-footer">
                 <div class="course-info">
-                    ${itemData.duracao ? `<span><i class="fas fa-clock"></i> ${itemData.duracao}</span>` : ''}
-                    ${itemData.grau ? `<span><i class="fas fa-graduation-cap"></i> ${itemData.grau}</span>` : ''}
+                    ${itemData.duracao ? `<span><i class="fas fa-clock"></i> ${escaparHtml(itemData.duracao)}</span>` : ''}
+                    ${itemData.grau ? `<span><i class="fas fa-graduation-cap"></i> ${escaparHtml(itemData.grau)}</span>` : ''}
                 </div>
                 <a href="/cursos" class="course-link">
                     Ver detalhes <i class="fas fa-chevron-right"></i>
@@ -144,35 +151,64 @@ function createFavoriteCard(tipo, itemData, favorito) {
     } else if (tipo === 'vestibular') {
         const dataProva = itemData.data_prova ? new Date(itemData.data_prova).toLocaleDateString('pt-BR') : 'A definir';
         const cidadeRegiao = itemData.cidade && itemData.regiao 
-            ? `${itemData.cidade} - ${itemData.regiao}`
+            ? [itemData.cidade, itemData.regiao].join(' - ')
             : itemData.cidade || itemData.regiao || 'Nacional';
 
         card.innerHTML = `
             <div class="course-header">
-                <h3>${itemData.nome}</h3>
+                <h3>${escaparHtml(itemData.nome)}</h3>
                 <div class="course-header-actions">
-                    <span class="tag instituicao">${itemData.instituicao || 'Vestibular'}</span>
-                    <button class="btn-favorito favoritado" data-tipo="vestibular" data-item-id="${itemData.id}" data-nome-item="${itemData.nome}" title="Remover dos favoritos">
+                    <span class="tag instituicao">${escaparHtml(itemData.instituicao || 'Vestibular')}</span>
+                    <button class="btn-favorito favoritado" data-tipo="vestibular" data-item-id="${escaparHtml(itemData.id)}" data-nome-item="${escaparHtml(itemData.nome)}" title="Remover dos favoritos">
                         <i class="fas fa-heart"></i>
                     </button>
                 </div>
             </div>
             <p class="institution">
-                <i class="fas fa-calendar-alt"></i> Inscrições: ${itemData.periodo_inscricao || 'A definir'}
+                <i class="fas fa-calendar-alt"></i> Inscrições: ${escaparHtml(itemData.periodo_inscricao || 'A definir')}
             </p>
             <p class="description">
-                <i class="fas fa-calendar-check"></i> Prova: ${dataProva}
+                <i class="fas fa-calendar-check"></i> Prova: ${escaparHtml(dataProva)}
             </p>
             <p class="description">
-                ${itemData.descricao || ''}
+                ${escaparHtml(itemData.descricao || '')}
             </p>
             <div class="course-footer">
                 <div class="course-info">
-                    <span><i class="fas fa-map-marker-alt"></i> ${cidadeRegiao}</span>
+                    <span><i class="fas fa-map-marker-alt"></i> ${escaparHtml(cidadeRegiao)}</span>
                 </div>
-                <a href="${itemData.link_edital || '#'}" class="course-link" ${itemData.link_edital ? 'target="_blank"' : ''}>
+                <a href="${urlSegura(itemData.link_edital) || '#'}" class="course-link" ${urlSegura(itemData.link_edital) ? 'target="_blank" rel="noopener"' : ''}>
                     Ver edital <i class="fas fa-chevron-right"></i>
                 </a>
+            </div>
+        `;
+    }
+
+    if (tipo === 'faculdade') {
+        const tagClass = itemData.tipo_instituicao === 'Pública' ? 'publica' : 'privada';
+        const localizacao = [itemData.cidade, itemData.uf].filter(Boolean).join('/') || 'Localização não informada';
+        const site = urlSegura(itemData.url);
+        card.innerHTML = `
+            <div class="course-header">
+                <h3>${escaparHtml(itemData.nome)}${itemData.sigla ? ` (${escaparHtml(itemData.sigla)})` : ''}</h3>
+                <div class="course-header-actions">
+                    ${itemData.tipo_instituicao ? `<span class="tag ${tagClass}">${escaparHtml(itemData.tipo_instituicao)}</span>` : ''}
+                    <button class="btn-favorito favoritado" data-tipo="faculdade" data-item-id="${escaparHtml(itemData.id)}" data-nome-item="${escaparHtml(itemData.nome)}" title="Remover dos favoritos">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="institution">
+                <i class="fas fa-map-marker-alt"></i> ${escaparHtml(localizacao)}
+            </p>
+            <p class="description">
+                ${itemData.endereco ? escaparHtml(itemData.endereco) : 'Endereço não informado.'}
+            </p>
+            <div class="course-footer">
+                <div class="course-info"></div>
+                ${site
+                    ? `<a href="${site}" target="_blank" rel="noopener" class="course-link">Ver site <i class="fas fa-chevron-right"></i></a>`
+                    : `<a href="/cursos?busca=${encodeURIComponent(itemData.nome || '')}" class="course-link">Ver cursos <i class="fas fa-chevron-right"></i></a>`}
             </div>
         `;
     }

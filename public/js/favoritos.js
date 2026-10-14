@@ -1,6 +1,62 @@
 // Configuração da API de Favoritos
 const FAVORITOS_API_BASE_URL = '/api/favoritos';
 
+// ── Auxiliares de segurança compartilhados ──
+// Este arquivo é carregado antes dos scripts que montam cards com dados do
+// banco (Inicial, Cursos, Faculdades, Vestibulares, Favoritos). Todo texto
+// vindo da API passa por escaparHtml antes de entrar no innerHTML, e todo
+// link externo por urlSegura.
+function escaparHtml(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+// Só aceita http(s); qualquer outra coisa (ex.: "javascript:") vira ''.
+function urlSegura(url) {
+    const valor = String(url ?? '').trim();
+    return /^https?:\/\//i.test(valor) ? escaparHtml(valor) : '';
+}
+
+// ── Aviso na tela (substitui o alert() do navegador) ──
+// Um único aviso por vez, no canto inferior da tela, com ação opcional
+// (ex.: botão "Entrar"). Estilos em base.css (.aviso-flutuante).
+let avisoTimer = null;
+
+function mostrarAviso(mensagem, { tipo = 'info', acao = null, duracao = 7000 } = {}) {
+    let aviso = document.getElementById('aviso-flutuante');
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'aviso-flutuante';
+        aviso.className = 'aviso-flutuante';
+        aviso.setAttribute('role', 'status');
+        aviso.setAttribute('aria-live', 'polite');
+        document.body.appendChild(aviso);
+    }
+
+    aviso.classList.toggle('aviso-flutuante--erro', tipo === 'erro');
+    aviso.innerHTML = `
+        <p class="aviso-flutuante-texto">${escaparHtml(mensagem)}</p>
+        ${acao ? `<a class="aviso-flutuante-acao" href="${escaparHtml(acao.href)}">${escaparHtml(acao.texto)}</a>` : ''}
+        <button type="button" class="aviso-flutuante-fechar" aria-label="Fechar aviso">&times;</button>
+    `;
+    aviso.hidden = false;
+    // força a transição de entrada mesmo quando o aviso é reaproveitado
+    aviso.classList.remove('is-visivel');
+    void aviso.offsetWidth;
+    aviso.classList.add('is-visivel');
+
+    const fechar = () => {
+        aviso.classList.remove('is-visivel');
+        clearTimeout(avisoTimer);
+        avisoTimer = setTimeout(() => { aviso.hidden = true; }, 200);
+    };
+    aviso.querySelector('.aviso-flutuante-fechar').addEventListener('click', fechar);
+
+    clearTimeout(avisoTimer);
+    if (duracao) avisoTimer = setTimeout(fechar, duracao);
+}
+
 // Função para verificar se o usuário está logado
 function isUserLoggedIn() {
     // Verifica se há uma sessão ativa fazendo uma requisição simples
@@ -102,10 +158,11 @@ async function toggleFavorito(tipo, itemId, nomeItem, buttonElement) {
             buttonElement.title = 'Adicionar aos favoritos';
         } else {
             if (result.message.includes('não autenticado')) {
-                alert('Você precisa estar logado para favoritar itens. Redirecionando para login...');
-                window.location.href = '/login';
+                mostrarAviso('Entre na sua conta para salvar cursos, faculdades e vestibulares nos favoritos.', {
+                    acao: { texto: 'Entrar', href: '/login' }
+                });
             } else {
-                alert(result.message || 'Erro ao remover favorito.');
+                mostrarAviso(result.message || 'Não foi possível remover o favorito. Tente novamente.', { tipo: 'erro' });
             }
         }
     } else {
@@ -118,10 +175,11 @@ async function toggleFavorito(tipo, itemId, nomeItem, buttonElement) {
             buttonElement.title = 'Remover dos favoritos';
         } else {
             if (result.message.includes('não autenticado')) {
-                alert('Você precisa estar logado para favoritar itens. Redirecionando para login...');
-                window.location.href = '/login';
+                mostrarAviso('Entre na sua conta para salvar cursos, faculdades e vestibulares nos favoritos.', {
+                    acao: { texto: 'Entrar', href: '/login' }
+                });
             } else {
-                alert(result.message || 'Erro ao adicionar favorito.');
+                mostrarAviso(result.message || 'Não foi possível salvar o favorito. Tente novamente.', { tipo: 'erro' });
             }
         }
     }

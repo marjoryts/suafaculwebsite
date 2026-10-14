@@ -128,27 +128,27 @@ function renderFaculdades(faculdades) {
 
         card.innerHTML = `
             <div class="course-header">
-                <h3>${f.nome}${f.sigla ? ` (${f.sigla})` : ''}</h3>
+                <h3>${escaparHtml(f.nome)}${f.sigla ? ` (${escaparHtml(f.sigla)})` : ''}</h3>
                 <div class="course-header-actions">
-                    <span class="tag ${tagClass}">${f.tipo_instituicao}</span>
-                    <button class="btn-favorito" data-tipo="faculdade" data-item-id="${f.id}" data-nome-item="${f.nome}" title="Adicionar aos favoritos">
+                    <span class="tag ${tagClass}">${escaparHtml(f.tipo_instituicao)}</span>
+                    <button class="btn-favorito" data-tipo="faculdade" data-item-id="${escaparHtml(f.id)}" data-nome-item="${escaparHtml(f.nome)}" title="Adicionar aos favoritos">
                         <i class="far fa-heart"></i>
                     </button>
                 </div>
             </div>
             <p class="institution">
-                <i class="fas fa-map-marker-alt"></i> ${localizacao}
+                <i class="fas fa-map-marker-alt"></i> ${escaparHtml(localizacao)}
             </p>
             <p class="description">
-                ${f.endereco || 'Endereço não informado.'}
+                ${f.endereco ? escaparHtml(f.endereco) : 'Endereço não informado.'}
             </p>
             <div class="course-footer">
                 <div class="course-info">
-                    <span><i class="fas fa-book"></i> ${totalCursos} curso${totalCursos === 1 ? '' : 's'}</span>
-                    ${f.telefone ? `<span><i class="fas fa-phone"></i> ${f.telefone}</span>` : ''}
+                    <span><i class="fas fa-book"></i> ${escaparHtml(totalCursos)} curso${totalCursos === 1 ? '' : 's'}</span>
+                    ${f.telefone ? `<span><i class="fas fa-phone"></i> ${escaparHtml(f.telefone)}</span>` : ''}
                 </div>
-                ${f.url
-                    ? `<a href="${f.url}" target="_blank" rel="noopener" class="course-link">Ver site <i class="fas fa-chevron-right"></i></a>`
+                ${urlSegura(f.url)
+                    ? `<a href="${urlSegura(f.url)}" target="_blank" rel="noopener" class="course-link">Ver site <i class="fas fa-chevron-right"></i></a>`
                     : `<a href="/cursos?busca=${encodeURIComponent(f.nome)}" class="course-link">Ver cursos <i class="fas fa-chevron-right"></i></a>`}
             </div>
         `;
