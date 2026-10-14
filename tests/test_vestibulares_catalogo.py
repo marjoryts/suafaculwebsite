@@ -204,3 +204,18 @@ def test_pagina_vestibulares_tem_todos_os_meses(client):
     html = client.get('/vestibulares').get_data(as_text=True)
     for numero in range(1, 13):
         assert f'value="{numero}"' in html
+
+
+# ── Página inicial ──
+
+def test_home_mostra_proximos_vestibulares_do_banco(app, client):
+    proximos = app.Vestibular().proximos(limite=8)
+    assert proximos, 'o catálogo deve ter provas futuras'
+    hoje = date.today().isoformat()
+    assert all(v['data_prova'] >= hoje for v in proximos)
+    assert [v['data_prova'] for v in proximos] == sorted(v['data_prova'] for v in proximos)
+
+    html = client.get('/').get_data(as_text=True)
+    for v in proximos:
+        assert v['nome'] in html
+    assert 'href="/vestibulares"' in html

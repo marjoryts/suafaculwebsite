@@ -76,6 +76,22 @@ class Vestibular:
         except Exception:
             return 0
 
+    def proximos(self, limite=8):
+        """Vestibulares com prova de hoje em diante, da mais próxima para a
+        mais distante (usado no carrossel da página inicial)."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM vestibulares WHERE date(data_prova) >= date('now') "
+                "ORDER BY date(data_prova) ASC, nome ASC LIMIT ?", (limite,)
+            )
+            rows = [dict(r) for r in c.fetchall()]
+            conn.close()
+            return rows
+        except Exception:
+            return []
+
     def buscar_por_id(self, id):
         try:
             conn = get_connection()

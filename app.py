@@ -144,7 +144,7 @@ def admin_required(f):
 @app.route('/')
 @app.route('/home')
 def home():
-    return render_template('home.html')
+    return render_template('home.html', proximos_vestibulares=Vestibular().proximos(limite=8))
 
 @app.route('/login')
 def login():

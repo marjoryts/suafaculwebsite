@@ -793,3 +793,23 @@
 .course-link:hover {
     color: var(--heading-color);
 }
+/* Link "Ver todos os vestibulares" abaixo do carrossel da home */
+.vestibulares-ver-todos {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.vestibulares-ver-todos a {
+    color: var(--primary-text);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.vestibulares-ver-todos a:hover {
+    text-decoration: underline;
+}
+
+/* Espaço para a etiqueta de data no canto não cobrir títulos longos */
+.vestibulares-lista .vestibular h3 {
+    padding-right: 4.5rem;
+}
