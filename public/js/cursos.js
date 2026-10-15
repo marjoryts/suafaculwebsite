@@ -421,4 +421,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // loadCourses() já ativa os botões de favorito de cada carga
     await loadCourses();
+
+    // Link direto para um curso (ex.: "Conhecer o curso" nos resultados do
+    // Teste Vocacional usa /cursos?curso=<id>) abre o modal de detalhes.
+    const cursoDaURL = new URLSearchParams(window.location.search).get('curso');
+    if (cursoDaURL) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/cursos/buscar?id=${encodeURIComponent(cursoDaURL)}`);
+            const data = await response.json();
+            if (data.success && data.curso) {
+                openCourseModal(mapCourseData(data.curso));
+            }
+        } catch (error) {
+            console.error('Erro ao abrir curso da URL:', error);
+        }
+    }
 });

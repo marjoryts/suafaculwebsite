@@ -19,7 +19,7 @@ from app.models.usuario import Usuario
 from app.models.curso import Curso
 from app.models.vestibular import Vestibular
 from app.models.favorito import Favorito
-from app.models.teste_vocacional import TesteVocacional
+from app.models.teste_vocacional import TesteVocacional, PERFIS as PERFIS_VOCACIONAIS
 from app.models.faculdade import Faculdade
 from app.services import emec_service
 from app.services import vestibular_service
@@ -28,6 +28,7 @@ from app.services import scheduler_service
 from app.services import censo_service
 from app.services import seed_service
 from app.services import busca_service
+from app.services import vocacional_service
 from functools import wraps
 
 app = Flask(__name__,
@@ -171,6 +172,13 @@ def vestibulares():
 def testevocacional():
     return render_template('testevocacional.html')
 
+@app.route('/testevocacional/resultado')
+def testevocacional_resultado():
+    # A página é só a "casca": os dados vêm de /api/teste_vocacional/resultado
+    # (prévia, pública) e /api/teste_vocacional/recomendacoes (exige login).
+    return render_template('testevocacional_resultado.html',
+                           autenticado='user_id' in session)
+
 @app.route('/sobrenos')
 def sobrenos():
     return render_template('sobrenos.html')
@@ -233,10 +241,36 @@ def _login_usuario_na_sessao(user):
     session['email'] = user['email']
     session['tipo'] = user.get('tipo', 'aluno')
     session['avatar_url'] = user.get('avatar_url')
+    _vincular_teste_pendente(user['id'])
+
+
+def _vincular_teste_pendente(user_id):
+    """Se a pessoa fez o teste vocacional sem login neste navegador, o id
+    do resultado fica no cookie de sessão (assinado pelo Flask, não pode ser
+    forjado). Ao entrar/cadastrar, o resultado passa a ser da conta que
+    acabou de se autenticar — só se ainda não tiver dono."""
+    pendente = session.pop('teste_pendente_id', None)
+    if pendente:
+        TesteVocacional().vincular_a_usuario(pendente, user_id)
+
+
+def _destino_seguro(valor):
+    """Só aceita caminhos internos (evita redirecionamento aberto)."""
+    valor = (valor or '').strip()
+    if valor.startswith('/') and not valor.startswith('//') and '\\' not in valor:
+        return valor
+    return None
+
+
+def _redirect_pos_login():
+    return redirect(_destino_seguro(session.pop('login_next', None)) or url_for('dashboard'))
 
 
 @app.route('/auth/google')
 def auth_google():
+    destino = _destino_seguro(request.args.get('next'))
+    if destino:
+        session['login_next'] = destino
     if not oauth_service.is_configured():
         app.logger.error("[auth] Tentativa de login com Google sem GOOGLE_CLIENT_ID/SECRET configurados.")
         return redirect(url_for('login', oauth_error='nao_configurado'))
@@ -291,7 +325,7 @@ def auth_google_callback():
     usuario = usuario_model.buscar_por_google_id(google_id)
     if usuario:
         _login_usuario_na_sessao(usuario)
-        return redirect(url_for('dashboard'))
+        return _redirect_pos_login()
 
     # 2) Já existe conta local com esse e-mail -> vincula (só quando o
     #    Google confirma que o e-mail é verificado, para não permitir que
@@ -306,7 +340,7 @@ def auth_google_callback():
             app.logger.error("[auth] Falha ao vincular conta Google a usuário existente: %s", resultado.get('message'))
             return redirect(url_for('login', oauth_error='erro_interno'))
         _login_usuario_na_sessao(resultado['user'])
-        return redirect(url_for('dashboard'))
+        return _redirect_pos_login()
 
     # 3) Não existe conta nenhuma -> cria uma nova conta 'aluno' via Google.
     resultado = usuario_model.criar_via_google(google_id, email, nome, avatar_url)
@@ -314,7 +348,7 @@ def auth_google_callback():
         app.logger.error("[auth] Falha ao criar conta via Google: %s", resultado.get('message'))
         return redirect(url_for('login', oauth_error='erro_interno'))
     _login_usuario_na_sessao(resultado['user'])
-    return redirect(url_for('dashboard'))
+    return _redirect_pos_login()
 
 # ──────────────────────────────────────────────
 # API — Usuário
@@ -943,18 +977,131 @@ def api_favoritos_listar_ids():
 
 @app.route('/api/teste_vocacional/salvar', methods=['POST'])
 def api_teste_vocacional_salvar():
-    perfil_principal = request.form.get('perfil_principal', '')
-    perfis_json = request.form.get('perfis_json', '{}')
     respostas_json = request.form.get('respostas_json')
-    if not perfil_principal:
-        return jsonify({'success': False, 'message': 'Perfil principal não informado.'})
     usuario_id = session.get('user_id')
-    return jsonify(TesteVocacional().salvar_resultado({
+
+    if respostas_json:
+        # Fluxo atual: a pontuação é recalculada no servidor a partir das
+        # respostas — os scores enviados pelo navegador são ignorados.
+        try:
+            respostas = vocacional_service.validar_respostas(json.loads(respostas_json))
+        except (ValueError, TypeError) as e:
+            msg = str(e) if isinstance(e, vocacional_service.RespostasInvalidas) else 'Respostas em formato inválido.'
+            return jsonify({'success': False, 'message': msg}), 400
+        scores, melhores = vocacional_service.calcular_pontuacao(respostas)
+        if not melhores:
+            return jsonify({'success': False, 'message': 'Não foi possível identificar um perfil.'}), 400
+        perfil_principal = melhores[0]
+        perfis_json = json.dumps({'scores': scores, 'bestProfiles': melhores})
+        respostas_json = json.dumps(respostas)
+    else:
+        # Compatibilidade com clientes antigos (ex.: app mobile) que enviam
+        # o perfil já calculado.
+        perfil_principal = request.form.get('perfil_principal', '')
+        perfis_json = request.form.get('perfis_json', '{}')
+        if not perfil_principal:
+            return jsonify({'success': False, 'message': 'Perfil principal não informado.'})
+
+    resultado = TesteVocacional().salvar_resultado({
         'usuario_id': usuario_id,
         'perfil_principal': perfil_principal,
         'perfis_json': perfis_json,
         'respostas_json': respostas_json
-    }))
+    })
+    if not resultado.get('success'):
+        return jsonify(resultado), 500
+    if not usuario_id:
+        # Guarda só o id no cookie de sessão (assinado) até o login/cadastro.
+        session.permanent = True
+        session['teste_pendente_id'] = resultado['id']
+    resultado.update({'autenticado': bool(usuario_id),
+                      'redirect': url_for('testevocacional_resultado')})
+    return jsonify(resultado)
+
+
+def _resultado_vocacional_atual():
+    """Resultado que a sessão atual pode ver: o mais recente da conta
+    logada, ou o teste pendente feito sem login neste navegador."""
+    model = TesteVocacional()
+    if 'user_id' in session:
+        return model.ultimo_do_usuario(session['user_id'])
+    pendente = session.get('teste_pendente_id')
+    if pendente:
+        r = model.buscar_por_id(pendente)
+        if r and r['usuario_id'] is None:
+            return r
+        session.pop('teste_pendente_id', None)
+    return None
+
+
+def _pontuacoes_perfis(scores):
+    total = sum(scores.values()) or 0
+    return sorted(({'chave': k, 'nome': PERFIS_VOCACIONAIS.get(k, k),
+                    'percentual': round(100 * v / total) if total else 0}
+                   for k, v in scores.items()), key=lambda p: p['percentual'], reverse=True)
+
+
+@app.route('/api/teste_vocacional/resultado', methods=['GET'])
+def api_teste_vocacional_resultado():
+    """Prévia pública: perfil e quantos cursos combinam — sem a lista."""
+    r = _resultado_vocacional_atual()
+    if not r:
+        return jsonify({'success': False, 'motivo': 'sem_resultado',
+                        'message': 'Nenhum teste vocacional encontrado. Faça o teste para ver seus resultados.'}), 404
+    scores = vocacional_service.ler_scores(r['perfis_json'])
+    try:
+        rec = vocacional_service.recomendar_cursos(scores, limite=0)
+    except Exception:
+        app.logger.exception("[vocacional] Falha ao calcular compatibilidade")
+        rec = None
+    return jsonify({
+        'success': True,
+        'autenticado': 'user_id' in session,
+        'resultado': {
+            'id': r['id'],
+            'perfil': r['perfil_principal'],
+            'perfil_nome': PERFIS_VOCACIONAIS.get(r['perfil_principal'], r['perfil_principal']),
+            'perfil_descricao': vocacional_service.DESCRICOES.get(r['perfil_principal']),
+            'created_at': r['created_at'],
+            'pontuacoes': _pontuacoes_perfis(scores),
+        },
+        'total_compativeis': rec['total_compativeis'] if rec else None,
+    })
+
+
+@app.route('/api/teste_vocacional/recomendacoes', methods=['GET'])
+def api_teste_vocacional_recomendacoes():
+    """Lista completa de cursos recomendados — só para usuário autenticado
+    e só para resultados da própria conta."""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'motivo': 'nao_autenticado',
+                        'message': 'Entre na sua conta para ver os cursos recomendados.'}), 401
+    model = TesteVocacional()
+    resultado_id = request.args.get('id', type=int)
+    if resultado_id:
+        r = model.buscar_por_id(resultado_id)
+        if not r or r['usuario_id'] != session['user_id']:
+            r = None
+    else:
+        r = model.ultimo_do_usuario(session['user_id'])
+    if not r:
+        return jsonify({'success': False, 'motivo': 'sem_resultado',
+                        'message': 'Nenhum teste vocacional encontrado na sua conta.'}), 404
+    try:
+        limite = max(1, min(int(request.args.get('limite', 50)), 200))
+    except ValueError:
+        limite = 50
+    scores = vocacional_service.ler_scores(r['perfis_json'])
+    try:
+        rec = vocacional_service.recomendar_cursos(scores, limite=limite)
+    except Exception:
+        app.logger.exception("[vocacional] Falha ao calcular recomendações")
+        return jsonify({'success': False, 'motivo': 'erro_interno',
+                        'message': 'Não foi possível calcular suas recomendações agora.'}), 500
+    rec.update({'success': True, 'resultado_id': r['id'],
+                'perfil': r['perfil_principal'],
+                'perfil_nome': PERFIS_VOCACIONAIS.get(r['perfil_principal'], r['perfil_principal'])})
+    return jsonify(rec)
 
 # ──────────────────────────────────────────────
 # 404

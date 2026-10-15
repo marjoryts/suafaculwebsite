@@ -105,6 +105,36 @@
             if (alertDiv) alertDiv.innerHTML = `<div class="alert error">${texto}</div>`;
         })();
 
+        // Destino após entrar (ex.: /login?next=/testevocacional/resultado).
+        // Só caminhos internos são aceitos, para não virar redirecionamento aberto.
+        const destinoPosLogin = (function () {
+            const next = new URLSearchParams(window.location.search).get('next') || '';
+            return (next.startsWith('/') && !next.startsWith('//') && !next.includes('\\')) ? next : null;
+        })();
+        const vindoDoTesteVocacional = !!destinoPosLogin && destinoPosLogin.startsWith('/testevocacional');
+
+        (function prepararRetorno() {
+            if (!destinoPosLogin) return;
+            document.querySelectorAll('a[href="/auth/google"]').forEach(function (a) {
+                a.href = '/auth/google?next=' + encodeURIComponent(destinoPosLogin);
+            });
+            if (vindoDoTesteVocacional) {
+                ['login-alert', 'register-alert'].forEach(function (id) {
+                    const alvo = document.getElementById(id);
+                    if (alvo && !alvo.innerHTML) {
+                        alvo.innerHTML = '<div class="alert success">Seu teste vocacional foi concluído! Entre ou crie uma conta para ver os cursos recomendados.</div>';
+                    }
+                });
+            }
+            if (new URLSearchParams(window.location.search).get('modo') === 'cadastro') {
+                document.getElementById('container').classList.add('active');
+            }
+        })();
+
+        function irAposLogin() {
+            window.location.href = destinoPosLogin || '/dashboard';
+        }
+
         // Função para alternar entre formulários
         function toggleForm() {
             const container = document.getElementById('container');
@@ -131,9 +161,7 @@
             .then(data => {
                 if (data.success) {
                     alertDiv.innerHTML = '<div class="alert success">Login realizado com sucesso! ...</div>';
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1000);
+                    setTimeout(irAposLogin, destinoPosLogin ? 400 : 1000);
                 } else {
                     alertDiv.innerHTML = `<div class="alert error">${data.message}</div>`;
                 }
@@ -163,6 +191,21 @@
             })
             .then(response => response.json())
             .then(data => {
+                if (data.success && destinoPosLogin) {
+                    // Veio de uma página que precisa de login (ex.: resultados do
+                    // teste): entra direto com a conta recém-criada e volta pra lá.
+                    alertDiv.innerHTML = '<div class="alert success">Conta criada! Entrando…</div>';
+                    const loginData = new FormData();
+                    loginData.append('username', username);
+                    loginData.append('password', password);
+                    return fetch('/api/usuario/login', { method: 'POST', body: loginData })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) { irAposLogin(); return; }
+                            alertDiv.innerHTML = '<div class="alert success">Conta criada! Agora é só entrar.</div>';
+                            setTimeout(toggleForm, 1000);
+                        });
+                }
                 if (data.success) {
                     alertDiv.innerHTML = '<div class="alert success">Usuário registrado com sucesso!</div>';
                     setTimeout(() => {

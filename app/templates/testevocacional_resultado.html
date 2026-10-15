@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seus resultados vocacionais | SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <script src="/static/js/theme.js"></script>
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
+    <link rel="stylesheet" href="/static/css/pages/teste-vocacional.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% set active_page = 'testevocacional' %}
+    {% include 'partials/_header.html' %}
+
+    <main>
+        <section class="quiz-section resultado-section" id="resultado-vocacional"
+                 data-autenticado="{{ 'true' if autenticado else 'false' }}">
+            <div class="container">
+                <div class="vocational-result resultado-card" tabindex="-1" id="resultado-card">
+                    <span class="result-badge"><i class="fas fa-star" aria-hidden="true"></i></span>
+                    <h1 class="resultado-titulo">Seus resultados vocacionais</h1>
+                    <p class="result-intro">
+                        As recomendações abaixo foram calculadas com base nas respostas que você deu no Teste Vocacional.
+                    </p>
+
+                    <!-- Carregando -->
+                    <div class="resultado-estado" id="resultado-carregando" aria-live="polite">
+                        <span class="resultado-spinner" aria-hidden="true"></span>
+                        <p>Calculando sua compatibilidade com os cursos…</p>
+                    </div>
+
+                    <!-- Erro / sem resultado -->
+                    <div class="resultado-estado resultado-erro" id="resultado-erro" role="alert" hidden>
+                        <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+                        <p id="resultado-erro-texto">Não foi possível carregar seus resultados agora.</p>
+                        <div class="result-actions">
+                            <button type="button" class="quiz-btn quiz-btn-review" id="resultado-tentar-novamente">
+                                <i class="fas fa-rotate-right" aria-hidden="true"></i> Tentar novamente
+                            </button>
+                            <a href="/testevocacional#vocational-test" class="quiz-btn-finish" id="resultado-fazer-teste">
+                                Fazer o teste <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div id="resultado-conteudo" hidden>
+                        <!-- Perfil (prévia pública) -->
+                        <div class="resultado-perfil">
+                            <div class="result-card resultado-perfil-principal">
+                                <span class="resultado-rotulo">Perfil predominante</span>
+                                <h2 id="perfil-nome"></h2>
+                                <p id="perfil-descricao"></p>
+                            </div>
+                            <div class="resultado-pontuacoes">
+                                <span class="resultado-rotulo">Distribuição das suas respostas</span>
+                                <ul id="perfil-pontuacoes" class="resultado-barras"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Bloqueio para quem não está logado -->
+                        <div class="resultado-bloqueio" id="resultado-bloqueio" hidden>
+                            <div class="resultado-bloqueio-previa" aria-hidden="true">
+                                <div class="course-card resultado-curso-fantasma"></div>
+                                <div class="course-card resultado-curso-fantasma"></div>
+                                <div class="course-card resultado-curso-fantasma"></div>
+                            </div>
+                            <div class="resultado-bloqueio-mensagem">
+                                <span class="resultado-bloqueio-icone"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                <h2>Seu teste foi concluído!</h2>
+                                <p id="bloqueio-texto">Entre na sua conta para descobrir os cursos com maior compatibilidade com seu perfil.</p>
+                                <p class="resultado-bloqueio-total" id="bloqueio-total" hidden></p>
+                                <div class="result-actions">
+                                    <a href="/login?next=/testevocacional/resultado" class="quiz-btn-finish" id="btn-entrar">
+                                        <i class="fas fa-right-to-bracket" aria-hidden="true"></i> Entrar
+                                    </a>
+                                    <a href="/login?modo=cadastro&amp;next=/testevocacional/resultado" class="quiz-btn quiz-btn-review" id="btn-criar-conta">
+                                        <i class="fas fa-user-plus" aria-hidden="true"></i> Criar conta
+                                    </a>
+                                </div>
+                                <small>Suas respostas ficam guardadas: depois de entrar, você volta direto para cá.</small>
+                            </div>
+                        </div>
+
+                        <!-- Lista completa (somente autenticado; vem de endpoint protegido) -->
+                        <div class="resultado-recomendacoes" id="resultado-recomendacoes" hidden>
+                            <div class="resultado-recomendacoes-cabecalho">
+                                <h2>Cursos com maior compatibilidade</h2>
+                                <p id="recomendacoes-resumo"></p>
+                            </div>
+                            <div class="resultado-cursos-grid" id="resultado-cursos" aria-live="polite"></div>
+                            <div class="result-actions">
+                                <button type="button" class="quiz-btn quiz-btn-review" id="btn-ver-mais" hidden>
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i> Ver mais cursos
+                                </button>
+                            </div>
+                        </div>
+
+                        <aside class="resultado-aviso">
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                            <div>
+                                <strong>Estas são recomendações, não uma decisão definitiva.</strong>
+                                <p>A compatibilidade compara seu perfil com a área e o tipo de carreira de cada curso cadastrado. Use o resultado como ponto de partida para pesquisar, conversar com quem já estuda na área e decidir com calma.</p>
+                            </div>
+                        </aside>
+
+                        <div class="result-actions">
+                            <a href="/cursos" class="quiz-btn quiz-btn-review">
+                                <i class="fas fa-book-open" aria-hidden="true"></i> Explorar todos os cursos
+                            </a>
+                            <a href="/testevocacional#vocational-test" class="quiz-btn-finish">
+                                <i class="fas fa-rotate-right" aria-hidden="true"></i> Refazer teste
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {% include 'partials/_footer.html' %}
+    <script src="/static/js/header.js"></script>
+    <script src="/static/js/testevocacional-resultado.js"></script>
+</body>
+</html>
