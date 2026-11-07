@@ -8,8 +8,8 @@ Tudo vem do banco:
   - localizações → cidades/UFs da tabela faculdades, agrupadas também por
                    estado e por região
 
-A comparação ignora acentos e maiúsculas (função SQL normalizar(), ver
-config/database.py) e aceita qualquer parte do nome; os resultados que
+A comparação ignora acentos e maiúsculas (ver sql_norm() em
+config/database.py; o SQL fica em app/models/busca.py) e aceita qualquer parte do nome; os resultados que
 começam com o termo vêm primeiro, depois os que têm uma palavra começando
 com ele, depois os que só o contêm no meio.
 """
@@ -17,7 +17,8 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, normalizar
+from app.models.busca import BuscaRepository
+from config.database import normalizar
 
 TAMANHO_MINIMO = 2
 LIMITE_PADRAO = 5
@@ -64,34 +65,15 @@ def _plural(n, singular, plural):
     return f"{n} {singular if n == 1 else plural}"
 
 
-def _sql_rank(coluna):
-    # Mesma ordem de _rank(), calculada no SQLite para ordenar + LIMIT no banco.
-    return (f"CASE WHEN normalizar({coluna}) LIKE :prefixo ESCAPE '\\' THEN 0 "
-            f"WHEN normalizar({coluna}) LIKE :palavra ESCAPE '\\' "
-            f"  OR normalizar({coluna}) LIKE :palavra_hifen ESCAPE '\\' THEN 1 ELSE 2 END")
-
-
 def _params_like(termo_norm, limite):
     e = _escapar_like(termo_norm)
     return {'contem': f'%{e}%', 'prefixo': f'{e}%', 'palavra': f'% {e}%',
             'palavra_hifen': f'%-{e}%', 'limite': limite}
 
 
-def _sugestoes_cursos(c, termo_norm, limite):
-    rank = _sql_rank('nome')
-    c.execute(f"""
-        SELECT MIN(nome) AS nome,
-               COUNT(DISTINCT COALESCE(CAST(faculdade_id AS TEXT), instituicao)) AS total,
-               MIN(area) AS area,
-               MIN({rank}) AS rank
-        FROM cursos
-        WHERE normalizar(nome) LIKE :contem ESCAPE '\\'
-        GROUP BY normalizar(nome)
-        ORDER BY rank, nome
-        LIMIT :limite
-    """, _params_like(termo_norm, limite))
+def _sugestoes_cursos(repo, termo_norm, limite):
     itens = []
-    for r in c.fetchall():
+    for r in repo.cursos(_params_like(termo_norm, limite)):
         detalhe = [r['area']] if r['area'] else []
         detalhe.append(_plural(r['total'], 'instituição', 'instituições'))
         itens.append({
@@ -102,20 +84,9 @@ def _sugestoes_cursos(c, termo_norm, limite):
     return itens
 
 
-def _sugestoes_faculdades(c, termo_norm, limite):
-    rank_nome = _sql_rank('nome')
-    c.execute(f"""
-        SELECT id, nome, sigla, cidade, uf, tipo_instituicao,
-               CASE WHEN normalizar(sigla) LIKE :prefixo ESCAPE '\\' THEN 0
-                    ELSE {rank_nome} END AS rank
-        FROM faculdades
-        WHERE normalizar(nome) LIKE :contem ESCAPE '\\'
-           OR normalizar(sigla) LIKE :contem ESCAPE '\\'
-        ORDER BY rank, nome
-        LIMIT :limite
-    """, _params_like(termo_norm, limite))
+def _sugestoes_faculdades(repo, termo_norm, limite):
     itens = []
-    for r in c.fetchall():
+    for r in repo.faculdades(_params_like(termo_norm, limite)):
         local = '/'.join(p for p in (r['cidade'], r['uf']) if p)
         detalhe = ' · '.join(p for p in (local, r['tipo_instituicao']) if p)
         itens.append({
@@ -125,21 +96,11 @@ def _sugestoes_faculdades(c, termo_norm, limite):
     return itens
 
 
-def _sugestoes_localizacoes(c, termo_norm, limite):
+def _sugestoes_localizacoes(repo, termo_norm, limite):
     candidatos = []  # (rank, ordem_do_subtipo, -total, rotulo, item)
 
     # Cidades: agrupadas no banco, com quantas faculdades existem em cada uma.
-    rank = _sql_rank('cidade')
-    c.execute(f"""
-        SELECT MIN(cidade) AS cidade, uf, COUNT(*) AS total, MIN({rank}) AS rank
-        FROM faculdades
-        WHERE cidade IS NOT NULL AND TRIM(cidade) <> ''
-          AND normalizar(cidade) LIKE :contem ESCAPE '\\'
-        GROUP BY normalizar(cidade), uf
-        ORDER BY rank, total DESC, cidade
-        LIMIT :limite
-    """, _params_like(termo_norm, limite))
-    for r in c.fetchall():
+    for r in repo.cidades(_params_like(termo_norm, limite)):
         candidatos.append((r['rank'], 0, -r['total'], r['cidade'], {
             'tipo': 'local', 'subtipo': 'cidade', 'campo': 'cidade',
             'valor': r['cidade'], 'rotulo': r['cidade'],
@@ -147,9 +108,7 @@ def _sugestoes_localizacoes(c, termo_norm, limite):
         }))
 
     # Estados e regiões: derivados das UFs que existem na tabela faculdades.
-    c.execute("SELECT UPPER(TRIM(uf)) AS uf, COUNT(*) AS total FROM faculdades "
-              "WHERE uf IS NOT NULL AND TRIM(uf) <> '' GROUP BY UPPER(TRIM(uf))")
-    por_uf = {r['uf']: r['total'] for r in c.fetchall() if r['uf'] in UFS}
+    por_uf = {r['uf']: r['total'] for r in repo.contagem_por_uf() if r['uf'] in UFS}
 
     por_regiao = {}
     for uf, total in por_uf.items():
@@ -190,15 +149,13 @@ def sugestoes(termo, tipos=TIPOS, limite=LIMITE_PADRAO):
         return resultado
     limite = max(1, min(int(limite), 10))
     try:
-        conn = get_connection()
-        c = conn.cursor()
+        repo = BuscaRepository()
         if 'local' in resultado:
-            resultado['local'] = _sugestoes_localizacoes(c, termo_norm, limite)
+            resultado['local'] = _sugestoes_localizacoes(repo, termo_norm, limite)
         if 'faculdade' in resultado:
-            resultado['faculdade'] = _sugestoes_faculdades(c, termo_norm, limite)
+            resultado['faculdade'] = _sugestoes_faculdades(repo, termo_norm, limite)
         if 'curso' in resultado:
-            resultado['curso'] = _sugestoes_cursos(c, termo_norm, limite)
-        conn.close()
+            resultado['curso'] = _sugestoes_cursos(repo, termo_norm, limite)
     except Exception:
         return {t: [] for t in tipos}
     return resultado

@@ -6,10 +6,11 @@
   "functions": {
     "wsgi.py": {
       "maxDuration": 60,
-      "excludeFiles": "{tests/**,.env,database/*.db,database/*.db-wal,database/*.db-shm,database/*.lock}"
+      "excludeFiles": "{tests/**,mobile/**,docs/**,.env,database/*.db,database/*.db-wal,database/*.db-shm,database/*.lock}"
     }
   },
   "crons": [
-    { "path": "/api/cron/validar-vestibulares", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/validacao-vestibulares", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/limpeza-refresh-tokens", "schedule": "30 6 * * *" }
   ]
 }

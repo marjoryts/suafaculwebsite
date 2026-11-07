@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection
+from config.database import get_connection, inserir, like_ci
 
 class Curso:
     def _build_where(self, filtros):
@@ -21,7 +21,8 @@ class Curso:
                 params.extend(tipos)
         if filtros.get('busca'):
             like = f"%{filtros['busca']}%"
-            sql += " AND (nome LIKE ? OR instituicao LIKE ? OR descricao LIKE ? OR area LIKE ?)"
+            sql += (f" AND ({like_ci('nome')} OR {like_ci('instituicao')}"
+                    f" OR {like_ci('descricao')} OR {like_ci('area')})")
             params.extend([like, like, like, like])
         return sql, params
 
@@ -69,12 +70,12 @@ class Curso:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute(
+            id = inserir(
+                c,
                 "INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao, duracao, grau, area, tipo_instituicao) VALUES (?,?,?,?,?,?,?,?,?)",
                 (dados['nome'], dados['instituicao'], dados.get('faculdade_id'), dados['modalidade'], dados['descricao'],
                  dados['duracao'], dados['grau'], dados['area'], dados['tipo_instituicao'])
             )
-            id = c.lastrowid
             conn.commit()
             conn.close()
             return {'success': True, 'message': 'Curso criado com sucesso!', 'id': id}
@@ -135,9 +136,9 @@ class Curso:
             c = conn.cursor()
             termo_escapado = termo.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
             c.execute(
-                "SELECT DISTINCT nome FROM cursos WHERE nome LIKE ? ESCAPE '\\' COLLATE NOCASE "
+                "SELECT DISTINCT nome FROM cursos WHERE LOWER(nome) LIKE ? ESCAPE '\\' "
                 "ORDER BY nome ASC LIMIT ?",
-                (termo_escapado + '%', limite)
+                (termo_escapado.lower() + '%', limite)
             )
             nomes = [r['nome'] for r in c.fetchall()]
             conn.close()
@@ -145,3 +146,64 @@ class Curso:
         except Exception:
             return []
 
+    def listar_por_faculdade(self, faculdade_id):
+        """Cursos de uma instituição (campos públicos), em ordem alfabética."""
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT nome, modalidade, grau, area FROM cursos WHERE faculdade_id=? ORDER BY nome ASC",
+                      (faculdade_id,))
+            return [dict(r) for r in c.fetchall()]
+        finally:
+            conn.close()
+
+    def contar_importados_inep(self):
+        """Cursos que vieram do Censo INEP (têm codigo_inep_curso)."""
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT COUNT(*) AS total FROM cursos WHERE codigo_inep_curso IS NOT NULL")
+            return c.fetchone()['total']
+        finally:
+            conn.close()
+
+    def nome_por_id(self, id):
+        """Nome do registro (ou None se não existir) — consulta leve, sem relacionamentos."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT nome FROM cursos WHERE id=?", (id,))
+            row = c.fetchone()
+            conn.close()
+            return row['nome'] if row else None
+        except Exception:
+            return None
+
+    def resumos_por_ids(self, ids):
+        """{id: resumo} em UMA consulta (usado para enriquecer a lista de favoritos)."""
+        ids = list({int(i) for i in ids})
+        if not ids:
+            return {}
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT id, nome, instituicao, area, modalidade, grau, duracao FROM cursos WHERE id IN (" + ','.join('?' * len(ids)) + ")", ids)
+            return {r['id']: dict(r) for r in c.fetchall()}
+        finally:
+            conn.close()
+
+    def agrupados_por_nome_e_area(self):
+        """[{nome, area, total, id, descricao, grau}] — um item por (nome, área),
+        com quantas instituições oferecem, o menor id e a maior descrição.
+        Usado pela compatibilidade do teste vocacional."""
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute(
+                "SELECT nome, area, COUNT(*) AS total, MIN(id) AS id, "
+                "MAX(COALESCE(descricao, '')) AS descricao, MAX(COALESCE(grau, '')) AS grau "
+                "FROM cursos GROUP BY nome, area"
+            )
+            return [dict(r) for r in c.fetchall()]
+        finally:
+            conn.close()

@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, normalizar
+from config.database import get_connection, inserir, normalizar, sql_norm
 from app.services.busca_service import filtro_localizacao
 
 
@@ -34,17 +34,17 @@ class Faculdade:
                 sql += f" AND UPPER(TRIM({prefix}uf)) IN ({','.join('?' * len(ufs))})"
                 params.extend(ufs)
             elif localizacao:
-                sql += f" AND normalizar({prefix}cidade) LIKE ? ESCAPE '\\'"
+                sql += f" AND {sql_norm(prefix + 'cidade')} LIKE ? ESCAPE '\\'"
                 params.append(_like_contem(filtros['cidade']))
         if filtros.get('busca'):
             like = _like_contem(filtros['busca'])
-            sql += (f" AND (normalizar({prefix}nome) LIKE ? ESCAPE '\\'"
-                    f" OR normalizar({prefix}sigla) LIKE ? ESCAPE '\\'"
-                    f" OR normalizar({prefix}cidade) LIKE ? ESCAPE '\\')")
+            sql += (f" AND ({sql_norm(prefix + 'nome')} LIKE ? ESCAPE '\\'"
+                    f" OR {sql_norm(prefix + 'sigla')} LIKE ? ESCAPE '\\'"
+                    f" OR {sql_norm(prefix + 'cidade')} LIKE ? ESCAPE '\\')")
             params.extend([like, like, like])
         if filtros.get('curso'):
             sql += (f" AND {prefix}id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL"
-                    f" AND normalizar(nome) LIKE ? ESCAPE '\\')")
+                    f" AND {sql_norm('nome')} LIKE ? ESCAPE '\\')")
             params.append(_like_contem(filtros['curso']))
         if filtros.get('modalidade'):
             mods = filtros['modalidade'] if isinstance(filtros['modalidade'], list) else [filtros['modalidade']]
@@ -124,11 +124,11 @@ class Faculdade:
                     conn.close()
                     return {'success': False, 'message': 'Já existe uma faculdade com esse código e-MEC.'}
             valores = [dados.get(campo) for campo in self.CAMPOS]
-            c.execute(
+            id = inserir(
+                c,
                 f"INSERT INTO faculdades ({','.join(self.CAMPOS)}) VALUES ({','.join('?' * len(self.CAMPOS))})",
                 valores
             )
-            id = c.lastrowid
             conn.commit()
             conn.close()
             return {'success': True, 'message': 'Faculdade cadastrada com sucesso!', 'id': id}
@@ -163,6 +163,29 @@ class Faculdade:
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
 
+    def contar_por_fonte(self, fontes):
+        """Quantas faculdades vieram das fontes informadas (ex.: 'emec')."""
+        fontes = list(fontes)
+        if not fontes:
+            return 0
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute(f"SELECT COUNT(*) AS total FROM faculdades WHERE fonte IN ({','.join('?' * len(fontes))})", fontes)
+            return c.fetchone()['total']
+        finally:
+            conn.close()
+
+    def listar_id_nome(self):
+        """[{'id', 'nome'}] de todas as faculdades (usado na validação de vestibulares)."""
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT id, nome FROM faculdades")
+            return [dict(r) for r in c.fetchall()]
+        finally:
+            conn.close()
+
     def ids_por_sigla(self, siglas):
         """{sigla: id} das faculdades com essas siglas, numa única consulta.
         Usado pela página inicial para ligar os cards fixos de "Faculdades
@@ -172,19 +195,17 @@ class Faculdade:
         siglas = [s for s in siglas if s]
         if not siglas:
             return {}
+        conn = get_connection()
         try:
-            conn = get_connection()
             c = conn.cursor()
             c.execute(
                 f"SELECT sigla, MIN(id) AS id FROM faculdades "
                 f"WHERE sigla IN ({','.join('?' * len(siglas))}) GROUP BY sigla",
                 siglas
             )
-            resultado = {row['sigla']: row['id'] for row in c.fetchall()}
+            return {row['sigla']: row['id'] for row in c.fetchall()}
+        finally:
             conn.close()
-            return resultado
-        except Exception:
-            return {}
 
     def buscar_por_nome_exato(self, nome):
         try:
@@ -258,3 +279,28 @@ class Faculdade:
         resultado = self.criar(dados)
         resultado['acao'] = 'criada'
         return resultado
+
+    def nome_por_id(self, id):
+        """Nome do registro (ou None se não existir) — consulta leve, sem relacionamentos."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT nome FROM faculdades WHERE id=?", (id,))
+            row = c.fetchone()
+            conn.close()
+            return row['nome'] if row else None
+        except Exception:
+            return None
+
+    def resumos_por_ids(self, ids):
+        """{id: resumo} em UMA consulta (usado para enriquecer a lista de favoritos)."""
+        ids = list({int(i) for i in ids})
+        if not ids:
+            return {}
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT id, nome, sigla, cidade, uf, tipo_instituicao FROM faculdades WHERE id IN (" + ','.join('?' * len(ids)) + ")", ids)
+            return {r['id']: dict(r) for r in c.fetchall()}
+        finally:
+            conn.close()

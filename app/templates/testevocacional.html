@@ -107,7 +107,7 @@
 
                         <div class="quiz-counter" aria-live="polite">
                             <span class="quiz-counter-icon"><i class="fas fa-compass" aria-hidden="true"></i></span>
-                            <span><strong id="quiz-current">1</strong> / <span id="quiz-total">10</span><small>Pergunta</small></span>
+                            <span><strong id="quiz-current">1</strong> / <span id="quiz-total">{{ perguntas|length }}</span><small>Pergunta</small></span>
                         </div>
                     </div>
 
@@ -115,95 +115,18 @@
 
                     <form id="vocational-form" class="vocational-form" novalidate>
                         <div class="quiz-body">
-                    <fieldset class="quiz-step" data-step="1" data-category="Interesses" id="quiz-step-1">
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 1</span>Que tipo de atividade você MAIS gosta de fazer?</legend>
+                    {# As perguntas vêm de app/services/teste_vocacional_dados.py (mesma fonte da API do app);
+                       o value de cada opção são os perfis que ela pontua — o servidor recalcula tudo. #}
+                    {% for p in perguntas %}
+                    <fieldset class="quiz-step" data-step="{{ p.numero }}" data-category="{{ p.categoria }}" id="quiz-step-{{ p.numero }}"{% if not loop.first %} hidden{% endif %}>
+                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta {{ p.numero }}</span>{{ p.texto }}</legend>
                         <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q1" value="tecnico,cientifico" required><span class="quiz-option-text">Resolver problemas lógicos, mexer com números ou tecnologia</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q1" value="criativo" required><span class="quiz-option-text">Criar coisas novas, desenhar, escrever, produzir conteúdo</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q1" value="humano" required><span class="quiz-option-text">Ajudar pessoas, ouvir, aconselhar, ensinar</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q1" value="gestao" required><span class="quiz-option-text">Organizar, planejar, liderar grupos ou projetos</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q1" value="pratico" required><span class="quiz-option-text">Colocar a mão na massa, atividades práticas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
+                            {% for o in p.opcoes %}
+                            <label class="quiz-option"><input type="radio" name="{{ p.id }}" value="{{ o.valor }}" required><span class="quiz-option-text">{{ o.texto }}</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
+                            {% endfor %}
                         </div>
                     </fieldset>
-                    <fieldset class="quiz-step" data-step="2" data-category="Interesses" id="quiz-step-2" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 2</span>Você prefere trabalhar mais com:</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q2" value="humano" required><span class="quiz-option-text">Pessoas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q2" value="gestao,tecnico" required><span class="quiz-option-text">Dados, planilhas, análises</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q2" value="tecnico,pratico" required><span class="quiz-option-text">Objetos, máquinas, tecnologia</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q2" value="criativo" required><span class="quiz-option-text">Arte, criação, comunicação</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="3" data-category="Habilidades" id="quiz-step-3" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 3</span>Em quais matérias você tem mais facilidade?</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q3" value="tecnico,cientifico" required><span class="quiz-option-text">Matemática, Física, Química</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q3" value="criativo" required><span class="quiz-option-text">Artes, Redação, Línguas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q3" value="humano" required><span class="quiz-option-text">História, Sociologia, Filosofia</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q3" value="gestao" required><span class="quiz-option-text">Geografia, Economia, Empreendedorismo</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="4" data-category="Habilidades" id="quiz-step-4" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 4</span>As pessoas te elogiam mais por:</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q4" value="humano" required><span class="quiz-option-text">Empatia e jeito com pessoas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q4" value="criativo" required><span class="quiz-option-text">Criatividade e boas ideias</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q4" value="tecnico" required><span class="quiz-option-text">Raciocínio lógico e solução de problemas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q4" value="gestao" required><span class="quiz-option-text">Organização e liderança</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q4" value="pratico" required><span class="quiz-option-text">Agilidade para fazer as coisas na prática</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="5" data-category="Personalidade no trabalho" id="quiz-step-5" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 5</span>Você prefere trabalhar:</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q5" value="tecnico,pratico" required><span class="quiz-option-text">Mais sozinho(a), focado(a) em suas tarefas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q5" value="humano,gestao,criativo" required><span class="quiz-option-text">Em equipe, trocando ideias com outras pessoas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="6" data-category="Personalidade no trabalho" id="quiz-step-6" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 6</span>Você se sente melhor em ambientes:</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q6" value="criativo,gestao,pratico" required><span class="quiz-option-text">Dinâmicos, com mudanças e novidades</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q6" value="tecnico,cientifico,humano" required><span class="quiz-option-text">Mais estáveis e previsíveis</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="7" data-category="Valores e estilo de vida" id="quiz-step-7" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 7</span>O que é mais importante para você em uma carreira?</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q7" value="gestao" required><span class="quiz-option-text">Alta remuneração e crescimento financeiro</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q7" value="humano" required><span class="quiz-option-text">Impacto social e ajudar pessoas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q7" value="criativo" required><span class="quiz-option-text">Liberdade criativa e autonomia</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q7" value="tecnico,cientifico" required><span class="quiz-option-text">Estudar temas complexos e se aprofundar</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q7" value="pratico" required><span class="quiz-option-text">Ter uma profissão prática e objetiva</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="8" data-category="Valores e estilo de vida" id="quiz-step-8" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 8</span>Você se vê:</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q8" value="cientifico,tecnico" required><span class="quiz-option-text">Estudando por muitos anos (faculdade longa, pós, etc.)</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q8" value="pratico,gestao" required><span class="quiz-option-text">Fazendo cursos mais curtos e já trabalhando rápido</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="9" data-category="Expectativas de carreira" id="quiz-step-9" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 9</span>Onde você se imagina trabalhando?</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q9" value="gestao,tecnico" required><span class="quiz-option-text">Empresa grande ou multinacional</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q9" value="criativo,tecnico,pratico" required><span class="quiz-option-text">Startup ou empresa de tecnologia</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q9" value="humano,cientifico" required><span class="quiz-option-text">Setor público, hospitais, escolas ou pesquisa</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q9" value="gestao,criativo" required><span class="quiz-option-text">Tendo o próprio negócio</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
-                    <fieldset class="quiz-step" data-step="10" data-category="Expectativas de carreira" id="quiz-step-10" hidden>
-                        <legend class="quiz-question"><span class="quiz-question-label">Pergunta 10</span>De forma geral, você se identifica mais com qual tipo de área?</legend>
-                        <div class="quiz-options">
-                            <label class="quiz-option"><input type="radio" name="q10" value="tecnico" required><span class="quiz-option-text">Técnica / Exatas / Programação</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q10" value="criativo" required><span class="quiz-option-text">Criativa / Comunicação / Design</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q10" value="humano" required><span class="quiz-option-text">Humana / Social / Educação / Saúde</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q10" value="gestao" required><span class="quiz-option-text">Gestão / Negócios / Administração</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q10" value="cientifico" required><span class="quiz-option-text">Científica / Laboratório / Pesquisa</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                            <label class="quiz-option"><input type="radio" name="q10" value="pratico" required><span class="quiz-option-text">Cursos técnicos e profissões práticas</span><span class="quiz-option-radio" aria-hidden="true"></span></label>
-                        </div>
-                    </fieldset>
+                    {% endfor %}
 
                         </div>
 

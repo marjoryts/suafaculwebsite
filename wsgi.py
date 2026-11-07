@@ -1,28 +1,23 @@
-"""Entrypoint WSGI para produção (Vercel / gunicorn).
+"""Entrypoint WSGI (Vercel, gunicorn, `flask --app wsgi ...`).
 
-Por que este arquivo existe: o projeto tem ao mesmo tempo o arquivo
-`app.py` (onde a instância Flask é criada) e o pacote `app/` (models,
-services, templates). Em Python, `import app` resolve para o PACOTE
-`app/`, que não tem nenhuma variável `app` — então qualquer servidor que
-carregue o projeto como módulo ("app:app") não encontra o Flask e a
-função cai antes de atender a primeira requisição.
+Localmente, importar este módulo NÃO acessa o banco nem inicia agendadores
+(ver app/factory.py); o servidor de desenvolvimento é `python run.py`.
 
-Aqui carregamos `app.py` pelo caminho do arquivo, com um nome de módulo
-próprio (o mesmo truque usado em tests/conftest.py), e reexportamos a
-instância como `app`. `pyproject.toml` ([tool.vercel] entrypoint) aponta
-para cá. Localmente nada muda: continue usando `python app.py`.
+Na Vercel o banco SQLite fica em /tmp (config/database.py) e começa vazio a
+cada inicialização da função, então lá o esquema e o seed são criados aqui,
+uma vez por instância. `pyproject.toml` ([tool.vercel] entrypoint) aponta
+para este arquivo.
 """
-import importlib.util
 import os
 import sys
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-_spec = importlib.util.spec_from_file_location('suafacul_main', os.path.join(BASE_DIR, 'app.py'))
-_modulo = importlib.util.module_from_spec(_spec)
-sys.modules['suafacul_main'] = _modulo
-_spec.loader.exec_module(_modulo)
+from app.factory import create_app  # noqa: E402
 
-app = _modulo.app
+app = create_app()
+
+if os.environ.get('VERCEL'):
+    from app.bootstrap import init_database  # noqa: E402
+
+    init_database(app)

@@ -24,29 +24,15 @@ autopopula sozinho.
 import os
 import logging
 
+from app.models.curso import Curso
+from app.models.faculdade import Faculdade
+
 logger = logging.getLogger('suafacul.seed')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEEDS_DIR = os.path.join(BASE_DIR, 'data', 'seeds')
 CAMINHO_INSTITUICOES = os.path.join(SEEDS_DIR, 'instituicoes.csv')
 CAMINHO_CURSOS = os.path.join(SEEDS_DIR, 'cursos.csv')
-
-
-def _ja_tem_dados_importados(nome_tabela, condicao_sql):
-    """Verifica se a tabela já tem alguma linha vinda de uma importação
-    real (e-MEC/Censo) — não confundir com 'tabela vazia': o init_db.py
-    semeia algumas faculdades/cursos de exemplo por padrão (fonte
-    'manual', sem codigo_inep_curso), então a tabela NUNCA fica
-    genuinamente vazia. O que importa aqui é se os dados oficiais já
-    foram carregados alguma vez (por este seed ou por upload manual no
-    admin) — se sim, não sobrescreve."""
-    from config.database import get_connection
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute(f"SELECT COUNT(*) as total FROM {nome_tabela} WHERE {condicao_sql}")
-    total = c.fetchone()['total']
-    conn.close()
-    return total > 0
 
 
 def rodar_seed_automatico_se_necessario():
@@ -68,7 +54,7 @@ def rodar_seed_automatico_se_necessario():
 def _seed_instituicoes_se_necessario():
     if not os.path.exists(CAMINHO_INSTITUICOES):
         return
-    if _ja_tem_dados_importados('faculdades', "fonte IN ('emec', 'emec_csv_upload')"):
+    if Faculdade().contar_por_fonte(('emec', 'emec_csv_upload')) > 0:
         logger.info("[seed] Já existem instituições importadas do e-MEC/MEC — seed automático pulado.")
         return
 
@@ -86,7 +72,7 @@ def _seed_instituicoes_se_necessario():
 def _seed_cursos_se_necessario():
     if not os.path.exists(CAMINHO_CURSOS):
         return
-    if _ja_tem_dados_importados('cursos', "codigo_inep_curso IS NOT NULL"):
+    if Curso().contar_importados_inep() > 0:
         logger.info("[seed] Já existem cursos importados do Censo INEP — seed automático pulado.")
         return
 

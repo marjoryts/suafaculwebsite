@@ -1,6 +1,6 @@
 """Testes da automação diária de vestibulares: validação de datas,
 vínculo automático com faculdade cadastrada, resiliência por item e o
-job do scheduler."""
+job diário (automacao_service)."""
 from datetime import date, timedelta
 
 REQUIRED = dict(tipo_instituicao='Pública', cidade='São Paulo', regiao='Sudeste',
@@ -97,16 +97,16 @@ def test_falha_em_um_item_nao_interrompe_os_demais(app, monkeypatch):
     assert len(resultado['falhas']) >= 1
 
 
-def test_job_diario_do_scheduler_grava_log(app):
-    """O job que o APScheduler roda uma vez por dia deve gravar um
-    registro em automacao_logs, sucesso ou falha."""
-    from app.services import scheduler_service
+def test_job_diario_grava_log(app):
+    """O job diário (Vercel Cron) deve gravar um registro em automacao_logs,
+    sucesso ou falha."""
+    from app.services import automacao_service
     from config.database import get_connection
 
     amanha = (date.today() + timedelta(days=1)).strftime('%Y-%m-%d')
     _criar_vestibular(app, nome='Vestibular Job', instituicao='Inst Job', data_prova=amanha)
 
-    scheduler_service.rodar_validacao_vestibulares_diaria()
+    automacao_service.executar('validacao-vestibulares', origem='manual')
 
     conn = get_connection()
     c = conn.cursor()
@@ -119,9 +119,9 @@ def test_job_diario_do_scheduler_grava_log(app):
 
 def test_job_diario_nao_quebra_com_excecao_interna(app, monkeypatch):
     """Mesmo se validar_vestibulares levantar uma exceção inesperada, o job
-    não deve propagar o erro (senão o scheduler pararia de agendar) — ele
-    deve registrar a falha em automacao_logs e seguir."""
-    from app.services import scheduler_service, vestibular_service
+    não deve propagar o erro — ele deve registrar a falha em automacao_logs.
+    (Detalhes de trava/duplicata: tests/test_cron.py.)"""
+    from app.services import automacao_service, vestibular_service
     from config.database import get_connection
 
     def _explode(aplicar=False):
@@ -129,7 +129,7 @@ def test_job_diario_nao_quebra_com_excecao_interna(app, monkeypatch):
 
     monkeypatch.setattr(vestibular_service, 'validar_vestibulares', _explode)
 
-    scheduler_service.rodar_validacao_vestibulares_diaria()  # não deve levantar
+    automacao_service.executar('validacao-vestibulares', origem='manual')  # não deve levantar
 
     conn = get_connection()
     c = conn.cursor()

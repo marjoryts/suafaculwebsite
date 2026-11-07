@@ -6,24 +6,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config.database import get_db_path, get_connection
 
-def _senha_admin_inicial():
-    """Senha do admin criado automaticamente quando o banco não tem nenhum.
-
-    - SUAFACUL_ADMIN_PASSWORD definida: usa essa senha (qualquer ambiente).
-    - Na Vercel sem a variável: senha aleatória. Lá o banco fica em /tmp e
-      é recriado a cada inicialização, então uma senha padrão conhecida
-      voltaria sempre, mesmo que alguém a tivesse trocado pelo painel.
-    - Desenvolvimento local sem a variável: mantém admin123 (README/testes).
-    """
-    senha = os.environ.get('SUAFACUL_ADMIN_PASSWORD', '').strip()
-    if senha:
-        return senha, 'env'
-    if os.environ.get('VERCEL'):
-        import secrets
-        return secrets.token_urlsafe(24), 'aleatoria'
-    return 'admin123', 'padrao'
-
-
 def init_db():
     """Cria tabelas e dados iniciais. Serializado por uma trava de arquivo:
     quando vários processos sobem juntos com o banco ainda vazio (vários
@@ -206,35 +188,72 @@ def _init_db_sem_trava():
         erro TEXT
     )
     """)
+    # ── Execuções de automações (Cron/CLI): identificação, estado e trava ──
+    # status: executando | sucesso | falha | ignorada. O índice único parcial abaixo
+    # garante NO MÁXIMO uma execução 'executando' por tipo (trava contra execução
+    # concorrente/duplicada, sem precisar de Redis).
+    for coluna, ddl in (('execucao_id', 'execucao_id TEXT'), ('status', 'status TEXT'),
+                        ('origem', 'origem TEXT'), ('iniciado_em', 'iniciado_em TIMESTAMP'),
+                        ('finalizado_em', 'finalizado_em TIMESTAMP'), ('duracao_ms', 'duracao_ms INTEGER')):
+        _add_column_if_missing('automacao_logs', coluna, ddl)
+    c.execute("UPDATE automacao_logs SET status = CASE WHEN sucesso=1 THEN 'sucesso' ELSE 'falha' END "
+              "WHERE status IS NULL")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_automacao_em_execucao ON automacao_logs(tipo) "
+              "WHERE status='executando'")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_automacao_tipo_status ON automacao_logs(tipo, status, finalizado_em)")
+
+    # ── Refresh tokens da API v1 (Mobile) ──
+    # Uma "família" = uma sessão de dispositivo. Cada uso do refresh token gera
+    # outro da mesma família (rotação); reapresentar um já usado revoga a
+    # família inteira. Só o hash SHA-256 do token é guardado — nunca o token.
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        familia_id TEXT NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        dispositivo TEXT,
+        expira_em TIMESTAMP NOT NULL,
+        usado_em TIMESTAMP,
+        revogado_em TIMESTAMP,
+        motivo_revogacao TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_familia ON refresh_tokens(familia_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_usuario ON refresh_tokens(usuario_id)")
     conn.commit()
 
-    # Garante que exista pelo menos um usuário admin.
-    # Se nenhum admin existir, promove o primeiro usuário cadastrado;
-    # se não houver nenhum usuário, cria um admin padrão (senha deve ser trocada).
+    # Bootstrap do primeiro admin: só acontece se NENHUM admin existir E a senha
+    # for fornecida explicitamente via SUAFACUL_ADMIN_PASSWORD (nunca há
+    # credencial padrão no código). Também não promove mais "o primeiro usuário
+    # cadastrado" — em um deploy novo isso daria admin a quem se registrasse
+    # primeiro.
     c.execute("SELECT COUNT(*) FROM usuarios WHERE tipo='admin'")
     if c.fetchone()[0] == 0:
-        c.execute("SELECT id FROM usuarios ORDER BY id LIMIT 1")
-        primeiro = c.fetchone()
-        if primeiro:
-            c.execute("UPDATE usuarios SET tipo='admin' WHERE id=?", (primeiro[0],))
-            print(f"[init_db] Usuário id={primeiro[0]} promovido a admin (nenhum admin existia).")
-        else:
+        senha_admin = os.environ.get('SUAFACUL_ADMIN_PASSWORD', '')
+        if senha_admin:
             from werkzeug.security import generate_password_hash
-            senha_admin, origem = _senha_admin_inicial()
+            usuario_admin = os.environ.get('SUAFACUL_ADMIN_USER', '').strip() or 'admin'
+            email_admin = os.environ.get('SUAFACUL_ADMIN_EMAIL', '').strip() or 'admin@suafacul.local'
             c.execute(
-                "INSERT INTO usuarios (nome_usuario, email, senha, tipo) VALUES (?,?,?,?)",
-                ('admin', 'admin@suafacul.local', generate_password_hash(senha_admin), 'admin')
+                "INSERT INTO usuarios (nome_usuario, email, senha, tipo) VALUES (?,?,?,?) ON CONFLICT DO NOTHING",
+                (usuario_admin, email_admin, generate_password_hash(senha_admin), 'admin')
             )
-            if origem == 'env':
-                print("[init_db] Usuário admin criado com a senha de SUAFACUL_ADMIN_PASSWORD.")
-            elif origem == 'aleatoria':
-                print("[init_db] AVISO: SUAFACUL_ADMIN_PASSWORD não está definida neste ambiente. "
-                      "O admin foi criado com uma senha aleatória (não há senha padrão em produção). "
-                      "Defina a variável nas configurações do projeto na Vercel para conseguir entrar.")
-            else:
-                print("[init_db] Usuário admin padrão criado -> login: admin / senha: admin123 "
-                      "(somente desenvolvimento local; em produção use SUAFACUL_ADMIN_PASSWORD).")
-        conn.commit()
+            conn.commit()
+            print(f"[init_db] Usuário admin '{usuario_admin}' criado a partir de SUAFACUL_ADMIN_PASSWORD.")
+        else:
+            print("[init_db] AVISO: nenhum usuário admin existe. Defina SUAFACUL_ADMIN_PASSWORD "
+                  "(e opcionalmente SUAFACUL_ADMIN_USER/SUAFACUL_ADMIN_EMAIL) para criar o primeiro.")
+
+    # Alerta (somente leitura, não altera nada): admin ainda com a senha padrão
+    # antiga do projeto. Troque-a em Dashboard → Editar Perfil.
+    from werkzeug.security import check_password_hash
+    c.execute("SELECT nome_usuario, senha FROM usuarios WHERE tipo='admin'")
+    for nome_admin, hash_senha in c.fetchall():
+        if check_password_hash(hash_senha, 'admin123'):
+            print(f"[init_db] ALERTA DE SEGURANÇA: o admin '{nome_admin}' ainda usa a senha padrão 'admin123'. Troque-a imediatamente.")
 
     # Seed cursos if empty
     c.execute("SELECT COUNT(*) FROM cursos")

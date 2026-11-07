@@ -8,13 +8,13 @@ Faz duas coisas, conforme pedido:
      `faculdades` (por nome aproximado) e, se achar, vincula faculdade_id
      e marca cadastrado_ok=1. Se não achar, cadastrado_ok=0 — sinal para o
      admin cadastrar a faculdade correspondente.
+
+Regra de negócio pura: o acesso ao banco fica nos models (Vestibular, Faculdade).
 """
-import sys
-import os
 from datetime import date, datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection
+from app.models.faculdade import Faculdade
+from app.models.vestibular import Vestibular
 
 
 def _parsear_data(data_str):
@@ -38,13 +38,8 @@ def validar_vestibulares(aplicar=False):
     aplicar=False -> só gera o relatório (dry-run), não grava nada no banco.
     aplicar=True  -> grava status_validacao, cadastrado_ok e faculdade_id.
     """
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT id, nome, instituicao, data_prova, faculdade_id FROM vestibulares")
-    vestibulares = [dict(r) for r in c.fetchall()]
-
-    c.execute("SELECT id, nome FROM faculdades")
-    faculdades = [dict(r) for r in c.fetchall()]
+    vestibulares = Vestibular().listar_para_validacao()
+    faculdades = Faculdade().listar_id_nome()
 
     hoje = date.today()
     relatorio = []
@@ -72,7 +67,7 @@ def validar_vestibulares(aplicar=False):
                         faculdade_encontrada = f
                         break
 
-            item = {
+            relatorio.append({
                 'vestibular_id': v['id'],
                 'nome': v['nome'],
                 'instituicao': v.get('instituicao'),
@@ -81,25 +76,13 @@ def validar_vestibulares(aplicar=False):
                 'cadastrado_ok': bool(faculdade_encontrada),
                 'faculdade_id': faculdade_encontrada['id'] if faculdade_encontrada else None,
                 'faculdade_nome': faculdade_encontrada['nome'] if faculdade_encontrada else None,
-            }
-            relatorio.append(item)
-
-            if aplicar:
-                c.execute(
-                    """UPDATE vestibulares
-                       SET status_validacao=?, cadastrado_ok=?, faculdade_id=COALESCE(?, faculdade_id),
-                           ultima_validacao=CURRENT_TIMESTAMP
-                       WHERE id=?""",
-                    (status, 1 if faculdade_encontrada else 0,
-                     faculdade_encontrada['id'] if faculdade_encontrada else None, v['id'])
-                )
+            })
         except Exception as e:
             falhas.append({'vestibular_id': v.get('id'), 'nome': v.get('nome'), 'erro': str(e)})
             continue
 
     if aplicar:
-        conn.commit()
-    conn.close()
+        Vestibular().aplicar_validacoes(relatorio)
 
     resumo = {
         'total': len(relatorio),

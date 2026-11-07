@@ -14,14 +14,19 @@ framework de frontend), servido pelo próprio Flask via Jinja2.
 ## Instalação
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt        # runtime
+pip install -r requirements-dev.txt    # + pytest (desenvolvimento)
 ```
 
 ## Executar
 
 ```bash
-python app.py
+python run.py          # desenvolvimento: inicializa o banco, seed e agendador
 ```
+
+O import do app não tem efeitos colaterais (`create_app()` em
+`app/factory.py`). O entrypoint WSGI é `wsgi.py` (Vercel, gunicorn,
+`flask --app wsgi init-db`).
 
 Acesse em: **http://localhost:5000**
 
@@ -30,43 +35,55 @@ na primeira execução — não precisa rodar nenhum script à parte. Isso vale
 tanto para uma instalação nova quanto para atualizar um banco já existente
 (as migrações rodam de forma segura a cada start, sem apagar dados).
 
-### Login padrão
+### Primeiro administrador
 
-Se nenhum usuário administrador existir ainda, um é criado automaticamente
-no primeiro start. A senha vem da variável de ambiente
-`SUAFACUL_ADMIN_PASSWORD`:
+Não existe usuário/senha padrão. Em um banco sem nenhum admin, defina no
+ambiente (ver `.env.example`) antes de subir o app:
 
-| Ambiente | `SUAFACUL_ADMIN_PASSWORD` definida | Não definida |
-|---|---|---|
-| Local | usa a senha da variável | `admin` / `admin123` |
-| Vercel | usa a senha da variável | senha aleatória (aviso no log) |
+```
+SUAFACUL_ADMIN_USER=admin
+SUAFACUL_ADMIN_PASSWORD=<senha forte>
+```
+
+O admin é criado uma única vez; sem `SUAFACUL_ADMIN_PASSWORD` nenhum admin é
+criado (o log avisa). Se um admin antigo ainda usar a senha `admin123`, o app
+avisa no log a cada início — troque-a em Dashboard → Editar Perfil.
 
 **Na Vercel, defina `SUAFACUL_ADMIN_PASSWORD`** em Project Settings →
-Environment Variables. Lá o banco SQLite fica em `/tmp` e é recriado a
-cada inicialização, então trocar a senha pelo painel não persiste — a
-senha que vale é sempre a da variável. Por isso não existe senha padrão
-em produção.
+Environment Variables. Lá o banco SQLite fica em `/tmp` e é recriado a cada
+inicialização, então trocar a senha pelo painel não persiste — a senha que
+vale é sempre a da variável.
 
-Localmente, troque a senha assim que entrar (Dashboard → Editar Perfil).
+### Desenvolvimento local
+
+O modo debug agora é **desligado por padrão**. Para desenvolvimento local,
+coloque `FLASK_DEBUG=1` no seu `.env` (recarga automática, chave de sessão
+efêmera se `FLASK_SECRET_KEY` faltar). Fora do debug, `FLASK_SECRET_KEY` é
+obrigatória e o cookie de sessão é `Secure` (defina `SESSION_COOKIE_SECURE=0`
+se rodar sem HTTPS e sem debug). Detalhes em `docs/seguranca-etapa0.md`.
 
 ## Estrutura
 
 ```
 suafacul-main/
-├── app.py                      # Aplicação Flask: rotas de página + API REST
-├── requirements.txt
+├── wsgi.py                     # Entrypoint WSGI (produção/Vercel) — sem efeitos colaterais
+├── run.py                      # Servidor de desenvolvimento (init do banco + seed + agendador)
+├── requirements.txt / requirements-dev.txt
 ├── config/
 │   └── database.py             # Conexão SQLite
 ├── database/
 │   └── init_db.py              # Cria tabelas, popula dados iniciais e migra bancos já existentes
 ├── app/
+│   ├── factory.py / settings.py / security.py / bootstrap.py / cli.py
+│   ├── api/v1/                 # API v1 (contrato do Mobile): rotas, DTOs, OpenAPI
+│   ├── routes/                 # Blueprints do site (páginas + API legada): pages, auth_google, api_usuario, api_catalogo, api_vestibulares, api_favoritos, api_teste_vocacional, api_admin, api_v1
 │   ├── models/                 # Usuario, Curso, Faculdade, Vestibular, Favorito, TesteVocacional
 │   ├── services/
 │   │   ├── emec_service.py     # Instituições: CSV oficial (Dados Abertos MEC) como fonte primária, scraping do e-MEC como fallback
 │   │   ├── censo_service.py    # Cursos: importação do Censo da Educação Superior (INEP)
 │   │   ├── vestibular_service.py  # Validação automática de datas/vínculo dos vestibulares
 │   │   ├── oauth_service.py    # Login com Google (Authlib/OIDC)
-│   │   ├── scheduler_service.py   # Automação diária (APScheduler)
+│   │   ├── automacao_service.py   # Execução das automações (Cron/CLI): trava, log, jobs
 │   │   └── seed_service.py     # Autopopula o banco a partir de data/seeds/ num deploy novo
 │   └── templates/
 │       ├── partials/_header.html  # Header único, reutilizado por todas as páginas
@@ -122,8 +139,8 @@ outros usuários pela própria tela de Admin → Usuários.
 | Vestibulares | `GET /api/vestibulares/listar` (filtros: `tipo_instituicao`, `regiao`, `mes`, `busca`, `curso`), `buscar`, `validar`; `POST criar` |
 | Favoritos | `POST adicionar`/`remover`; `GET listar`, `verificar`, `listar-ids` |
 | Admin | `GET /api/admin/stats` |
-| Teste vocacional | `POST /api/teste_vocacional/salvar` |
-| API própria (v1) | `GET /api/v1/instituicoes`, `/api/v1/instituicoes/<codigo_emec>`, `/api/v1/instituicoes/<codigo_emec>/cursos` — ver seção própria abaixo |
+| Teste vocacional | `GET /api/teste_vocacional/perguntas`; `POST /api/teste_vocacional/responder` (pontuação no servidor). `salvar` está *deprecated* — ver `docs/etapa3-services.md` |
+| API v1 (Mobile / externa) | `/api/v1/*` — catálogo, busca, teste vocacional, favoritos, perfil e dashboard. Contrato: `GET /api/v1/openapi.json` · guias: `docs/etapa4-api-v1.md`, `docs/etapa5-auth-mobile.md` (login por e-mail, access 15 min + refresh rotativo 30 dias) |
 
 Endpoints marcados como administrativos exigem sessão de admin (retornam
 `403` caso contrário).
@@ -160,16 +177,22 @@ Contas são vinculadas por e-mail **apenas quando o Google confirma que o
 e-mail é verificado**, para não permitir que alguém tome conta de uma
 conta local existente com um e-mail não confirmado.
 
-## Automação diária de vestibulares
+## Automações (Vercel Cron)
 
-Um job do APScheduler (`app/services/scheduler_service.py`) roda uma vez
-por dia (padrão 03:00, `America/Sao_Paulo`, configurável via
-`VESTIBULARES_CRON_HORA`/`VESTIBULARES_CRON_MINUTO`) e reavalia o status
-de todos os vestibulares cadastrados (ativo/encerrado/data inválida) e
-tenta vinculá-los a uma faculdade cadastrada. Cada vestibular é
-processado isoladamente — um registro com dado inesperado não impede os
-demais. Toda execução grava um resumo na tabela `automacao_logs`
-(sucesso/erro, quantidades por status).
+Em produção (Vercel) as automações rodam por **Vercel Cron**, que chama por GET
+`/api/cron/<job>` com `Authorization: Bearer <CRON_SECRET>` (sem `CRON_SECRET`
+os endpoints ficam desligados). Agendamentos em `vercel.json` (UTC; compatíveis
+com o plano Hobby, 1x/dia):
+
+| Job | Horário (UTC) | O que faz |
+|---|---|---|
+| `validacao-vestibulares` | 06:00 (03:00 Brasília) | reavalia status (ativo/encerrado/data inválida) e vínculo com faculdades |
+| `limpeza-refresh-tokens` | 06:30 | apaga refresh tokens expirados há mais de 7 dias |
+
+Cada execução tem um `execucao_id`, estado (sucesso/falha/ignorada), origem, duração e erro
+em `automacao_logs`; há trava contra execução concorrente e janela anti-duplicata.
+Localmente: `flask --app wsgi executar-automacao validacao-vestibulares [--forcar]`.
+Detalhes e limites da Vercel: `docs/etapa6-cron.md`.
 
 ## Dados de instituições (e-MEC) — por que não é consulta em tempo real
 
@@ -233,8 +256,8 @@ data/seeds/cursos.csv         (o MICRODADOS_CADASTRO_CURSOS_<ano>.CSV do INEP)
 Esses dois nomes exatos, nessa pasta. Na próxima vez que o app subir com
 um banco sem nenhuma importação real ainda feita, ele se autopopula
 sozinho a partir desses arquivos — sem precisar clicar em nada no admin
-(`app/services/seed_service.py`, chamado uma vez na inicialização do
-app.py). Idempotente: se os dados já foram importados antes (seed
+(`app/services/seed_service.py`, chamado por `python run.py`, por
+`flask --app wsgi init-db` e, na Vercel, pelo `wsgi.py`). Idempotente: se os dados já foram importados antes (seed
 anterior ou upload manual), não reimporta por cima.
 
 Esses CSVs **não vão para o Git** (`data/seeds/*.csv` está no
@@ -289,7 +312,7 @@ encontrado.
 
 ## Deploy na Vercel
 
-- Entrypoint: `wsgi.py` (configurado em `pyproject.toml` → `[tool.vercel] entrypoint`). O `app.py` não pode ser carregado direto como módulo porque o pacote `app/` tem o mesmo nome. Localmente nada muda: `python app.py`.
+- Entrypoint: `wsgi.py` (configurado em `pyproject.toml` → `[tool.vercel] entrypoint`), que cria o app por `app/factory.py` e, na Vercel, inicializa o banco. Localmente: `python run.py`.
 - Banco: na Vercel o código fica em disco somente leitura; o SQLite é criado em `/tmp/suafacul.db` (detectado pela variável `VERCEL`). **Esse arquivo é temporário**: some quando a instância é reciclada e não é compartilhado entre instâncias. Para dados permanentes (usuários, favoritos) em produção é preciso um banco externo.
-- Automação diária de vestibulares: na Vercel roda via Vercel Cron (`vercel.json` → `/api/cron/validar-vestibulares`, 06:00 UTC = 03:00 em São Paulo), protegida por `CRON_SECRET`.
+- Automações diárias: na Vercel rodam via Vercel Cron (`vercel.json` → `/api/cron/validacao-vestibulares` às 06:00 UTC = 03:00 em São Paulo e `/api/cron/limpeza-refresh-tokens`), protegidas por `CRON_SECRET` (detalhes em `docs/etapa6-cron.md`).
 - Variáveis em *Settings → Environment Variables*: `FLASK_SECRET_KEY`, `CRON_SECRET` e, para login com Google, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` (https do domínio da Vercel).
