@@ -243,7 +243,8 @@ def test_logout_revoga_sessao_imediatamente_e_e_idempotente(app, client):
 def test_trocar_senha_na_api_encerra_as_outras_sessoes_e_mantem_a_atual(app, client):
     a = _tokens(_registrar(client))
     b = _tokens(_login(app.app.test_client()))
-    r = client.patch('/api/v1/me', json={'password': 'novasenha1', 'password_confirm': 'novasenha1'},
+    r = client.patch('/api/v1/me', json={'password': 'novasenha1', 'password_confirm': 'novasenha1',
+                                         'password_atual': SENHA},
                      headers={'Authorization': f"Bearer {a['access_token']}"})
     assert r.status_code == 200
     assert _me(client, a['access_token']).status_code == 200            # sessão de quem trocou continua
@@ -257,7 +258,7 @@ def test_trocar_senha_pelo_site_ou_admin_encerra_sessoes_do_app(app, client, adm
     t = _tokens(_registrar(client))
     web = app.app.test_client()
     web.post('/api/usuario/login', data={'username': 'ana', 'password': SENHA})
-    web.post('/api/usuario/perfil', data={'username': 'ana', 'email': 'ana@x.com',
+    web.post('/api/usuario/perfil', data={'username': 'ana', 'email': 'ana@x.com', 'password_atual': SENHA,
                                           'password': 'viaweb123', 'password_confirm': 'viaweb123'})
     _erro(_me(client, t['access_token']), 401, 'INVALID_TOKEN')
 

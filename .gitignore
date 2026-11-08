@@ -6,3 +6,4 @@ database/*.db-wal
 database/*.db-shm
 data/seeds/*.csv
 database/*.lock
+database/emails_dev/

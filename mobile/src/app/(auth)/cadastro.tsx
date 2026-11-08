@@ -84,6 +84,7 @@ export default function Cadastro() {
         returnKeyType="go"
         onSubmitEditing={enviar}
       />
+      <Text style={styles.dica}>Mínimo de 8 caracteres, com letras e números. Depois enviaremos um código ao seu e-mail.</Text>
       {!!erro && (
         <Text style={styles.erro} accessibilityLiveRegion="polite">
           {erro}
@@ -99,5 +100,6 @@ export default function Cadastro() {
 
 const styles = StyleSheet.create({
   erro: { ...tipografia.corpo, color: cores.erro },
+  dica: { ...tipografia.descricao, color: cores.textoSuave },
   ou: { ...tipografia.corpo, color: cores.roxoEscuro, textAlign: 'center', marginBottom: -espaco.sm },
 });

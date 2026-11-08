@@ -100,4 +100,6 @@ def _registrar_helpers_de_template(app):
 
 def _registrar_erros(app):
     from app.errors import registrar_tratadores
+    from app.security import verificar_sessao_web
     registrar_tratadores(app)
+    app.before_request(verificar_sessao_web)

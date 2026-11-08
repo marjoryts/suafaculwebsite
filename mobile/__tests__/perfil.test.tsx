@@ -102,22 +102,51 @@ describe('editar perfil e senha', () => {
     expect(screen.getAllByText('ana.souza').length).toBeGreaterThan(0); // topo já mostra o novo nome
   });
 
-  it('mostra a mensagem do backend (ex.: e-mail em uso)', async () => {
+  it('mostra a mensagem do backend (ex.: nome em uso)', async () => {
     perfilApi.atualizarPerfil.mockRejectedValue(new ApiError(422, 'VALIDATION_ERROR', 'Esse nome de usuário ou e-mail já está em uso.'));
+    await abrirApp('/editar');
+    const user = userEvent.setup();
+    const nome = await screen.findByLabelText('Nome de usuário');
+    await user.clear(nome);
+    await user.type(nome, 'bia');
+    await user.press(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(await screen.findByText('Esse nome de usuário ou e-mail já está em uso.')).toBeTruthy();
+  });
+
+  it('trocar o e-mail pede a senha atual e confirma com o código enviado ao novo endereço', async () => {
+    perfilApi.pedirTrocaDeEmail.mockResolvedValue({ data: { mensagem: 'Enviamos um código para nova@x.com.' } });
+    perfilApi.confirmarTrocaDeEmail
+      .mockRejectedValueOnce(new ApiError(422, 'INVALID_CODE', 'Código incorreto.', undefined, { tentativas_restantes: 4 }))
+      .mockResolvedValueOnce({ data: { ...usuarioAna, email: 'nova@x.com' } });
     await abrirApp('/editar');
     const user = userEvent.setup();
     const email = await screen.findByLabelText('Endereço de E-mail');
     await user.clear(email);
-    await user.type(email, 'outra@x.com');
+    await user.type(email, 'nova@x.com');
     await user.press(screen.getByRole('button', { name: 'Salvar alterações' }));
-    expect(await screen.findByText('Esse nome de usuário ou e-mail já está em uso.')).toBeTruthy();
+    expect(await screen.findByText('Informe sua senha atual para trocar o e-mail.')).toBeTruthy();
+    expect(perfilApi.pedirTrocaDeEmail).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText('Senha atual'), 'segredo1');
+    await user.press(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(perfilApi.pedirTrocaDeEmail).toHaveBeenCalledWith('nova@x.com', 'segredo1');
+    expect(perfilApi.atualizarPerfil).not.toHaveBeenCalled(); // o nome não mudou
+    expect(await screen.findByText('Confirme o novo e-mail')).toBeTruthy();
+
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '11111'); // 5 dígitos: confere sozinho
+    expect(await screen.findByText('Código incorreto. Restam 4 tentativa(s).')).toBeTruthy();
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '04821');
+    expect(await screen.findByText('E-mail atualizado e confirmado!')).toBeTruthy();
+    expect(perfilApi.confirmarTrocaDeEmail).toHaveBeenLastCalledWith('04821');
+    expect(screen.getAllByText('nova@x.com').length).toBeGreaterThan(0);
   });
 
   it('alterar senha confere a confirmação antes de chamar a API', async () => {
     perfilApi.alterarSenha.mockResolvedValue({ data: usuarioAna });
     await abrirApp('/alterar-senha');
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText('Nova senha'), 'novaSenha1');
+    await user.type(await screen.findByLabelText('Senha atual'), 'segredo1');
+    await user.type(screen.getByLabelText('Nova senha'), 'novaSenha1');
     await user.type(screen.getByLabelText('Confirme a nova senha'), 'outra');
     await user.press(screen.getByRole('button', { name: 'Alterar senha' }));
     expect(await screen.findByText('A confirmação não confere com a nova senha.')).toBeTruthy();
@@ -126,9 +155,22 @@ describe('editar perfil e senha', () => {
     await user.clear(screen.getByLabelText('Confirme a nova senha'));
     await user.type(screen.getByLabelText('Confirme a nova senha'), 'novaSenha1');
     await user.press(screen.getByRole('button', { name: 'Alterar senha' }));
-    expect(perfilApi.alterarSenha).toHaveBeenCalledWith('novaSenha1', 'novaSenha1');
+    expect(perfilApi.alterarSenha).toHaveBeenCalledWith('novaSenha1', 'novaSenha1', 'segredo1');
     expect(await screen.findByText('Senha alterada com sucesso!')).toBeTruthy();
     expect(auth.sair).not.toHaveBeenCalled(); // a sessão deste aparelho continua
+  });
+
+  it('conta do Google sem senha própria cria a senha sem pedir a atual', async () => {
+    auth.meuPerfil.mockResolvedValue({ data: { ...usuarioAna, auth_provider: 'google', senha_definida: false } });
+    perfilApi.alterarSenha.mockResolvedValue({ data: { ...usuarioAna, senha_definida: true } });
+    await abrirApp('/alterar-senha');
+    const user = userEvent.setup();
+    expect(await screen.findByText('Criar senha')).toBeTruthy();
+    expect(screen.queryByLabelText('Senha atual')).toBeNull();
+    await user.type(screen.getByLabelText('Nova senha'), 'novaSenha1');
+    await user.type(screen.getByLabelText('Confirme a nova senha'), 'novaSenha1');
+    await user.press(screen.getByRole('button', { name: 'Alterar senha' }));
+    expect(perfilApi.alterarSenha).toHaveBeenCalledWith('novaSenha1', 'novaSenha1', undefined);
   });
 });
 

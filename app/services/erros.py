@@ -42,3 +42,13 @@ class NaoAutenticadoError(ErroDeNegocio):
 class PermissaoNegadaError(ErroDeNegocio):
     status = 403
     code = 'FORBIDDEN'
+
+
+class LimiteExcedidoError(ErroDeNegocio):
+    """Excesso de tentativas/requisições (força bruta, abuso). `retry_after` em segundos."""
+    status = 429
+    code = 'RATE_LIMITED'
+
+    def __init__(self, message, retry_after=60, code=None, details=None):
+        super().__init__(message, code=code, details={**(details or {}), 'retry_after': int(retry_after)})
+        self.retry_after = int(retry_after)

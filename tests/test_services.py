@@ -117,12 +117,19 @@ def test_salvar_legado_rejeita_perfil_e_pontuacao_invalidos(client):
 # ── Usuário ─────────────────────────────────────────────────────────────
 
 def test_registrar_valida_campos_email_e_senha(app):
+    with app.app.app_context():  # o código de verificação usa a chave secreta da aplicação
+        _registrar_valida_campos()
+
+
+def _registrar_valida_campos():
     with pytest.raises(ValidacaoError):
         usuario_service.registrar('', 'a@b.com', 'segredo1')
     with pytest.raises(ValidacaoError, match='e-mail'):
         usuario_service.registrar('bob', 'sem-arroba', 'segredo1')
-    with pytest.raises(ValidacaoError, match='6 caracteres'):
+    with pytest.raises(ValidacaoError, match='8 caracteres'):
         usuario_service.registrar('bob', 'bob@b.com', '123')
+    with pytest.raises(ValidacaoError, match='letras e números'):
+        usuario_service.registrar('bob', 'bob@b.com', 'somenteletras')
     assert usuario_service.registrar('bob', 'bob@b.com', 'segredo1')['success'] is True
 
 
@@ -147,9 +154,12 @@ def test_atualizar_perfil_detecta_conflito_sem_depender_do_texto_do_sqlite(app):
     _criar_usuario(app, 'bia', 'bia@x.com')
     with pytest.raises(ValidacaoError, match='já está em uso'):
         usuario_service.atualizar_perfil(a, 'bia', 'ana@x.com')
-    assert usuario_service.atualizar_perfil(a, 'ana', 'ana@x.com', 'novasenha', 'novasenha')['success'] is True
+    assert usuario_service.atualizar_perfil(a, 'ana', 'ana@x.com', 'novasenha1', 'novasenha1',
+                                            senha_atual='segredo1')['success'] is True
     with pytest.raises(ValidacaoError, match='confirmação'):
-        usuario_service.atualizar_perfil(a, 'ana', 'ana@x.com', 'novasenha', 'outra')
+        usuario_service.atualizar_perfil(a, 'ana', 'ana@x.com', 'novasenha2', 'outra', senha_atual='novasenha1')
+    with pytest.raises(ValidacaoError, match='Senha atual incorreta'):
+        usuario_service.atualizar_perfil(a, 'ana', 'ana@x.com', 'novasenha2', 'novasenha2', senha_atual='errada')
 
 
 def test_erro_de_negocio_vira_resposta_legada_sem_500(admin_client):

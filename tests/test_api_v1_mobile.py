@@ -190,6 +190,7 @@ def test_cache_publico_no_catalogo_e_no_store_no_privado(client):
     ('get', '/api/v1/favoritos'), ('put', '/api/v1/favoritos/curso/1'),
     ('delete', '/api/v1/favoritos/curso/1'), ('get', '/api/v1/teste-vocacional/resultados'),
     ('get', '/api/v1/teste-vocacional/recomendacoes'),
+    ('post', '/api/v1/me/email'), ('post', '/api/v1/me/email/confirmar'),
 ])
 def test_rotas_protegidas_exigem_autenticacao(client, metodo, url):
     kwargs = {'json': {'email': 'a@b.com'}} if metodo == 'patch' else {}
@@ -216,11 +217,13 @@ def test_conta_removida_perde_acesso_imediatamente(app, client):
 
 def test_patch_me_atualiza_apenas_campos_permitidos(client):
     _logar(client)
-    r = client.patch('/api/v1/me', json={'nome_usuario': 'ana2', 'email': 'ana2@x.com'})
+    r = client.patch('/api/v1/me', json={'nome_usuario': 'ana2', 'email': 'ana@x.com'})
     assert r.status_code == 200 and r.get_json()['data']['nome_usuario'] == 'ana2'
-    assert client.get('/api/v1/me').get_json()['data']['email'] == 'ana2@x.com'
     # campo isolado mantém os demais
-    assert client.patch('/api/v1/me', json={'nome_usuario': 'ana3'}).get_json()['data']['email'] == 'ana2@x.com'
+    assert client.patch('/api/v1/me', json={'nome_usuario': 'ana3'}).get_json()['data']['email'] == 'ana@x.com'
+    # e-mail novo só com confirmação por código (POST /me/email)
+    _erro(client.patch('/api/v1/me', json={'email': 'ana2@x.com'}), 422, 'EMAIL_CHANGE_REQUIRES_VERIFICATION')
+    assert client.get('/api/v1/me').get_json()['data']['email'] == 'ana@x.com'
 
 
 def test_patch_me_nao_permite_escalar_privilegio(client):
@@ -234,12 +237,15 @@ def test_patch_me_validacoes(app, client):
     _logar(client)
     _segundo_cliente(app, 'bia', 'bia@x.com')
     _erro(client.patch('/api/v1/me', json={}), 422, 'VALIDATION_ERROR')
-    _erro(client.patch('/api/v1/me', json={'email': 'sem-arroba'}), 422, 'VALIDATION_ERROR')
+    _erro(client.patch('/api/v1/me', json={'email': 'sem-arroba'}), 422, 'EMAIL_CHANGE_REQUIRES_VERIFICATION')
     _erro(client.patch('/api/v1/me', json={'nome_usuario': 'bia'}), 422, 'VALIDATION_ERROR')  # já em uso
-    _erro(client.patch('/api/v1/me', json={'password': 'nova123', 'password_confirm': 'outra'}), 422, 'VALIDATION_ERROR')
-    _erro(client.patch('/api/v1/me', json={'password': '123', 'password_confirm': '123'}), 422, 'VALIDATION_ERROR')
+    atual = {'password_atual': 'segredo1'}
+    _erro(client.patch('/api/v1/me', json={'password': 'nova1234', 'password_confirm': 'outra', **atual}), 422, 'VALIDATION_ERROR')
+    _erro(client.patch('/api/v1/me', json={'password': '123', 'password_confirm': '123', **atual}), 422, 'VALIDATION_ERROR')
+    _erro(client.patch('/api/v1/me', json={'password': 'nova1234', 'password_confirm': 'nova1234'}), 422,
+          'INVALID_CURRENT_PASSWORD')  # sem a senha atual
     _erro(client.patch('/api/v1/me', data='lixo', content_type='application/json'), 422, 'VALIDATION_ERROR')
-    assert client.patch('/api/v1/me', json={'password': 'nova1234', 'password_confirm': 'nova1234'}).status_code == 200
+    assert client.patch('/api/v1/me', json={'password': 'nova1234', 'password_confirm': 'nova1234', **atual}).status_code == 200
 
 
 def test_dashboard_reaproveita_o_service_e_expoe_dto(app, client):
@@ -371,7 +377,8 @@ def test_openapi_referencias_resolvem_e_seguranca_confere(app, client):
         assert ref[1] in spec['components'][ref[0]], ref
     protegidas = {('/me', 'get'), ('/me', 'patch'), ('/me/dashboard', 'get'), ('/favoritos', 'get'),
                   ('/favoritos/{tipo}/{item_id}', 'put'), ('/favoritos/{tipo}/{item_id}', 'delete'),
-                  ('/teste-vocacional/resultados', 'get'), ('/teste-vocacional/recomendacoes', 'get')}
+                  ('/teste-vocacional/resultados', 'get'), ('/teste-vocacional/recomendacoes', 'get'),
+                  ('/me/email', 'post'), ('/me/email/confirmar', 'post')}
     for caminho, ops in spec['paths'].items():
         for metodo, op in ops.items():
             protegida = (caminho, metodo) in protegidas or caminho.startswith('/admin/')

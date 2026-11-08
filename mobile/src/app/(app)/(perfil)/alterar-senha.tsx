@@ -10,11 +10,14 @@ import { TelaPerfil } from '../../../components/ui/TelaPerfil';
 import { mensagemDeErro } from '../../../hooks/useConsulta';
 import { cores, tipografia } from '../../../theme/tokens';
 
-// Troca de senha, como no "Perfil e configurações" do site: nova senha + confirmação.
-// O backend valida o tamanho e encerra as sessões do app nos outros aparelhos.
+// Troca de senha, como no "Perfil e configurações" do site: senha atual + nova senha +
+// confirmação. Conta criada pelo Google sem senha própria não tem "senha atual".
+// O backend valida a política e encerra as sessões nos outros aparelhos e no site.
 export default function AlterarSenha() {
   const router = useRouter();
-  const { usuario } = useSessao();
+  const { usuario, atualizarUsuario } = useSessao();
+  const pedeSenhaAtual = usuario?.senha_definida !== false;
+  const [senhaAtual, setSenhaAtual] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -25,6 +28,10 @@ export default function AlterarSenha() {
   async function salvar() {
     setErro(null);
     setSucesso(false);
+    if (pedeSenhaAtual && !senhaAtual) {
+      setErro('Informe a senha atual.');
+      return;
+    }
     if (!senha) {
       setErro('Informe a nova senha.');
       return;
@@ -35,7 +42,9 @@ export default function AlterarSenha() {
     }
     setSalvando(true);
     try {
-      await alterarSenha(senha, confirmacao);
+      const { data } = await alterarSenha(senha, confirmacao, pedeSenhaAtual ? senhaAtual : undefined);
+      atualizarUsuario(data);
+      setSenhaAtual('');
       setSenha('');
       setConfirmacao('');
       setSucesso(true);
@@ -49,8 +58,22 @@ export default function AlterarSenha() {
   return (
     <TelaPerfil usuario={usuario} onVoltar={() => router.back()}>
       <Text style={[tipografia.subtitulo, styles.titulo]} accessibilityRole="header">
-        Alterar senha
+        {pedeSenhaAtual ? 'Alterar senha' : 'Criar senha'}
       </Text>
+      {pedeSenhaAtual ? (
+        <CampoTexto
+          rotulo="Senha atual"
+          value={senhaAtual}
+          onChangeText={setSenhaAtual}
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="current-password"
+        />
+      ) : (
+        <Text style={[tipografia.descricao, styles.cinza]}>
+          Sua conta entra pelo Google. Crie uma senha para também entrar com e-mail e senha.
+        </Text>
+      )}
       <CampoTexto
         rotulo="Nova senha"
         value={senha}
@@ -74,7 +97,8 @@ export default function AlterarSenha() {
         onSubmitEditing={salvar}
       />
       <Text style={[tipografia.descricao, styles.cinza]}>
-        Ao trocar a senha, as sessões do app em outros aparelhos são encerradas.
+        Mínimo de 8 caracteres, com letras e números. Ao trocar a senha, as sessões em outros aparelhos e no
+        site são encerradas.
       </Text>
       {!!erro && (
         <Text style={styles.erro} accessibilityLiveRegion="polite">
@@ -83,7 +107,7 @@ export default function AlterarSenha() {
       )}
       {sucesso && (
         <Text style={styles.sucesso} accessibilityLiveRegion="polite">
-          Senha alterada com sucesso!
+          {pedeSenhaAtual ? 'Senha alterada com sucesso!' : 'Senha criada com sucesso!'}
         </Text>
       )}
       <Botao titulo="Alterar senha" onPress={salvar} carregando={salvando} />

@@ -20,7 +20,7 @@ def test_registro_email_duplicado(client):
         'username': 'user1', 'email': 'dup@example.com', 'password': 'senha123'
     })
     r = client.post('/api/usuario/registrar', data={
-        'username': 'user2', 'email': 'dup@example.com', 'password': 'outrasenha'
+        'username': 'user2', 'email': 'DUP@example.com', 'password': 'outrasenha1'
     })
     body = r.get_json()
     assert body['success'] is False

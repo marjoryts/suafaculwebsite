@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar e-mail | SuaFacul</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <script src="/static/js/theme.js"></script>
+    <link rel="stylesheet" href="/static/css/components/header.css">
+    <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link rel="stylesheet" href="/static/css/components/ui.css">
+    <link rel="stylesheet" href="/static/css/pages/conta.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+    {% set nav_variant = 'public' %}
+    {% include 'partials/_header.html' %}
+
+    <main class="conta-pagina">
+        <section class="conta-cartao" aria-labelledby="titulo-verificar">
+            <div class="conta-passo" id="passo-codigo">
+                <h1 id="titulo-verificar">Confirme seu e-mail</h1>
+                <p class="conta-sub" id="verificar-sub">Enviamos um código de 5 dígitos para o seu e-mail. Ele vale por 30 minutos.</p>
+                <div class="conta-alerta" id="verificar-alerta" role="alert" aria-live="polite"></div>
+
+                <form id="verificar-form" novalidate>
+                    <div class="conta-campo" id="campo-email" hidden>
+                        <label for="verificar-email">E-mail cadastrado</label>
+                        <input type="email" id="verificar-email" autocomplete="email" required>
+                    </div>
+                    <div class="conta-codigo" id="verificar-codigo" role="group" aria-label="Código de verificação">
+                        <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 1">
+                        <input inputmode="numeric" maxlength="1" aria-label="Dígito 2">
+                        <input inputmode="numeric" maxlength="1" aria-label="Dígito 3">
+                        <input inputmode="numeric" maxlength="1" aria-label="Dígito 4">
+                        <input inputmode="numeric" maxlength="1" aria-label="Dígito 5">
+                    </div>
+                    <button type="submit" class="conta-btn" id="verificar-btn">Confirmar</button>
+                </form>
+                <button type="button" class="conta-link" id="reenviar-btn">Reenviar código</button>
+            </div>
+
+            <div class="conta-passo" id="passo-ok" hidden>
+                <h1>E-mail confirmado!</h1>
+                <p class="conta-sub">Sua conta está pronta. Você será levado para o painel.</p>
+                <a class="conta-btn" id="continuar-link" href="/dashboard" style="display:block;text-decoration:none">Continuar</a>
+            </div>
+        </section>
+    </main>
+
+    {% include 'partials/_footer.html' %}
+    <script src="/static/js/header.js"></script>
+    <script src="/static/js/conta.js"></script>
+    <script>
+        (function () {
+            const C = window.SuaFaculConta;
+            const params = new URLSearchParams(location.search);
+            const destino = C.destinoSeguro(params.get('next')) || '/dashboard';
+            const alertaEl = document.getElementById('verificar-alerta');
+            const emailInput = document.getElementById('verificar-email');
+            const codigo = C.caixasDeCodigo(document.getElementById('verificar-codigo'));
+            const botao = document.getElementById('verificar-btn');
+            const reenviar = document.getElementById('reenviar-btn');
+
+            emailInput.value = params.get('email') || '';
+            if (!emailInput.value) {
+                document.getElementById('campo-email').hidden = false;
+                document.getElementById('verificar-sub').textContent =
+                    'Informe o e-mail da conta e o código de 5 dígitos que enviamos. Se ainda não recebeu, toque em "Reenviar código".';
+            } else {
+                // Acabou de receber um código no cadastro/login: respeita o intervalo de reenvio.
+                if (params.get('enviado') === '1') C.esperar(reenviar, 60, 'Reenviar código');
+                codigo.focar();
+            }
+            document.getElementById('continuar-link').href = destino;
+
+            document.getElementById('verificar-form').addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                const email = emailInput.value.trim();
+                const valor = codigo.valor();
+                if (!email) { C.alerta(alertaEl, 'erro', 'Informe o e-mail da conta.'); return; }
+                if (!/^\d{5}$/.test(valor)) { C.alerta(alertaEl, 'erro', 'Digite os 5 dígitos do código.'); return; }
+                botao.disabled = true;
+                botao.textContent = 'Confirmando...';
+                const r = await C.postar('/auth/verificacao/confirmar', { email, codigo: valor });
+                botao.disabled = false;
+                botao.textContent = 'Confirmar';
+                if (r.ok) {
+                    document.getElementById('passo-codigo').hidden = true;
+                    document.getElementById('passo-ok').hidden = false;
+                    setTimeout(() => { location.href = destino; }, 2500);
+                    return;
+                }
+                const code = r.erro && r.erro.code;
+                if (code === 'CODE_EXPIRED' || code === 'TOO_MANY_ATTEMPTS') {
+                    C.alerta(alertaEl, 'erro', C.mensagemDeErro(r) + ' Peça um novo código abaixo.');
+                } else {
+                    C.alerta(alertaEl, 'erro', C.mensagemDeErro(r));
+                }
+                codigo.limpar();
+            });
+
+            reenviar.addEventListener('click', async () => {
+                const email = emailInput.value.trim();
+                if (!email) { C.alerta(alertaEl, 'erro', 'Informe o e-mail da conta.'); return; }
+                reenviar.disabled = true;
+                const r = await C.postar('/auth/verificacao/enviar', { email });
+                if (r.ok) {
+                    C.alerta(alertaEl, 'info', (r.dados && r.dados.mensagem) || 'Se houver uma conta pendente com esse e-mail, enviamos um novo código.');
+                    codigo.limpar();
+                    C.esperar(reenviar, 60, 'Reenviar código');
+                } else {
+                    C.alerta(alertaEl, 'erro', C.mensagemDeErro(r));
+                    if (r.retryAfter) C.esperar(reenviar, r.retryAfter, 'Reenviar código');
+                    else reenviar.disabled = false;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

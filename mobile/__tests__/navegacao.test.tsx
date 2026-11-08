@@ -14,6 +14,25 @@ jest.mock('../src/api/catalogo');
 jest.mock('../src/api/favoritos');
 jest.mock('../src/api/testeVocacional');
 jest.mock('../src/api/perfil');
+// Só os endpoints de conta são simulados; os utilitários de erro são os reais.
+jest.mock('../src/api/conta', () => ({
+  ...jest.requireActual('../src/api/conta'),
+  enviarCodigoDeVerificacao: jest.fn(),
+  confirmarEmail: jest.fn(),
+  solicitarRecuperacao: jest.fn(),
+  validarCodigoDeRecuperacao: jest.fn(),
+  redefinirSenha: jest.fn(),
+}));
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const conta = require('../src/api/conta') as jest.Mocked<typeof import('../src/api/conta')>;
+const funcoesDeConta = () =>
+  [
+    conta.enviarCodigoDeVerificacao,
+    conta.confirmarEmail,
+    conta.solicitarRecuperacao,
+    conta.validarCodigoDeRecuperacao,
+    conta.redefinirSenha,
+  ] as jest.Mock[];
 const funcoesDaApi = () => Object.values(auth).filter((f) => typeof f === 'function') as jest.Mock[];
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const SecureStore = require('expo-secure-store');
@@ -29,6 +48,7 @@ beforeEach(() => {
   // Só os mocks da API são resetados: resetAllMocks também apagaria as implementações
   // do armazenamento seguro simulado (jest.setup.js).
   funcoesDaApi().forEach((f) => f.mockReset());
+  funcoesDeConta().forEach((f) => f.mockReset());
   SecureStore.__limpar();
   prepararApiSimulada();
 });
@@ -101,10 +121,10 @@ describe('login', () => {
     expect(auth.entrar).not.toHaveBeenCalled();
   });
 
-  it('o botão do Google existe, mas está desabilitado (ponto de extensão)', async () => {
+  it('sem development build/configuração, o Google não aparece (nada de botão decorativo)', async () => {
     await abrir('/');
-    const botao = await screen.findByRole('button', { name: 'Entrar com Google (em breve)' });
-    expect(botao).toBeDisabled();
+    expect(await screen.findByText('Bem-vindo(a) de volta!')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Continuar com Google' })).toBeNull();
   });
 });
 
@@ -155,17 +175,108 @@ describe('cadastro', () => {
   });
 });
 
-describe('telas apenas de interface (sem endpoint)', () => {
-  it('recuperar senha não faz nenhuma requisição e o botão fica desabilitado', async () => {
-    await abrir('/recuperar-senha');
-    expect(await screen.findByText('Recuperar senha')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled();
-    expect(funcoesDaApi().every((f) => f.mock.calls.length === 0)).toBe(true);
+describe('verificação de e-mail', () => {
+  const pendente = { ...usuario, email_verificado: false };
+
+  it('cadastro leva direto à tela do código; código errado mostra as tentativas e o certo confirma', async () => {
+    auth.cadastrar.mockResolvedValue({ data: { usuario: pendente, tokens: tokens(1) } });
+    conta.confirmarEmail
+      .mockRejectedValueOnce(new ApiError(422, 'INVALID_CODE', 'Código incorreto.', undefined, { tentativas_restantes: 4 }))
+      .mockResolvedValueOnce({ data: { usuario } });
+    await abrir('/');
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('button', { name: 'Criar conta' }));
+    await user.type(await screen.findByLabelText('Nome de usuário'), 'ana');
+    await user.type(screen.getByLabelText('E-mail'), 'ana@x.com');
+    await user.type(screen.getByLabelText('Senha'), 'segredo12');
+    await user.type(screen.getByLabelText('Confirme sua senha'), 'segredo12');
+    await user.press(screen.getByRole('button', { name: 'Cadastrar' }));
+
+    await waitFor(() => expect(vista).toHavePathname('/verificar-email'));
+    expect(await screen.findByText('Confirme seu e-mail')).toBeTruthy();
+    // o código acabou de ser enviado: reenvio só depois do intervalo
+    expect(screen.getByRole('button', { name: /Reenviar código em \d+ s/ })).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '11111');
+    expect(await screen.findByText('Código incorreto. Restam 4 tentativa(s).')).toBeTruthy();
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '04821');
+    expect(await screen.findByText('E-mail confirmado!')).toBeTruthy();
+    expect(conta.confirmarEmail).toHaveBeenLastCalledWith('ana@x.com', '04821');
   });
 
-  it('verificar e-mail e senha alterada existem como rotas de interface', async () => {
-    await abrir('/verificar-email');
-    expect(await screen.findByText('Verifique seu e-mail')).toBeTruthy();
+  it('código expirado pede um novo; o reenvio mostra a resposta genérica do servidor', async () => {
+    await SecureStore.setItemAsync(CHAVE, 'refresh-guardado');
+    auth.renovar.mockResolvedValue({ data: { tokens: tokens(2) } });
+    auth.meuPerfil.mockResolvedValue({ data: pendente });
+    conta.confirmarEmail.mockRejectedValue(new ApiError(422, 'CODE_EXPIRED', 'Este código expirou. Peça um novo código.'));
+    conta.enviarCodigoDeVerificacao.mockResolvedValue({
+      data: { mensagem: 'Se houver uma conta com esse e-mail, enviaremos um código.' },
+    });
+    await abrir('/perfil');
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('button', { name: 'Confirmar e-mail' }));
+    await user.type(await screen.findByLabelText('Código de 5 dígitos'), '12345');
+    expect(await screen.findByText(/Este código expirou\. Peça um novo código\. Toque em "Reenviar código"\./)).toBeTruthy();
+    await user.press(screen.getByRole('button', { name: 'Reenviar código' }));
+    expect(conta.enviarCodigoDeVerificacao).toHaveBeenCalledWith('ana@x.com');
+    expect(await screen.findByText('Se houver uma conta com esse e-mail, enviaremos um código.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Reenviar código em \d+ s/ })).toBeDisabled();
+  });
+});
+
+describe('recuperação de senha', () => {
+  async function ateOCodigo() {
+    conta.solicitarRecuperacao.mockResolvedValue({
+      data: { mensagem: 'Se houver uma conta com esse e-mail, enviaremos um código.' },
+    });
+    await abrir('/');
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('button', { name: 'Esqueceu a senha?' }));
+    await user.type(await screen.findByLabelText('E-mail'), 'ana@x.com');
+    await user.press(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText('Digite o código')).toBeTruthy();
+    expect(conta.solicitarRecuperacao).toHaveBeenCalledWith('ana@x.com');
+    return user;
+  }
+
+  it('e-mail → código → nova senha → "Senha alterada" → login', async () => {
+    conta.validarCodigoDeRecuperacao.mockResolvedValue({ data: { valido: true } });
+    conta.redefinirSenha.mockResolvedValue({ data: { mensagem: 'ok' } });
+    const user = await ateOCodigo();
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '04821');
+    expect(await screen.findByText('Salvar nova senha')).toBeTruthy();
+    await user.type(screen.getByLabelText('Nova senha'), 'novaSenha1');
+    await user.type(screen.getByLabelText('Confirme a nova senha'), 'novaSenha1');
+    await user.press(screen.getByRole('button', { name: 'Salvar nova senha' }));
+    await waitFor(() => expect(vista).toHavePathname('/senha-alterada'));
+    expect(conta.redefinirSenha).toHaveBeenCalledWith('ana@x.com', '04821', 'novaSenha1', 'novaSenha1');
+    await user.press(screen.getByRole('button', { name: 'Entrar agora' }));
+    await waitFor(() => expect(vista).toHavePathname('/login'));
+    expect(auth.entrar).not.toHaveBeenCalled(); // a recuperação não abre sessão
+  });
+
+  it('código com tentativas esgotadas mostra a mensagem e não libera a nova senha', async () => {
+    conta.validarCodigoDeRecuperacao.mockRejectedValue(
+      new ApiError(429, 'TOO_MANY_ATTEMPTS', 'Muitas tentativas com este código. Peça um novo código.', undefined, {
+        retry_after: 900,
+      }),
+    );
+    const user = await ateOCodigo();
+    await user.type(screen.getByLabelText('Código de 5 dígitos'), '99999');
+    expect(await screen.findByText('Muitas tentativas com este código. Peça um novo código.')).toBeTruthy();
+    expect(screen.queryByLabelText('Nova senha')).toBeNull();
+  });
+
+  it('limite de pedidos (429) mostra a mensagem e não avança', async () => {
+    conta.solicitarRecuperacao.mockRejectedValue(
+      new ApiError(429, 'RATE_LIMITED', 'Muitas tentativas. Tente novamente mais tarde.', undefined, { retry_after: 120 }),
+    );
+    await abrir('/recuperar-senha');
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('E-mail'), 'ana@x.com');
+    await user.press(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText('Muitas tentativas. Tente novamente mais tarde.')).toBeTruthy();
+    expect(screen.queryByText('Digite o código')).toBeNull();
   });
 });
 
@@ -231,10 +342,10 @@ describe('base visual (Etapa A)', () => {
     await waitFor(() => expect(vista).toHavePathname('/busca'));
   });
 
-  it('login: Google aparece desabilitado e não chama a API', async () => {
+  it('login: sem o módulo nativo do Google não há botão do Google nem chamadas à API', async () => {
     await abrir('/login');
     expect(await screen.findByText('Bem-vindo(a) de volta!')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Entrar com Google (em breve)' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Google/ })).toBeNull();
     expect(funcoesDaApi().every((f) => f.mock.calls.length === 0)).toBe(true);
   });
 

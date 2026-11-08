@@ -21,6 +21,7 @@ from joserfc.errors import JoseError
 from joserfc.jwk import KeySet
 
 from app.models.usuario import Usuario
+from app.services import token_service
 from app.services.erros import ErroDeNegocio, NaoAutenticadoError, PermissaoNegadaError
 
 JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs'
@@ -89,15 +90,22 @@ def validar_id_token(id_token):
 def entrar_com_claims(claims):
     """Conta para os dados (já validados) do Google — a mesma regra no site e no app:
 
+    0) o Google precisa confirmar o e-mail (email_verified); senão, nada é feito;
     1) já existe conta com esse google_id -> essa conta;
-    2) existe conta local com o e-mail -> vincula, SÓ se o Google confirmar que o
-       e-mail é verificado (impede sequestrar uma conta com e-mail não confirmado);
-    3) senão -> cria uma conta 'aluno'.
+    2) existe conta local com o e-mail:
+       - e-mail da conta já verificado -> vincula (as duas provas são do mesmo dono);
+       - e-mail da conta NÃO verificado -> quem prova o e-mail pelo Google é o dono:
+         vincula, marca verificado, INVALIDA a senha local e encerra as sessões. Isso
+         impede que alguém cadastre o e-mail de outra pessoa antes dela e continue
+         entrando com a senha depois (sequestro de conta prévio);
+    3) senão -> cria uma conta 'aluno' já verificada.
     """
     google_id = claims.get('sub')
     email = (claims.get('email') or '').strip().lower()
     if not google_id or not email:
         raise _invalido('O Google não informou um e-mail utilizável.')
+    if claims.get('email_verified') is not True:
+        raise PermissaoNegadaError('Seu e-mail ainda não foi verificado pelo Google.', code='EMAIL_NOT_VERIFIED')
     nome = claims.get('name') or email.split('@')[0]
     avatar_url = claims.get('picture')
     usuarios = Usuario()
@@ -108,9 +116,12 @@ def entrar_com_claims(claims):
 
     existente = usuarios.buscar_por_email(email)
     if existente:
-        if claims.get('email_verified') is not True:
-            raise PermissaoNegadaError('Seu e-mail ainda não foi verificado pelo Google.', code='EMAIL_NOT_VERIFIED')
         resultado = usuarios.vincular_google(existente['id'], google_id, avatar_url)
+        if resultado.get('success') and not existente.get('email_verificado'):
+            usuarios.marcar_email_verificado(existente['id'])
+            usuarios.invalidar_senha(existente['id'])
+            token_service.revogar_sessoes_do_usuario(existente['id'])
+            resultado['user'] = usuarios.buscar_por_id(existente['id'])
     else:
         resultado = usuarios.criar_via_google(google_id, email, nome, avatar_url)
     if not resultado.get('success'):

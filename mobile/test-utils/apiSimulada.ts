@@ -115,12 +115,14 @@ export function prepararApiSimulada(favoritos: Favorito[] = []) {
     perfilApi.meuPainel.mockReset().mockResolvedValue({ data: painelVazio() });
     perfilApi.atualizarPerfil.mockReset();
     perfilApi.alterarSenha.mockReset();
+    perfilApi.pedirTrocaDeEmail.mockReset();
+    perfilApi.confirmarTrocaDeEmail.mockReset();
   }
 }
 
 export function painelVazio(extra: Partial<Painel> = {}): Painel {
   return {
-    usuario: { id: 1, nome_usuario: 'ana', email: 'ana@x.com', tipo: 'aluno', avatar_url: null, auth_provider: 'local', created_at: null },
+    usuario: { id: 1, nome_usuario: 'ana', email: 'ana@x.com', tipo: 'aluno', avatar_url: null, auth_provider: 'local', created_at: null, email_verificado: true, senha_definida: true },
     contagem_favoritos: { cursos: 0, faculdades: 0, vestibulares: 0 },
     favoritos_recentes: [],
     proximas_provas: [],

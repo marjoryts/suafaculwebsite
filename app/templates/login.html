@@ -33,7 +33,7 @@
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <div class="forgot-link">
-                    <a href="#">Esqueceu a senha?</a>
+                    <a href="/recuperar-senha">Esqueceu a senha?</a>
                 </div>
                 <button type="submit" class="btn" id="login-btn">Entrar</button>
                 <p>Entrar com uma plataforma</p>
@@ -57,7 +57,7 @@
                     <i class='bx bxs-envelope'></i>
                 </div>
                 <div class="input-box">
-                    <input type="password" id="register-password" placeholder="Senha" required>
+                    <input type="password" id="register-password" placeholder="Senha (8+ caracteres, letras e números)" minlength="8" maxlength="128" autocomplete="new-password" required>
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <button type="submit" class="btn" id="register-btn">Registrar</button>
@@ -191,29 +191,22 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && destinoPosLogin) {
-                    // Veio de uma página que precisa de login (ex.: resultados do
-                    // teste): entra direto com a conta recém-criada e volta pra lá.
-                    alertDiv.innerHTML = '<div class="alert success">Conta criada! Entrando…</div>';
-                    const loginData = new FormData();
-                    loginData.append('username', username);
-                    loginData.append('password', password);
-                    return fetch('/api/usuario/login', { method: 'POST', body: loginData })
-                        .then(r => r.json())
-                        .then(res => {
-                            if (res.success) { irAposLogin(); return; }
-                            alertDiv.innerHTML = '<div class="alert success">Conta criada! Agora é só entrar.</div>';
-                            setTimeout(toggleForm, 1000);
-                        });
-                }
-                if (data.success) {
-                    alertDiv.innerHTML = '<div class="alert success">Usuário registrado com sucesso!</div>';
-                    setTimeout(() => {
-                        toggleForm();
-                    }, 1000);
-                } else {
+                if (!data.success) {
                     alertDiv.innerHTML = `<div class="alert error">${data.message}</div>`;
+                    return;
                 }
+                // Conta criada com o e-mail ainda não confirmado: entra com ela e
+                // segue para a tela do código (depois volta ao destino, se houver).
+                alertDiv.innerHTML = '<div class="alert success">Conta criada! Enviamos um código para o seu e-mail.</div>';
+                const verificar = '/verificar-email?enviado=1&email=' + encodeURIComponent(data.email || email)
+                    + '&next=' + encodeURIComponent(destinoPosLogin || '/dashboard');
+                const loginData = new FormData();
+                loginData.append('username', username);
+                loginData.append('password', password);
+                return fetch('/api/usuario/login', { method: 'POST', body: loginData })
+                    .then(r => r.json())
+                    .catch(() => null)
+                    .then(() => { window.location.href = verificar; });
             })
             .catch(error => {
                 alertDiv.innerHTML = '<div class="alert error">Erro ao registrar. Tente novamente.</div>';

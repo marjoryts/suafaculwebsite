@@ -55,9 +55,14 @@ def _validar_vestibulares():
 
 
 def _limpar_refresh_tokens():
-    """Apaga refresh tokens expirados há mais de RETENCAO_REFRESH_TOKENS_DIAS dias."""
+    """Apaga refresh tokens expirados há mais de RETENCAO_REFRESH_TOKENS_DIAS dias e, no
+    mesmo job (o plano Hobby da Vercel limita a 2 crons), tentativas de acesso com mais
+    de 1 dia e códigos de e-mail com mais de 7 dias (já expirados há muito)."""
+    from app.services import codigo_service, limite_service
     limite = _fmt(_agora() - timedelta(days=RETENCAO_REFRESH_TOKENS_DIAS))
-    return {'removidos': RefreshToken().remover_expirados(limite), 'expirados_antes_de': limite}
+    return {'removidos': RefreshToken().remover_expirados(limite), 'expirados_antes_de': limite,
+            'tentativas_removidas': limite_service.remover_antigas(dias=1),
+            'codigos_removidos': codigo_service.remover_antigos(dias=7)}
 
 
 # Nome na URL/CLI -> job. Manter em sincronia com "crons" do vercel.json (há teste).

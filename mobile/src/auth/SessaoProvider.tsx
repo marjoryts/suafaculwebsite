@@ -20,6 +20,10 @@ type ContextoDaSessao = {
   atualizarUsuario(usuario: Usuario): void;
   /** Repete a restauração da sessão (tela "sem conexão"). */
   tentarNovamente(): void;
+  /** true logo após o cadastro: o app abre a tela do código de verificação. */
+  verificacaoPendente: boolean;
+  /** A tela de verificação já foi aberta (não abrir de novo). */
+  verificacaoAberta(): void;
 };
 
 const Contexto = createContext<ContextoDaSessao | null>(null);
@@ -27,6 +31,7 @@ const Contexto = createContext<ContextoDaSessao | null>(null);
 export function SessaoProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoDaSessao>('carregando');
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [verificacaoPendente, setVerificacaoPendente] = useState(false);
 
   // Um único gerenciador por execução do app.
   const gerenciador = useRef<GerenciadorDeSessao | null>(null);
@@ -82,6 +87,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
         const { data } = await authApi.cadastrar(nomeUsuario, email, senha);
         await g.definir(data.tokens);
         setUsuario(data.usuario);
+        setVerificacaoPendente(!data.usuario.email_verificado);
         setEstado('autenticado');
       },
       async sair() {
@@ -95,8 +101,10 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       },
       atualizarUsuario: setUsuario,
       tentarNovamente: () => void iniciar(),
+      verificacaoPendente,
+      verificacaoAberta: () => setVerificacaoPendente(false),
     }),
-    [estado, usuario, g, iniciar],
+    [estado, usuario, g, iniciar, verificacaoPendente],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

@@ -19,7 +19,20 @@ def login_usuario_na_sessao(user):
     session['email'] = user['email']
     session['tipo'] = user.get('tipo', 'aluno')
     session['avatar_url'] = user.get('avatar_url')
+    # Muda quando a senha é trocada/recuperada: sessões abertas antes deixam de valer.
+    session['credencial_versao'] = user.get('credencial_versao')
     _vincular_teste_pendente(user['id'])
+
+
+def verificar_sessao_web():
+    """before_request do site: o cookie é assinado e não tem como ser revogado, então
+    a cada requisição conferimos no banco se a conta existe e se a credencial é a
+    mesma do login. Trocar/recuperar a senha ou excluir a conta derruba a sessão."""
+    if 'user_id' not in session or request.path.startswith(('/api/v1/', '/static/')):
+        return
+    atual = Usuario().buscar_por_id(session['user_id'])
+    if not atual or session.get('credencial_versao') != atual.get('credencial_versao'):
+        session.clear()
 
 
 def _vincular_teste_pendente(user_id):

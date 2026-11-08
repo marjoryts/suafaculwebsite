@@ -17,6 +17,10 @@ export type Usuario = {
   avatar_url: string | null;
   auth_provider: string | null;
   created_at: string | null;
+  /** false: conta criada antes da verificação ou ainda sem o código confirmado. */
+  email_verificado: boolean;
+  /** false: conta criada pelo Google, ainda sem senha própria (não pede a senha atual). */
+  senha_definida: boolean;
 };
 
 /** Resposta de /auth/login e /auth/registrar. */

@@ -6,7 +6,7 @@ import { Botao } from '../../components/ui/Botao';
 import { TelaAuth } from '../../components/ui/TelaAuth';
 import { cores, tipografia } from '../../theme/tokens';
 
-// SOMENTE INTERFACE (Figma "Senha alterada"): será usada quando a recuperação de senha existir.
+// Figma "Senha alterada": fim da recuperação de senha (as sessões antigas foram encerradas).
 export default function SenhaAlterada() {
   const router = useRouter();
   return (

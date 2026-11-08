@@ -28,13 +28,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const email = form.email.value.trim();
             const senha = form.password.value;
             const confirmacao = form.password_confirm.value;
+            const senhaAtual = form.password_atual ? form.password_atual.value : '';
+            const emailMudou = email.toLowerCase() !== form.email.defaultValue.trim().toLowerCase();
 
             if (!username || !email) {
                 mostrarAlerta('error', 'Preencha o nome de usuário e o e-mail.');
                 return;
             }
-            if (senha && senha.length < 6) {
-                mostrarAlerta('error', 'A nova senha deve ter pelo menos 6 caracteres.');
+            if (senha && (senha.length < 8 || !/[A-Za-zÀ-ÿ]/.test(senha) || !/\d/.test(senha))) {
+                mostrarAlerta('error', 'A senha deve ter pelo menos 8 caracteres, com letras e números.');
+                return;
+            }
+            if ((senha || emailMudou) && form.password_atual && !senhaAtual) {
+                mostrarAlerta('error', 'Informe sua senha atual para trocar a senha ou o e-mail.');
+                form.password_atual.focus();
                 return;
             }
             if (senha !== confirmacao) {
@@ -49,12 +56,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 dados.append('password', senha);
                 dados.append('password_confirm', confirmacao);
             }
+            if (senhaAtual) dados.append('password_atual', senhaAtual);
 
             botaoSalvar.disabled = true;
             try {
                 const resp = await fetch('/api/usuario/perfil', { method: 'POST', body: dados, credentials: 'same-origin' });
                 const data = await resp.json();
-                if (data.success) {
+                if (data.success && data.email_pendente) {
+                    // O e-mail novo só vale depois do código enviado a ele.
+                    mostrarAlerta('success', data.message);
+                    form.password.value = form.password_confirm.value = '';
+                    if (form.password_atual) form.password_atual.value = '';
+                    form.email.value = form.email.defaultValue;
+                    document.getElementById('email-codigo-destino').textContent = data.email_novo;
+                    formCodigo.hidden = false;
+                    formCodigo.codigo.focus();
+                    botaoSalvar.disabled = false;
+                } else if (data.success) {
                     mostrarAlerta('success', data.message || 'Perfil atualizado com sucesso!');
                     // Recarrega para atualizar nome/e-mail no header e na barra lateral.
                     setTimeout(() => { window.location.reload(); }, 900);
@@ -66,6 +84,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 mostrarAlerta('error', 'Erro de conexão ao atualizar o perfil. Tente novamente.');
                 botaoSalvar.disabled = false;
             }
+        });
+    }
+
+    // ── Confirmação do novo e-mail (código enviado ao endereço novo) ──
+    const formCodigo = document.getElementById('email-codigo-form');
+    if (formCodigo) {
+        document.getElementById('email-codigo-cancelar').addEventListener('click', () => {
+            formCodigo.hidden = true;
+            formCodigo.codigo.value = '';
+        });
+        formCodigo.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = formCodigo.codigo.value.trim();
+            if (!/^\d{5}$/.test(codigo)) {
+                mostrarAlerta('error', 'Digite os 5 dígitos do código.');
+                return;
+            }
+            const botao = formCodigo.querySelector('button[type="submit"]');
+            botao.disabled = true;
+            try {
+                const dados = new FormData();
+                dados.append('codigo', codigo);
+                const resp = await fetch('/api/usuario/email/confirmar', { method: 'POST', body: dados, credentials: 'same-origin' });
+                const data = await resp.json();
+                if (data.success) {
+                    mostrarAlerta('success', data.message);
+                    setTimeout(() => { window.location.reload(); }, 900);
+                    return;
+                }
+                mostrarAlerta('error', data.message || 'Código inválido.');
+                formCodigo.codigo.value = '';
+            } catch (err) {
+                mostrarAlerta('error', 'Erro de conexão. Tente novamente.');
+            }
+            botao.disabled = false;
         });
     }
 

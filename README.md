@@ -177,6 +177,14 @@ Contas são vinculadas por e-mail **apenas quando o Google confirma que o
 e-mail é verificado**, para não permitir que alguém tome conta de uma
 conta local existente com um e-mail não confirmado.
 
+## Segurança da conta e e-mail
+
+Verificação de e-mail por código, recuperação de senha, troca de e-mail com
+confirmação, limites contra força bruta e login com Google no app: regras,
+endpoints, variáveis (`EMAIL_MODO`, `SMTP_*`, `EMAIL_REMETENTE`) e o passo a
+passo do Gmail (senha de app) e do Google Cloud (cliente Android + SHA-1) em
+[docs/etapa8-seguranca-conta.md](docs/etapa8-seguranca-conta.md).
+
 ## Automações (Vercel Cron)
 
 Em produção (Vercel) as automações rodam por **Vercel Cron**, que chama por GET

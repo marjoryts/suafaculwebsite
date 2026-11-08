@@ -63,6 +63,16 @@ def ajuda():
     return render_template('ajuda.html')
 
 
+@bp.route('/verificar-email')
+def verificar_email():
+    return render_template('verificar-email.html')
+
+
+@bp.route('/recuperar-senha')
+def recuperar_senha():
+    return render_template('recuperar-senha.html')
+
+
 @bp.route('/favoritos')
 def favoritos():
     if 'user_id' not in session:

@@ -57,6 +57,9 @@ export default function Perfil() {
       <Text style={[tipografia.subtitulo, styles.titulo]} accessibilityRole="header">
         Configurações
       </Text>
+      {usuario && !usuario.email_verificado && (
+        <OpcaoMenu titulo="Confirmar e-mail" icone="mark-email-unread" destaque onPress={() => router.push('/verificar-email')} />
+      )}
       <OpcaoMenu titulo="Favoritos" icone="favorite" onPress={() => router.navigate('/salvos')} />
       <OpcaoMenu titulo="Conta" icone="person" onPress={() => router.push('/editar')} />
       <OpcaoMenu titulo="Alterar senha" icone="lock" onPress={() => router.push('/alterar-senha')} />

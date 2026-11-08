@@ -67,7 +67,9 @@ SCHEMAS = {
                                                  'tipo_instituicao', 'url', 'endereco', 'cidade', 'uf',
                                                  'telefone', 'email', 'situacao')}),
     'Usuario': _obj(id=_INT, nome_usuario=_STR, email=_STR, tipo={'type': 'string', 'enum': ['aluno', 'admin']},
-                    avatar_url=_STR_N, auth_provider=_STR, created_at=_STR),
+                    avatar_url=_STR_N, auth_provider=_STR, created_at=_STR,
+                    email_verificado={'type': 'boolean'},
+                    senha_definida={'type': 'boolean', 'description': 'false = conta sem senha própria (criada pelo Google).'}),
     'Questionario': _obj(secoes={'type': 'array', 'items': _obj(
         titulo=_STR, perguntas={'type': 'array', 'items': _obj(
             id={'type': 'string', 'example': 'q1'}, texto=_STR,
@@ -111,6 +113,9 @@ RESPOSTAS_ERRO = {
                                 'Traz o cabeçalho WWW-Authenticate: Bearer.'),
                 'content': {'application/json': {'schema': _REF('Erro')}}},
     'Erro403': {'description': 'Sem permissão (FORBIDDEN), ex.: rota de administrador com conta de aluno.',
+                'content': {'application/json': {'schema': _REF('Erro')}}},
+    'Erro429': {'description': 'Muitas tentativas (RATE_LIMITED, TOO_MANY_ATTEMPTS ou RESEND_TOO_SOON); '
+                                'veja o cabeçalho Retry-After.',
                 'content': {'application/json': {'schema': _REF('Erro')}}},
     'Erro503': {'description': 'Serviço indisponível (ex.: GOOGLE_NOT_CONFIGURED).',
                 'content': {'application/json': {'schema': _REF('Erro')}}},
@@ -174,16 +179,34 @@ PATHS = {
         corpo=_obj(nome_usuario=_STR, email=_STR, password={'type': 'string', 'minLength': 6}),
         descricao='Conta criada como aluno. Senha com pelo menos 6 caracteres.')},
     '/auth/login': {'post': _op(
-        'Login por e-mail e senha', 'Autenticação', _ok(_data(_REF('Sessao'))), erros=(401, 415, 422),
+        'Login por e-mail e senha', 'Autenticação', _ok(_data(_REF('Sessao'))), erros=(401, 415, 422, 429),
         corpo=_obj(email=_STR, password=_STR),
         descricao='Abre uma sessão nova (um dispositivo = uma sessão). A mesma resposta 401 INVALID_CREDENTIALS '
-                  'vale para e-mail inexistente e senha errada.')},
+                  'vale para e-mail inexistente e senha errada. Muitas senhas erradas (por conta ou IP): 429 '
+                  'com Retry-After, também igual para conta existente ou não.')},
     '/auth/google': {'post': _op(
         'Entra com Google (ID token)', 'Autenticação', _ok(_data(_REF('Sessao'))), erros=(403, 415, 422, 503),
         corpo=_obj(id_token={'type': 'string', 'description': 'ID token do Google Sign-In (audiência: um dos client IDs do projeto).'}),
         descricao='Valida assinatura, emissor, audiência e validade. 401 INVALID_GOOGLE_TOKEN se inválido; '
                   '403 EMAIL_NOT_VERIFIED se o e-mail de uma conta existente não for verificado; '
                   '503 GOOGLE_NOT_CONFIGURED sem client IDs no servidor.')},
+    '/auth/verificacao/enviar': {'post': _op(
+        '(Re)envia o código de verificação de e-mail', 'Autenticação', _ok(_data(_obj(mensagem=_STR)), 'Pedido aceito (resposta igual para e-mail cadastrado ou não).'), erros=(415, 422, 429),
+        codigo='202', corpo=_obj(email=_STR), descricao='Não revela se o e-mail está cadastrado. Intervalo mínimo entre envios.')},
+    '/auth/verificacao/confirmar': {'post': _op(
+        'Confirma o e-mail com o código', 'Autenticação', _ok(_data(_obj(usuario=_REF('Usuario')))), erros=(415, 422, 429),
+        corpo=_obj(email=_STR, codigo={'type': 'string', 'pattern': '^[0-9]{5}$', 'example': '04821'}),
+        descricao='422 INVALID_CODE ou CODE_EXPIRED; 429 TOO_MANY_ATTEMPTS (5 erros invalidam o código).')},
+    '/auth/recuperacao/solicitar': {'post': _op(
+        'Pede o código para redefinir a senha', 'Autenticação', _ok(_data(_obj(mensagem=_STR)), 'Pedido aceito (resposta igual para e-mail cadastrado ou não).'), erros=(415, 422, 429), codigo='202',
+        corpo=_obj(email=_STR), descricao='Não revela se o e-mail está cadastrado. Limitado por e-mail e por IP.')},
+    '/auth/recuperacao/validar': {'post': _op(
+        'Confere o código de recuperação (sem consumir)', 'Autenticação', _ok(_data(_obj(valido={'type': 'boolean'}))),
+        erros=(415, 422, 429), corpo=_obj(email=_STR, codigo={'type': 'string', 'pattern': '^[0-9]{5}$', 'example': '04821'}))},
+    '/auth/recuperacao/redefinir': {'post': _op(
+        'Define a nova senha com o código', 'Autenticação', _ok(_data(_obj(mensagem=_STR))), erros=(415, 422, 429),
+        corpo=_obj(email=_STR, codigo={'type': 'string', 'pattern': '^[0-9]{5}$', 'example': '04821'}, password=_STR, password_confirm=_STR),
+        descricao='O código é de uso único; todas as sessões da conta (app e site) são encerradas.')},
     '/auth/refresh': {'post': _op(
         'Renova os tokens (rotação)', 'Autenticação', _ok(_data(_obj(tokens=_REF('Tokens')))),
         erros=(401, 415, 422), corpo=_obj(refresh_token=_STR),
@@ -260,10 +283,20 @@ PATHS = {
                       erros=(422,), seguro=True, codigo='204')},
     '/me': {
         'get': _op('Perfil do usuário autenticado', 'Perfil', _ok(_data(_REF('Usuario'))), seguro=True),
-        'patch': _op('Atualiza o próprio perfil', 'Perfil', _ok(_data(_REF('Usuario'))), erros=(415, 422),
-                     seguro=True, corpo=_obj(nome_usuario=_STR, email=_STR, password=_STR, password_confirm=_STR),
-                     descricao='Só estes campos; o tipo de acesso nunca é editável. Trocar a senha encerra '
-                               'as outras sessões do app (a atual continua válida).')},
+        'patch': _op('Atualiza o próprio perfil', 'Perfil', _ok(_data(_REF('Usuario'))), erros=(415, 422, 429),
+                     seguro=True, corpo=_obj(nome_usuario=_STR, email=_STR, password=_STR, password_confirm=_STR,
+                                             password_atual=_STR),
+                     descricao='Só estes campos; o tipo de acesso nunca é editável. Trocar a senha exige '
+                               'password_atual (422 INVALID_CURRENT_PASSWORD), salvo contas sem senha própria, e encerra '
+                               'as outras sessões. O e-mail não muda aqui (422 EMAIL_CHANGE_REQUIRES_VERIFICATION): '
+                               'use POST /me/email.')},
+    '/me/email': {'post': _op(
+        'Pede a troca do e-mail (código no novo endereço)', 'Perfil', _ok(_data(_obj(mensagem=_STR))),
+        erros=(409, 415, 422, 429), seguro=True, codigo='202', corpo=_obj(email=_STR, password_atual=_STR),
+        descricao='O e-mail só muda depois de POST /me/email/confirmar.')},
+    '/me/email/confirmar': {'post': _op(
+        'Confirma a troca do e-mail', 'Perfil', _ok(_data(_REF('Usuario'))), erros=(409, 415, 422, 429), seguro=True,
+        corpo=_obj(codigo={'type': 'string', 'pattern': '^[0-9]{5}$'}))},
     '/me/dashboard': {'get': _op('Resumo do painel do usuário', 'Perfil', _ok(_data(_REF('Dashboard'))),
                                  seguro=True)},
     # ── Painel administrativo (contas admin; o papel é conferido no banco a cada requisição) ──

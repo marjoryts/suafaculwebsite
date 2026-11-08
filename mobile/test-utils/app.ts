@@ -21,6 +21,8 @@ export const usuarioAna: Usuario = {
   avatar_url: null,
   auth_provider: 'local',
   created_at: null,
+  email_verificado: true,
+  senha_definida: true,
 };
 
 export const tokens = (n: number): Tokens => ({

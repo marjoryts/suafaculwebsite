@@ -406,7 +406,13 @@
                             <p>Esses dados identificam sua conta no SuaFacul.</p>
                         </div>
                     </div>
-                    <form id="perfil-form" class="painel-form" novalidate>
+                    {% if not usuario.email_verificado %}
+                    <div class="alert error" id="aviso-email-nao-verificado" style="margin-bottom:16px">
+                        <i class="fas fa-envelope"></i> Seu e-mail ainda não foi confirmado.
+                        <a href="/verificar-email?email={{ usuario.email | urlencode }}&next=%2Fdashboard%23perfil">Confirmar agora</a>
+                    </div>
+                    {% endif %}
+                    <form id="perfil-form" class="painel-form" novalidate data-senha-definida="{{ 1 if usuario.senha_definida else 0 }}">
                         <div class="painel-form-alerta" id="perfil-alert" role="status" aria-live="polite"></div>
                         <div class="painel-campo">
                             <label for="perfil-username">Nome de usuário</label>
@@ -423,16 +429,34 @@
                         </div>
                         <div class="painel-campo">
                             <label for="perfil-password">Nova senha</label>
-                            <input type="password" id="perfil-password" name="password" autocomplete="new-password" minlength="6">
-                            <small>Deixe em branco para manter a senha atual.</small>
+                            <input type="password" id="perfil-password" name="password" autocomplete="new-password" minlength="8" maxlength="128">
+                            <small>{% if usuario.senha_definida %}Deixe em branco para manter a senha atual. {% else %}Sua conta entra pelo Google; aqui você pode criar uma senha. {% endif %}Mínimo de 8 caracteres, com letras e números.</small>
                         </div>
                         <div class="painel-campo">
                             <label for="perfil-password-confirm">Confirmar nova senha</label>
                             <input type="password" id="perfil-password-confirm" name="password_confirm" autocomplete="new-password">
                         </div>
+                        {% if usuario.senha_definida %}
+                        <div class="painel-campo">
+                            <label for="perfil-password-atual">Senha atual</label>
+                            <input type="password" id="perfil-password-atual" name="password_atual" autocomplete="current-password">
+                            <small>Obrigatória para trocar a senha ou o e-mail.</small>
+                        </div>
+                        {% endif %}
                         <div class="painel-form-acoes">
                             <button type="reset" class="btn btn-outline">Descartar alterações</button>
                             <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                        </div>
+                    </form>
+                    <form id="email-codigo-form" class="painel-form" novalidate hidden>
+                        <div class="painel-campo">
+                            <label for="email-codigo">Código enviado para <strong id="email-codigo-destino"></strong></label>
+                            <input type="text" id="email-codigo" name="codigo" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="one-time-code" placeholder="5 dígitos">
+                            <small>O código vale por 30 minutos. Seu e-mail atual continua valendo até a confirmação.</small>
+                        </div>
+                        <div class="painel-form-acoes">
+                            <button type="button" class="btn btn-outline" id="email-codigo-cancelar">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Confirmar novo e-mail</button>
                         </div>
                     </form>
                 </div>

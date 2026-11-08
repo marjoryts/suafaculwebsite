@@ -13,16 +13,24 @@ def _hash_falso():
     return _HASH_FALSO
 
 
+# Colunas devolvidas pelas buscas (nunca a senha).
+_CAMPOS = ("id, nome_usuario, email, tipo, google_id, auth_provider, avatar_url, created_at, "
+           "email_verificado, credencial_versao, senha_definida")
+
+
+def normalizar_email(email):
+    """E-mails são únicos sem diferenciar maiúsculas: guardamos e comparamos em minúsculas."""
+    return (email or '').strip().lower()
+
+
 class Usuario:
     # ── Suporte a login com Google (OIDC) ──────────────────────────────
     def buscar_por_email(self, email):
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute(
-                "SELECT id, nome_usuario, email, tipo, google_id, auth_provider, avatar_url "
-                "FROM usuarios WHERE email=?", (email,)
-            )
+            c.execute(f"SELECT {_CAMPOS} FROM usuarios WHERE LOWER(email)=? ORDER BY id LIMIT 1",
+                      (normalizar_email(email),))
             row = c.fetchone()
             conn.close()
             return dict(row) if row else None
@@ -33,10 +41,7 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute(
-                "SELECT id, nome_usuario, email, tipo, google_id, auth_provider, avatar_url "
-                "FROM usuarios WHERE google_id=?", (google_id,)
-            )
+            c.execute(f"SELECT {_CAMPOS} FROM usuarios WHERE google_id=?", (google_id,))
             row = c.fetchone()
             conn.close()
             return dict(row) if row else None
@@ -68,13 +73,13 @@ class Usuario:
             c = conn.cursor()
             novo_id = inserir(
                 c,
-                "INSERT INTO usuarios (nome_usuario, email, senha, tipo, google_id, auth_provider, avatar_url) "
-                "VALUES (?,?,?,?,?,?,?)",
-                (username, email, senha_inutilizavel, 'aluno', google_id, 'google', avatar_url)
+                "INSERT INTO usuarios (nome_usuario, email, senha, tipo, google_id, auth_provider, avatar_url, "
+                "email_verificado, email_verificado_em, senha_definida) VALUES (?,?,?,?,?,?,?,1,CURRENT_TIMESTAMP,0)",
+                (username, normalizar_email(email), senha_inutilizavel, 'aluno', google_id, 'google', avatar_url)
             )
             conn.commit()
             conn.close()
-            return {'success': True, 'user': {'id': novo_id, 'nome_usuario': username, 'email': email, 'tipo': 'aluno', 'avatar_url': avatar_url}}
+            return {'success': True, 'user': self.buscar_por_id(novo_id)}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
 
@@ -89,10 +94,8 @@ class Usuario:
                 (google_id, avatar_url, user_id)
             )
             conn.commit()
-            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url FROM usuarios WHERE id=?", (user_id,))
-            row = c.fetchone()
             conn.close()
-            return {'success': True, 'user': dict(row) if row else None}
+            return {'success': True, 'user': self.buscar_por_id(user_id)}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
 
@@ -102,7 +105,8 @@ class Usuario:
                 tipo = 'aluno'
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id FROM usuarios WHERE nome_usuario=? OR email=?", (username, email))
+            email = normalizar_email(email)
+            c.execute("SELECT id FROM usuarios WHERE nome_usuario=? OR LOWER(email)=?", (username, email))
             if c.fetchone():
                 conn.close()
                 return {'success': False, 'message': 'Nome de usuário ou e-mail já cadastrado.'}
@@ -118,14 +122,16 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, senha, tipo, avatar_url FROM usuarios WHERE nome_usuario=? OR email=?", (username, username))
+            c.execute(f"SELECT {_CAMPOS}, senha FROM usuarios WHERE nome_usuario=? OR LOWER(email)=? ORDER BY id LIMIT 1",
+                      (username, normalizar_email(username)))
             row = c.fetchone()
             conn.close()
-            if row:
-                if check_password_hash(row['senha'], password):
-                    user = dict(row)
-                    user.pop('senha', None)
-                    return {'success': True, 'user': user}
+            if row is None:
+                check_password_hash(_hash_falso(), password)  # mesmo tempo de resposta
+            elif check_password_hash(row['senha'], password):
+                user = dict(row)
+                user.pop('senha', None)
+                return {'success': True, 'user': user}
                 # Mesma mensagem para "usuário inexistente" e "senha errada":
                 # evita que o login sirva para descobrir quais contas existem.
             return {'success': False, 'message': 'Usuário ou senha inválidos.'}
@@ -141,8 +147,8 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, senha, tipo, avatar_url FROM usuarios "
-                      "WHERE LOWER(email)=LOWER(?) ORDER BY id LIMIT 1", (email,))
+            c.execute(f"SELECT {_CAMPOS}, senha FROM usuarios WHERE LOWER(email)=? ORDER BY id LIMIT 1",
+                      (normalizar_email(email),))
             row = c.fetchone()
             conn.close()
         except Exception:
@@ -171,8 +177,7 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url, auth_provider, created_at "
-                      "FROM usuarios WHERE id=?", (id,))
+            c.execute(f"SELECT {_CAMPOS} FROM usuarios WHERE id=?", (id,))
             row = c.fetchone()
             conn.close()
             return dict(row) if row else None
@@ -184,8 +189,8 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            sql = "SELECT 1 FROM usuarios WHERE (nome_usuario=? OR email=?)"
-            params = [username, email]
+            sql = "SELECT 1 FROM usuarios WHERE (nome_usuario=? OR LOWER(email)=?)"
+            params = [username, normalizar_email(email)]
             if ignorar_id is not None:
                 sql += " AND id<>?"
                 params.append(ignorar_id)
@@ -206,7 +211,8 @@ class Usuario:
             c = conn.cursor()
             if password:
                 hashed = generate_password_hash(password)
-                c.execute("UPDATE usuarios SET nome_usuario=?, email=?, senha=? WHERE id=?", (username, email, hashed, id))
+                c.execute("UPDATE usuarios SET nome_usuario=?, email=?, senha=?, senha_definida=1, "
+                          "credencial_versao=credencial_versao+1 WHERE id=?", (username, email, hashed, id))
             else:
                 c.execute("UPDATE usuarios SET nome_usuario=?, email=? WHERE id=?", (username, email, id))
             conn.commit()
@@ -238,3 +244,46 @@ class Usuario:
             return {'success': True, 'message': 'Usuário deletado com sucesso!'}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
+
+    # ── Verificação de e-mail, senha e sessões ────────────────────────
+    def _executar(self, sql, params):
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute(sql, params)
+            conn.commit()
+            return c.rowcount
+        finally:
+            conn.close()
+
+    def senha_confere(self, id, senha):
+        """A senha informada é a atual da conta? (tempo constante por conta do hash)."""
+        conn = get_connection()
+        try:
+            row = conn.execute("SELECT senha FROM usuarios WHERE id=?", (id,)).fetchone()
+        finally:
+            conn.close()
+        return bool(row) and check_password_hash(row['senha'], senha or '')
+
+    def marcar_email_verificado(self, id):
+        self._executar("UPDATE usuarios SET email_verificado=1, email_verificado_em=CURRENT_TIMESTAMP WHERE id=?", (id,))
+
+    def marcar_email_nao_verificado(self, id):
+        self._executar("UPDATE usuarios SET email_verificado=0, email_verificado_em=NULL WHERE id=?", (id,))
+
+    def trocar_email(self, id, novo_email):
+        """Troca já confirmada (o código foi enviado ao novo endereço): fica verificado."""
+        self._executar("UPDATE usuarios SET email=?, email_verificado=1, email_verificado_em=CURRENT_TIMESTAMP, "
+                       "updated_at=CURRENT_TIMESTAMP WHERE id=?", (normalizar_email(novo_email), id))
+
+    def definir_senha(self, id, senha):
+        """Nova senha + nova versão da credencial (as sessões antigas do site caem)."""
+        self._executar("UPDATE usuarios SET senha=?, senha_definida=1, credencial_versao=credencial_versao+1, "
+                       "updated_at=CURRENT_TIMESTAMP WHERE id=?", (generate_password_hash(senha), id))
+
+    def invalidar_senha(self, id):
+        """Troca a senha por um hash aleatório (ninguém a conhece) e derruba as sessões do site.
+        Usado quando o dono do e-mail assume, pelo Google, uma conta que não tinha o e-mail verificado."""
+        self._executar("UPDATE usuarios SET senha=?, senha_definida=0, credencial_versao=credencial_versao+1, "
+                       "updated_at=CURRENT_TIMESTAMP WHERE id=?", (generate_password_hash(os.urandom(32).hex()), id))
+

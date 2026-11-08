@@ -144,6 +144,8 @@ def _init_db_sem_trava():
         cols = [row[1] for row in c.fetchall()]
         if column not in cols:
             c.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
+            return True  # criada agora (migrações de dados que devem rodar uma única vez)
+        return False
 
     _add_column_if_missing('usuarios', 'tipo', "tipo TEXT NOT NULL DEFAULT 'aluno'")
     _add_column_if_missing('cursos', 'faculdade_id', "faculdade_id INTEGER")
@@ -176,6 +178,53 @@ def _init_db_sem_trava():
     _add_column_if_missing('usuarios', 'auth_provider', "auth_provider TEXT NOT NULL DEFAULT 'local'")
     _add_column_if_missing('usuarios', 'avatar_url', "avatar_url TEXT")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios(google_id) WHERE google_id IS NOT NULL")
+
+    # ── Verificação de e-mail, recuperação de senha e sessões (etapa de segurança) ──
+    # Transição das contas antigas: ninguém é excluído nem bloqueado. Contas locais
+    # começam com e-mail NÃO verificado (podem entrar e são convidadas a verificar;
+    # recuperar a senha também verifica). Contas do Google já vêm verificadas
+    # (o Google confirmou o e-mail). credencial_versao muda a cada troca/recuperação
+    # de senha e derruba as sessões do site (cookie) abertas antes disso.
+    _add_column_if_missing('usuarios', 'email_verificado', "email_verificado INTEGER NOT NULL DEFAULT 0")
+    _add_column_if_missing('usuarios', 'email_verificado_em', "email_verificado_em TIMESTAMP")
+    _add_column_if_missing('usuarios', 'credencial_versao', "credencial_versao INTEGER NOT NULL DEFAULT 1")
+    # 0 = a conta não tem senha conhecida pelo dono (criada via Google ou senha
+    # invalidada): definir uma senha não exige a "senha atual".
+    if _add_column_if_missing('usuarios', 'senha_definida', "senha_definida INTEGER NOT NULL DEFAULT 1"):
+        # Uma única vez: contas criadas pelo Google receberam uma senha aleatória.
+        c.execute("UPDATE usuarios SET senha_definida=0 WHERE auth_provider='google'")
+    c.execute("UPDATE usuarios SET email_verificado=1, email_verificado_em=COALESCE(email_verificado_em, CURRENT_TIMESTAMP) "
+              "WHERE google_id IS NOT NULL AND email_verificado=0")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_usuarios_email_lower ON usuarios(LOWER(email))")
+
+    # Códigos de 5 dígitos enviados por e-mail. Só o HMAC do código é guardado
+    # (com a chave secreta do servidor): nem quem lê o banco descobre o código.
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS codigos_email (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
+        finalidade TEXT NOT NULL CHECK(finalidade IN ('verificacao','recuperacao','troca_email')),
+        codigo_hash TEXT NOT NULL,
+        email_destino TEXT NOT NULL,
+        expira_em TIMESTAMP NOT NULL,
+        tentativas INTEGER NOT NULL DEFAULT 0,
+        usado_em TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_codigos_email_usuario ON codigos_email(usuario_id, finalidade)")
+
+    # Tentativas recentes por chave (e-mail, IP...) para limitar abuso e força bruta.
+    # A chave é um hash: o log de tentativas não guarda e-mails nem IPs em claro.
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS tentativas_acesso (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chave TEXT NOT NULL,
+        criado_em TIMESTAMP NOT NULL
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tentativas_chave ON tentativas_acesso(chave, criado_em)")
 
     # ── Logs da automação diária (vestibulares, importação e-MEC, etc.) ──
     c.execute("""

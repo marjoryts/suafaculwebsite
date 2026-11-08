@@ -36,9 +36,18 @@ def envelope(status, code, message, details=None):
 def registrar_tratadores(app):
     @app.errorhandler(ErroDeNegocio)
     def _erro_de_negocio(e):
+        retry_after = getattr(e, 'retry_after', None)
         if eh_api_v1():
-            return envelope(e.status, e.code, e.message, e.details)
-        return jsonify({'success': False, 'message': e.message})
+            resposta = envelope(e.status, e.code, e.message, e.details)
+        else:
+            # Web legado: HTTP 200 + success:false (contrato do frontend); excesso de
+            # tentativas devolve 429, que o JS trata como erro com a mesma mensagem.
+            resposta = jsonify({'success': False, 'message': e.message})
+            if retry_after:
+                resposta.status_code = 429
+        if retry_after:
+            resposta.headers['Retry-After'] = str(retry_after)
+        return resposta
 
     @app.errorhandler(HTTPException)
     def _erro_http(e):

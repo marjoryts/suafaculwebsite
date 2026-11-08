@@ -28,6 +28,12 @@ def build_app(monkeypatch, inicializar_banco=True):
     monkeypatch.setenv("SUAFACUL_ADMIN_PASSWORD", "admin123")  # só nos testes
     monkeypatch.setenv("SUAFACUL_ADMIN_USER", "")
     monkeypatch.setenv("SUAFACUL_ADMIN_EMAIL", "")
+    # E-mails vão para uma caixa de saída em memória (nada é enviado de verdade).
+    monkeypatch.setenv("EMAIL_MODO", "memoria")
+    for var in ("SMTP_HOST", "SMTP_USUARIO", "SMTP_SENHA", "GOOGLE_ANDROID_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID"):
+        monkeypatch.setenv(var, "")
+    from app.services import email_service
+    email_service.caixa_de_saida.clear()
 
     from app.factory import create_app
     from app.bootstrap import init_database

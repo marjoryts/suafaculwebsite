@@ -64,12 +64,20 @@ def test_prova_passada_nao_aparece_em_proximas(app, client):
 # ── Perfil próprio ──
 
 def test_usuario_atualiza_o_proprio_perfil(client):
+    import re
+    from app.services import email_service
     _registrar_e_logar(client)
     r = client.post('/api/usuario/perfil', data={'username': 'aluna2', 'email': 'nova@exemplo.com',
-                                                  'password': 'novasenha', 'password_confirm': 'novasenha'})
-    assert r.get_json()['success'] is True
+                                                  'password_atual': 'segredo123',
+                                                  'password': 'novasenha1', 'password_confirm': 'novasenha1'})
+    body = r.get_json()
+    assert body['success'] is True and body['email_pendente'] is True  # e-mail novo só após o código
+    msg = email_service.caixa_de_saida[-1]
+    assert msg['To'] == 'nova@exemplo.com'
+    codigo = re.search(r'Código: (\d{5})', msg.get_body(('plain',)).get_content()).group(1)
+    assert client.post('/api/usuario/email/confirmar', data={'codigo': codigo}).get_json()['success'] is True
     client.get('/logout')
-    login = client.post('/api/usuario/login', data={'username': 'aluna2', 'password': 'novasenha'}).get_json()
+    login = client.post('/api/usuario/login', data={'username': 'aluna2', 'password': 'novasenha1'}).get_json()
     assert login['success'] is True
     assert login['user']['email'] == 'nova@exemplo.com'
 
@@ -82,7 +90,7 @@ def test_perfil_valida_confirmacao_de_senha(client):
 
 
 def test_perfil_rejeita_nome_ja_usado(client):
-    client.post('/api/usuario/registrar', data={'username': 'ocupado', 'email': 'ocupado@exemplo.com', 'password': 'x12345'})
+    client.post('/api/usuario/registrar', data={'username': 'ocupado', 'email': 'ocupado@exemplo.com', 'password': 'x1234567'})
     _registrar_e_logar(client)
     r = client.post('/api/usuario/perfil', data={'username': 'ocupado', 'email': 'aluna@exemplo.com'})
     body = r.get_json()
@@ -120,7 +128,7 @@ def test_anonimo_nao_cria_curso_nem_vestibular(client):
 
 
 def test_buscar_usuario_so_proprio_ou_admin(client):
-    outro = client.post('/api/usuario/registrar', data={'username': 'outro', 'email': 'outro@exemplo.com', 'password': 'x12345'})
+    outro = client.post('/api/usuario/registrar', data={'username': 'outro', 'email': 'outro@exemplo.com', 'password': 'x1234567'})
     assert outro.get_json()['success']
     assert client.get('/api/usuario/buscar?id=1').status_code == 401     # anônimo
     user = _registrar_e_logar(client)
