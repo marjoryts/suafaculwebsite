@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection
+from config.database import get_connection, hoje_iso, inserir
 
 class Favorito:
     def adicionar(self, usuario_id, tipo, item_id, nome_item):
@@ -11,8 +11,8 @@ class Favorito:
             if c.fetchone():
                 conn.close()
                 return {'success': False, 'message': 'Item já está nos favoritos.'}
-            c.execute("INSERT INTO favoritos (usuario_id, tipo, item_id, nome_item) VALUES (?,?,?,?)", (usuario_id, tipo, item_id, nome_item))
-            id = c.lastrowid
+            id = inserir(c, "INSERT INTO favoritos (usuario_id, tipo, item_id, nome_item) VALUES (?,?,?,?)",
+                         (usuario_id, tipo, item_id, nome_item))
             conn.commit()
             conn.close()
             return {'success': True, 'message': 'Favorito adicionado com sucesso!', 'id': id}
@@ -95,9 +95,9 @@ class Favorito:
                 "SELECT v.id, v.nome, v.instituicao, v.cidade, v.regiao, v.data_prova, v.periodo_inscricao, v.link_edital "
                 "FROM favoritos f JOIN vestibulares v ON v.id = f.item_id "
                 "WHERE f.usuario_id=? AND f.tipo='vestibular' AND v.data_prova IS NOT NULL "
-                "AND date(v.data_prova) >= date('now') "
-                "ORDER BY date(v.data_prova) ASC LIMIT ?",
-                (usuario_id, limite)
+                "AND v.data_prova >= ? "
+                "ORDER BY v.data_prova ASC LIMIT ?",
+                (usuario_id, hoje_iso(), limite)
             )
             rows = [dict(r) for r in c.fetchall()]
             conn.close()

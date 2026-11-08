@@ -56,29 +56,33 @@ def test_migracao_corrige_banco_antigo(app, monkeypatch):
 
 # ── Senha do admin criado automaticamente ──
 
-@pytest.mark.parametrize('ambiente, senha_ok, senha_bloqueada', [
-    ({}, 'admin123', None),
-    ({'VERCEL': '1'}, None, 'admin123'),
-    ({'VERCEL': '1', 'SUAFACUL_ADMIN_PASSWORD': 'Senha-Forte-123'}, 'Senha-Forte-123', 'admin123'),
+# Regra mantida na integração (correção de segurança da Etapa 0): o admin só é
+# criado com SUAFACUL_ADMIN_PASSWORD — nunca com senha padrão ou aleatória.
+@pytest.mark.parametrize('ambiente, senha_esperada', [
+    ({}, None),
+    ({'VERCEL': '1'}, None),
+    ({'VERCEL': '1', 'SUAFACUL_ADMIN_PASSWORD': 'Senha-Forte-123'}, 'Senha-Forte-123'),
+    ({'SUAFACUL_ADMIN_PASSWORD': 'Outra-Senha-456'}, 'Outra-Senha-456'),
 ])
-def test_senha_do_admin_inicial(tmp_path, monkeypatch, ambiente, senha_ok, senha_bloqueada):
+def test_senha_do_admin_inicial(tmp_path, monkeypatch, ambiente, senha_esperada):
     from werkzeug.security import check_password_hash
     db = tmp_path / 'admin.db'
     monkeypatch.setenv('SUAFACUL_DB_PATH', str(db))
     monkeypatch.delenv('VERCEL', raising=False)
     monkeypatch.delenv('SUAFACUL_ADMIN_PASSWORD', raising=False)
+    monkeypatch.delenv('SUAFACUL_ADMIN_USER', raising=False)
     for chave, valor in ambiente.items():
         monkeypatch.setenv(chave, valor)
 
     import database.init_db as init_db
     importlib.reload(init_db).init_db()
 
-    hash_senha = sqlite3.connect(db).execute(
-        "SELECT senha FROM usuarios WHERE nome_usuario='admin'").fetchone()[0]
-    if senha_ok:
-        assert check_password_hash(hash_senha, senha_ok)
-    if senha_bloqueada:
-        assert not check_password_hash(hash_senha, senha_bloqueada)
+    admins = sqlite3.connect(db).execute("SELECT senha FROM usuarios WHERE tipo='admin'").fetchall()
+    if senha_esperada is None:
+        assert admins == []                      # sem variável: nenhum admin (nem 'admin123')
+    else:
+        assert len(admins) == 1 and check_password_hash(admins[0][0], senha_esperada)
+        assert not check_password_hash(admins[0][0], 'admin123')
 
 
 # ── Front-end ──

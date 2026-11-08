@@ -1,6 +1,27 @@
+"""Ponto ÚNICO de acesso ao banco de dados (hoje SQLite).
+
+Tudo que depende do motor SQL deve passar por aqui, para que uma futura
+troca (ex.: PostgreSQL) mexa em um arquivo e não na aplicação inteira:
+
+  get_connection()      conexão configurada
+  inserir()             INSERT que devolve o id gerado
+  ErroDeIntegridade     exceção de violação de UNIQUE/FK
+  sql_norm()            comparação sem acento/caixa dentro do SQL
+  like_ci()             LIKE sem diferenciar maiúsculas
+  agora_utc_str(), hoje_iso()   datas calculadas em Python (não em SQL)
+
+Inventário completo das dependências de SQLite: docs/banco-de-dados.md.
+Camadas: rotas → services → models (repositórios: único lugar com SQL) → aqui.
+"""
 import sqlite3
 import os
 import unicodedata
+from datetime import date, datetime, timedelta, timezone
+
+DIALECT = 'sqlite'
+
+# Violação de UNIQUE/FK/CHECK. PostgreSQL: psycopg.errors.IntegrityError.
+ErroDeIntegridade = sqlite3.IntegrityError
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'suafacul.db')
 
@@ -32,7 +53,7 @@ def get_db_path():
 def normalizar(texto):
     """Minúsculas e sem acentos: 'São Paulo' -> 'sao paulo'. Usada nas
     buscas para que 'sao', 'SÃO' e 'São' encontrem o mesmo registro
-    (o LIKE/NOCASE do SQLite só ignora caixa em ASCII, não acentos)."""
+    (o LIKE do SQLite só ignora caixa em ASCII, não acentos)."""
     if texto is None:
         return None
     decomposto = unicodedata.normalize('NFD', str(texto))
@@ -44,6 +65,40 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    # Disponível no SQL como normalizar(coluna) — ver busca_service.py.
+    # Função Python exposta ao SQL como normalizar(coluna) — ver sql_norm().
     conn.create_function('normalizar', 1, normalizar, deterministic=True)
     return conn
+
+
+# ── Helpers que isolam diferenças entre motores SQL ─────────────────────
+
+def inserir(cursor, sql, params=()):
+    """Executa um INSERT e devolve o id gerado.
+    SQLite: cursor.lastrowid. PostgreSQL: acrescentar 'RETURNING id' e ler
+    a linha devolvida (psycopg não tem lastrowid)."""
+    cursor.execute(sql, params)
+    return cursor.lastrowid
+
+
+def sql_norm(coluna):
+    """Expressão SQL 'coluna sem acento e em minúsculas'.
+    SQLite: função Python registrada acima. PostgreSQL: unaccent(lower(col))
+    (extensão unaccent) ou coluna normalizada persistida."""
+    return f"normalizar({coluna})"
+
+
+def like_ci(coluna):
+    """Condição 'coluna LIKE ?' sem diferenciar maiúsculas de minúsculas.
+    SQLite: LIKE já ignora caixa (ASCII). PostgreSQL: usar ILIKE."""
+    return f"{coluna} LIKE ?"
+
+
+def agora_utc_str(dias_atras=0):
+    """'YYYY-MM-DD HH:MM:SS' em UTC (mesmo formato de CURRENT_TIMESTAMP),
+    para comparar com colunas created_at/updated_at sem funções de data do SQL."""
+    return (datetime.now(timezone.utc) - timedelta(days=dias_atras)).strftime('%Y-%m-%d %H:%M:%S')
+
+
+def hoje_iso():
+    """Data de hoje 'YYYY-MM-DD' (para comparar com colunas de data em ISO)."""
+    return date.today().isoformat()

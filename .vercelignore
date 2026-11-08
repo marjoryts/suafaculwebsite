@@ -1,0 +1,17 @@
+# Não enviar para o bundle da função (limite de tamanho; nada disso é runtime)
+.env
+.env.*
+!.env.example
+.git
+.pytest_cache
+__pycache__
+tests
+docs
+mobile
+database/*.db
+database/*.db-wal
+database/*.db-shm
+data
+*.md
+!README.md
+requirements-dev.txt

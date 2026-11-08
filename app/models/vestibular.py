@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection
+from config.database import get_connection, hoje_iso, inserir, like_ci
 
 class Vestibular:
     def _build_where(self, filtros):
@@ -21,18 +21,18 @@ class Vestibular:
                 params.extend(regioes)
         if filtros.get('busca'):
             like = f"%{filtros['busca']}%"
-            sql += (" AND (nome LIKE ? OR instituicao LIKE ? OR cidade LIKE ?"
-                    " OR descricao LIKE ? OR cursos_oferecidos LIKE ?)")
-            params.extend([like] * 5)
+            # Ignora acentos/maiúsculas (like_ci) e procura também na descrição e
+            # na lista de cursos oferecidos pelo processo seletivo.
+            campos = ('nome', 'instituicao', 'cidade', 'descricao', 'cursos_oferecidos')
+            sql += " AND (" + " OR ".join(like_ci(campo) for campo in campos) + ")"
+            params.extend([like] * len(campos))
         if filtros.get('meses'):
-            meses = filtros['meses']
-            clauses = []
-            for m in meses:
-                # SQLite: strftime('%m', data_prova)
-                clauses.append("CAST(strftime('%m', data_prova) AS INTEGER)=?")
-                params.append(int(m))
-            if clauses:
-                sql += f" AND ({' OR '.join(clauses)})"
+            # data_prova é texto ISO 'AAAA-MM-DD': o mês são os caracteres 6-7
+            # (SUBSTR é padrão SQL; evita strftime, exclusivo do SQLite).
+            meses = [f"{int(m):02d}" for m in filtros['meses']]
+            sql += (" AND data_prova LIKE '____-__-%'"
+                    f" AND SUBSTR(data_prova, 6, 2) IN ({','.join('?' * len(meses))})")
+            params.extend(meses)
         if filtros.get('apenas_publicos'):
             sql += " AND tipo_instituicao='Pública'"
         if filtros.get('curso'):
@@ -50,9 +50,11 @@ class Vestibular:
             where, params = self._build_where(filtros)
             # Próximas provas primeiro (da mais próxima para a mais distante),
             # depois as que já passaram e, por último, as sem data definida.
+            # "Hoje" vem do Python (hoje_iso): a função de data atual do SQLite não é portável.
             sql = ("SELECT * FROM vestibulares" + where +
                    " ORDER BY (data_prova IS NULL OR date(data_prova) IS NULL),"
-                   " (date(data_prova) < date('now')), data_prova ASC, nome ASC")
+                   " (date(data_prova) < ?), data_prova ASC, nome ASC")
+            params.append(hoje_iso())
             if 'limit' in filtros and 'offset' in filtros:
                 sql += " LIMIT ? OFFSET ?"
                 params.extend([filtros['limit'], filtros['offset']])
@@ -83,8 +85,8 @@ class Vestibular:
             conn = get_connection()
             c = conn.cursor()
             c.execute(
-                "SELECT * FROM vestibulares WHERE date(data_prova) >= date('now') "
-                "ORDER BY date(data_prova) ASC, nome ASC LIMIT ?", (limite,)
+                "SELECT * FROM vestibulares WHERE date(data_prova) >= ? "
+                "ORDER BY date(data_prova) ASC, nome ASC LIMIT ?", (hoje_iso(), limite)
             )
             rows = [dict(r) for r in c.fetchall()]
             conn.close()
@@ -111,15 +113,74 @@ class Vestibular:
             if c.fetchone():
                 conn.close()
                 return {'success': False, 'message': 'Já existe um vestibular cadastrado com esse nome.'}
-            c.execute(
+            id = inserir(
+                c,
                 "INSERT INTO vestibulares (nome, instituicao, tipo_instituicao, cidade, regiao, periodo_inscricao, data_prova, descricao, link_edital, taxa_inscricao, cursos_oferecidos, requisitos) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (dados['nome'].strip(), dados.get('instituicao',''), dados['tipo_instituicao'], dados['cidade'],
                  dados['regiao'], dados['periodo_inscricao'], dados['data_prova'] or None, dados['descricao'], dados['link_edital'],
                  dados.get('taxa_inscricao') or None, dados.get('cursos_oferecidos') or None, dados.get('requisitos') or None)
             )
-            id = c.lastrowid
             conn.commit()
             conn.close()
             return {'success': True, 'message': 'Vestibular criado com sucesso!', 'id': id}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
+
+    def listar_para_validacao(self):
+        """Campos usados pela automação de validação (todos os vestibulares)."""
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT id, nome, instituicao, data_prova, faculdade_id FROM vestibulares")
+            return [dict(r) for r in c.fetchall()]
+        finally:
+            conn.close()
+
+    def aplicar_validacoes(self, itens):
+        """Grava o resultado da validação numa única transação (tudo ou nada).
+
+        itens: [{'vestibular_id', 'status_validacao', 'cadastrado_ok', 'faculdade_id'}]
+        faculdade_id None preserva o vínculo já existente.
+        """
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            for i in itens:
+                c.execute(
+                    """UPDATE vestibulares
+                       SET status_validacao=?, cadastrado_ok=?, faculdade_id=COALESCE(?, faculdade_id),
+                           ultima_validacao=CURRENT_TIMESTAMP
+                       WHERE id=?""",
+                    (i['status_validacao'], 1 if i['cadastrado_ok'] else 0, i['faculdade_id'], i['vestibular_id'])
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def nome_por_id(self, id):
+        """Nome do registro (ou None se não existir) — consulta leve, sem relacionamentos."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT nome FROM vestibulares WHERE id=?", (id,))
+            row = c.fetchone()
+            conn.close()
+            return row['nome'] if row else None
+        except Exception:
+            return None
+
+    def resumos_por_ids(self, ids):
+        """{id: resumo} em UMA consulta (usado para enriquecer a lista de favoritos)."""
+        ids = list({int(i) for i in ids})
+        if not ids:
+            return {}
+        conn = get_connection()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT id, nome, instituicao, cidade, data_prova, periodo_inscricao, status_validacao FROM vestibulares WHERE id IN (" + ','.join('?' * len(ids)) + ")", ids)
+            return {r['id']: dict(r) for r in c.fetchall()}
+        finally:
+            conn.close()

@@ -31,33 +31,21 @@ percentual — ficam fora das recomendações e são contados como
 import json
 import re
 
-from config.database import get_connection, normalizar
+from app.models.curso import Curso
+from app.services.teste_vocacional_dados import ORDEM_PERFIS, PERFIS as _DADOS_PERFIS, SECOES
+from config.database import normalizar
 
-PERFIS = ('tecnico', 'criativo', 'humano', 'gestao', 'cientifico', 'pratico')
+PERFIS = tuple(ORDEM_PERFIS)
 
-# Descrição de cada perfil (antes ficava em `profilesInfo` no JS do teste).
-DESCRICOES = {
-    'tecnico': 'Você gosta de lógica, tecnologia e resolução de problemas. Prefere atividades estruturadas e analíticas.',
-    'criativo': 'Você se destaca pela criatividade, comunicação e expressão. Gosta de ambientes dinâmicos e flexíveis.',
-    'humano': 'Você tem empatia, gosta de ajudar pessoas e trabalhar em grupo. Valoriza impacto social.',
-    'gestao': 'Você gosta de organizar, planejar, liderar e entender como as coisas funcionam em empresas.',
-    'cientifico': 'Você é curioso(a), gosta de pesquisa, experimentos e se aprofunda em temas complexos.',
-    'pratico': 'Você aprende fazendo, gosta de atividades manuais ou aplicadas e prefere menos teoria.',
-}
+# Perguntas, alternativas e descrições vêm de app/services/teste_vocacional_dados.py,
+# a mesma fonte usada pela página do teste (gerada a partir dela) e pela API do app.
+DESCRICOES = {chave: _DADOS_PERFIS[chave]['descricao'] for chave in PERFIS}
 
-# Alternativas válidas de cada pergunta (os `value` dos radios em
-# app/templates/testevocacional.html). Respostas fora disso são rejeitadas.
+# Alternativas válidas de cada pergunta, no formato dos `value` dos radios
+# da página ("tecnico,cientifico"). Respostas fora disso são rejeitadas.
 QUESTOES = {
-    'q1': ['tecnico,cientifico', 'criativo', 'humano', 'gestao', 'pratico'],
-    'q2': ['humano', 'gestao,tecnico', 'tecnico,pratico', 'criativo'],
-    'q3': ['tecnico,cientifico', 'criativo', 'humano', 'gestao'],
-    'q4': ['humano', 'criativo', 'tecnico', 'gestao', 'pratico'],
-    'q5': ['tecnico,pratico', 'humano,gestao,criativo'],
-    'q6': ['criativo,gestao,pratico', 'tecnico,cientifico,humano'],
-    'q7': ['gestao', 'humano', 'criativo', 'tecnico,cientifico', 'pratico'],
-    'q8': ['cientifico,tecnico', 'pratico,gestao'],
-    'q9': ['gestao,tecnico', 'criativo,tecnico,pratico', 'humano,cientifico', 'gestao,criativo'],
-    'q10': ['tecnico', 'criativo', 'humano', 'gestao', 'cientifico', 'pratico'],
+    p['id']: [','.join(o['perfis']) for o in p['opcoes']]
+    for secao in SECOES for p in secao['perguntas']
 }
 
 
@@ -189,17 +177,7 @@ def recomendar_cursos(scores, limite=50):
     instituições) e informa quantas instituições oferecem cada um. Empates
     de percentual são desempatados por oferta e depois por nome."""
     afin = afinidades(scores)
-    conn = get_connection()
-    try:
-        c = conn.cursor()
-        c.execute(
-            "SELECT nome, area, COUNT(*) AS total, MIN(id) AS id, "
-            "MAX(COALESCE(descricao, '')) AS descricao, MAX(COALESCE(grau, '')) AS grau "
-            "FROM cursos GROUP BY nome, area"
-        )
-        linhas = [dict(r) for r in c.fetchall()]
-    finally:
-        conn.close()
+    linhas = Curso().agrupados_por_nome_e_area()
 
     grupos = {}
     for r in linhas:

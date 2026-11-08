@@ -1,7 +1,17 @@
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config.database import get_connection
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from config.database import get_connection, inserir
 from werkzeug.security import generate_password_hash, check_password_hash
+
+_HASH_FALSO = None
+
+
+def _hash_falso():
+    global _HASH_FALSO
+    if _HASH_FALSO is None:
+        _HASH_FALSO = generate_password_hash('senha-inexistente-para-equalizar-o-tempo')
+    return _HASH_FALSO
+
 
 class Usuario:
     # ── Suporte a login com Google (OIDC) ──────────────────────────────
@@ -56,13 +66,13 @@ class Usuario:
             senha_inutilizavel = generate_password_hash(os.urandom(32).hex())
             conn = get_connection()
             c = conn.cursor()
-            c.execute(
+            novo_id = inserir(
+                c,
                 "INSERT INTO usuarios (nome_usuario, email, senha, tipo, google_id, auth_provider, avatar_url) "
                 "VALUES (?,?,?,?,?,?,?)",
                 (username, email, senha_inutilizavel, 'aluno', google_id, 'google', avatar_url)
             )
             conn.commit()
-            novo_id = c.lastrowid
             conn.close()
             return {'success': True, 'user': {'id': novo_id, 'nome_usuario': username, 'email': email, 'tipo': 'aluno', 'avatar_url': avatar_url}}
         except Exception as e:
@@ -116,12 +126,35 @@ class Usuario:
                     user = dict(row)
                     user.pop('senha', None)
                     return {'success': True, 'user': user}
-                else:
-                    return {'success': False, 'message': 'Senha incorreta.'}
-            else:
-                return {'success': False, 'message': 'Usuário não encontrado.'}
+                # Mesma mensagem para "usuário inexistente" e "senha errada":
+                # evita que o login sirva para descobrir quais contas existem.
+            return {'success': False, 'message': 'Usuário ou senha inválidos.'}
         except Exception as e:
             return {'success': False, 'message': f'Erro: {str(e)}'}
+
+    def autenticar_por_email(self, email, senha):
+        """Valida e-mail + senha. Devolve o usuário (sem a senha) ou None.
+
+        Quando o e-mail não existe, ainda assim verifica uma senha "falsa": o
+        tempo de resposta não revela se a conta existe.
+        """
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT id, nome_usuario, email, senha, tipo, avatar_url FROM usuarios "
+                      "WHERE LOWER(email)=LOWER(?) ORDER BY id LIMIT 1", (email,))
+            row = c.fetchone()
+            conn.close()
+        except Exception:
+            return None
+        if row is None:
+            check_password_hash(_hash_falso(), senha)
+            return None
+        if not check_password_hash(row['senha'], senha):
+            return None
+        usuario = dict(row)
+        usuario.pop('senha', None)
+        return usuario
 
     def listar(self):
         try:
@@ -145,6 +178,23 @@ class Usuario:
             return dict(row) if row else None
         except Exception:
             return None
+
+    def existe_conflito(self, username, email, ignorar_id=None):
+        """Já existe OUTRO usuário com esse nome de usuário ou e-mail?"""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            sql = "SELECT 1 FROM usuarios WHERE (nome_usuario=? OR email=?)"
+            params = [username, email]
+            if ignorar_id is not None:
+                sql += " AND id<>?"
+                params.append(ignorar_id)
+            c.execute(sql, params)
+            existe = c.fetchone() is not None
+            conn.close()
+            return existe
+        except Exception:
+            return False
 
     def is_admin(self, id):
         u = self.buscar_por_id(id)
