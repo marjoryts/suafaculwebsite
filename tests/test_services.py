@@ -62,7 +62,9 @@ def test_submeter_anonimo_salva_sem_usuario_e_sugere_cursos(app):
     r = tv.submeter(TODAS_A, usuario_id=None)
     assert r['salvo'] is True
     assert [p['chave'] for p in r['perfis']] == ['tecnico']
-    assert any(c['nome'] == 'Ciência da Computação X' for c in r['perfis'][0]['cursos_sugeridos'])
+    # Sugestões vêm dos cursos do banco; com o catálogo ampliado, os cursos
+    # oferecidos por mais instituições vêm antes do curso criado no teste.
+    assert any('Computação' in c['nome'] for c in r['perfis'][0]['cursos_sugeridos'])
     conn = get_connection()
     linha = conn.execute("SELECT usuario_id, perfil_principal, perfis_json FROM teste_vocacional_resultados").fetchone()
     conn.close()

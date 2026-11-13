@@ -12,6 +12,13 @@ let currentFilters = {
     tipo_instituicao: null
 };
 
+// Card de curso da home (/faculdades?curso=<nome>&exato=1): enquanto o
+// campo "curso" continuar com esse nome, a busca compara o nome inteiro do
+// curso ("Física" não traz faculdades que só têm "Educação Física"). Se o
+// usuário editar o campo, volta à busca por parte do nome.
+const _paramsIniciais = new URLSearchParams(window.location.search);
+const cursoExatoDaURL = _paramsIniciais.get('exato') === '1' ? (_paramsIniciais.get('curso') || '').trim() : '';
+
 // Evita race condition: se duas buscas saírem quase juntas (ex.: usuário
 // muda dois filtros rápido), só a resposta da requisição mais recente é
 // renderizada — uma resposta antiga que chegue depois é descartada.
@@ -49,6 +56,9 @@ async function fetchFaculdades(filters = {}, page = 1) {
         }
         if (filters.curso && filters.curso.trim()) {
             params.append('curso', filters.curso.trim());
+            if (cursoExatoDaURL && filters.curso.trim().toLowerCase() === cursoExatoDaURL.toLowerCase()) {
+                params.append('curso_exato', '1');
+            }
         }
         if (filters.cidade && filters.cidade.trim()) {
             params.append('cidade', filters.cidade.trim());

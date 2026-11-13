@@ -223,6 +223,27 @@ def _init_db_sem_trava():
     """)
     c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_familia ON refresh_tokens(familia_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_usuario ON refresh_tokens(usuario_id)")
+
+    # ── Catálogo de cursos da página inicial (um registro por formação) ──
+    # Guarda o que não muda de instituição para instituição: área, grau e
+    # duração típicos, descrição e a imagem do card. As ofertas continuam
+    # na tabela cursos (uma linha por curso em cada instituição).
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS cursos_catalogo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        area TEXT,
+        grau TEXT,
+        duracao TEXT,
+        descricao TEXT,
+        imagem_url TEXT,
+        ordem INTEGER DEFAULT 0,
+        seed_versao INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_cursos_faculdade ON cursos(faculdade_id)")
     conn.commit()
 
     # Bootstrap do primeiro admin: só acontece se NENHUM admin existir E a senha
@@ -383,6 +404,9 @@ def _init_db_sem_trava():
     # nada (IDs, favoritos e inscrições são preservados).
     sincronizar_vestibulares(conn)
 
+    # Catálogo ampliado de cursos e instituições (database/catalogo_dados.py).
+    sincronizar_catalogo(conn)
+
     conn.commit()
 
     # ── Migração: o tipo de instituição do curso segue o da faculdade a que
@@ -456,6 +480,109 @@ def sincronizar_vestibulares(conn):
             c.execute("UPDATE vestibulares SET faculdade_id=? WHERE id=?", (mapa_faculdades[instituicao], vest_id))
     conn.commit()
     return {'inseridos': inseridos, 'atualizados': atualizados}
+
+
+def _norm(texto):
+    from config.database import normalizar
+    return ' '.join((normalizar(texto or '') or '').split())
+
+
+def _localizar_faculdade(c, sigla, dados):
+    """Faculdade já cadastrada que corresponde à sigla do catálogo: mesma
+    sigla e UF, ou mesmo nome (sem acento/caixa) — com ou sem o prefixo
+    'SIGLA - ' usado pelo seed manual (registros do e-MEC vêm sem ele)."""
+    nome, _org, _tipo, _url, _end, _cidade, uf = dados
+    c.execute("SELECT id, nome, tipo_instituicao FROM faculdades "
+              "WHERE UPPER(TRIM(sigla)) = UPPER(?) AND UPPER(TRIM(COALESCE(uf, ''))) = ? ORDER BY id LIMIT 1",
+              (sigla, uf.upper()))
+    row = c.fetchone()
+    if row:
+        return row
+    nomes = {_norm(nome), _norm(nome.split(' - ', 1)[-1])}
+    c.execute("SELECT id, nome, tipo_instituicao FROM faculdades WHERE normalizar(nome) IN (?, ?) ORDER BY id LIMIT 1",
+              tuple(nomes) if len(nomes) == 2 else (next(iter(nomes)),) * 2)
+    return c.fetchone()
+
+
+def sincronizar_catalogo(conn):
+    """Garante o catálogo ampliado de cursos e instituições (ver
+    database/catalogo_dados.py), sem duplicar e sem apagar nada:
+
+    - cursos_catalogo: insere a formação que falta; atualiza a que veio de
+      uma versão anterior do catálogo (seed_versao < CATALOGO_VERSAO).
+    - faculdades: reaproveita a instituição já cadastrada (manual ou e-MEC);
+      insere só as que não existem.
+    - cursos: insere a oferta (curso + instituição) que ainda não existe —
+      mesmo nome de curso (sem acento/caixa) na mesma faculdade.
+
+    Quando o catálogo da versão atual já foi aplicado, não faz nada: assim
+    o init (que roda a cada inicialização, inclusive na Vercel) fica leve e
+    o que o admin excluir depois não volta sozinho.
+    Retorna {'catalogo': n, 'faculdades': n, 'cursos': n} (itens inseridos)."""
+    from config.database import normalizar
+    from database.catalogo_dados import CATALOGO_VERSAO, CURSOS, INSTITUICOES
+
+    conn.create_function('normalizar', 1, normalizar, deterministic=True)
+    c = conn.cursor()
+    resumo = {'catalogo': 0, 'faculdades': 0, 'cursos': 0}
+
+    c.execute("SELECT COUNT(*) FROM cursos_catalogo WHERE seed_versao >= ?", (CATALOGO_VERSAO,))
+    if c.fetchone()[0] >= len(CURSOS):
+        return resumo
+
+    # 1) Formações do catálogo
+    for ordem, curso in enumerate(CURSOS):
+        valores = (curso['area'], curso['grau'], curso['duracao'], curso['descricao'], curso['imagem'], ordem)
+        c.execute("SELECT id, seed_versao FROM cursos_catalogo WHERE nome = ?", (curso['nome'],))
+        row = c.fetchone()
+        if row is None:
+            c.execute("INSERT INTO cursos_catalogo (area, grau, duracao, descricao, imagem_url, ordem, nome, seed_versao) "
+                      "VALUES (?,?,?,?,?,?,?,?)", valores + (curso['nome'], CATALOGO_VERSAO))
+            resumo['catalogo'] += 1
+        elif (row[1] or 0) < CATALOGO_VERSAO:
+            c.execute("UPDATE cursos_catalogo SET area=?, grau=?, duracao=?, descricao=?, imagem_url=?, ordem=?, "
+                      "seed_versao=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                      valores + (CATALOGO_VERSAO, row[0]))
+
+    # 2) Instituições usadas nas ofertas
+    faculdades = {}
+    siglas_usadas = {oferta[0] for curso in CURSOS for oferta in curso['ofertas']}
+    for sigla in sorted(siglas_usadas):
+        dados = INSTITUICOES[sigla]
+        row = _localizar_faculdade(c, sigla, dados)
+        if row is None:
+            nome, org, tipo, url, endereco, cidade, uf = dados
+            c.execute("""INSERT INTO faculdades
+                         (nome, sigla, organizacao_academica, tipo_instituicao, url, endereco, cidade, uf, situacao, fonte)
+                         VALUES (?,?,?,?,?,?,?,?, 'ativa', 'manual')""",
+                      (nome, sigla, org, tipo, url, endereco, cidade, uf))
+            row = (c.lastrowid, nome, tipo)
+            resumo['faculdades'] += 1
+        faculdades[sigla] = row
+
+    # 3) Ofertas (uma linha em cursos por curso em cada instituição)
+    for curso in CURSOS:
+        nome_norm = _norm(curso['nome'])
+        for oferta in curso['ofertas']:
+            sigla, modalidade = oferta[0], oferta[1]
+            grau = oferta[2] if len(oferta) > 2 else curso['grau']
+            fac_id, fac_nome, fac_tipo = faculdades[sigla]
+            c.execute("SELECT 1 FROM cursos WHERE normalizar(nome) = ? AND (faculdade_id = ? OR instituicao = ?) LIMIT 1",
+                      (nome_norm, fac_id, fac_nome))
+            if c.fetchone():
+                continue
+            c.execute("""INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao, duracao,
+                                             grau, area, tipo_instituicao)
+                         VALUES (?,?,?,?,?,?,?,?,?)""",
+                      (curso['nome'], fac_nome, fac_id, modalidade, curso['descricao'], curso['duracao'],
+                       grau, curso['area'], fac_tipo))
+            resumo['cursos'] += 1
+
+    conn.commit()
+    if any(resumo.values()):
+        print(f"[init_db] Catálogo v{CATALOGO_VERSAO}: {resumo['catalogo']} formação(ões), "
+              f"{resumo['faculdades']} instituição(ões) e {resumo['cursos']} oferta(s) de curso inseridas.")
+    return resumo
 
 
 if __name__ == '__main__':

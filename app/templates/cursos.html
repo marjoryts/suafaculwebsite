@@ -44,11 +44,9 @@
                             <div class="filter-group" data-filtro="area">
                                 <h4>Área de conhecimento</h4>
                                 <div class="filter-options">
-                                    <button type="button">Tecnologia</button>
-                                    <button type="button">Saúde</button>
-                                    <button type="button">Direito</button>
-                                    <button type="button">Negócios</button>
-                                    <button type="button">Artes e Design</button>
+                                    {% for area in areas or ['Tecnologia', 'Saúde', 'Direito', 'Negócios', 'Artes e Design'] %}
+                                    <button type="button">{{ area }}</button>
+                                    {% endfor %}
                                     <button type="button" class="active">Todas as áreas</button>
                                 </div>
                             </div>

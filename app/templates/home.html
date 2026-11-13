@@ -139,8 +139,22 @@
                     <button type="submit" class="btn-search">Pesquisar</button>
                 </form>
 
-                <div class="cursos-lista" id="cursos-lista-home">
-                    <p class="loading">Carregando cursos...</p>
+                <!-- Áreas, cards e contagem vêm de /api/cursos/catalogo (home-cursos.js) -->
+                <div class="cursos-areas" id="home-cursos-areas" role="group" aria-label="Filtrar cursos por área"></div>
+
+                <div class="cursos-grade" id="cursos-lista-home" aria-live="polite" aria-busy="true">
+                    {% for _ in range(8) %}
+                    <div class="curso-card curso-card--carregando" aria-hidden="true">
+                        <div class="curso-card-media"></div>
+                        <div class="curso-card-body"><span class="curso-card-linha"></span></div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="cursos-grade-acoes">
+                    <button type="button" class="btn-ver-mais" id="home-cursos-mais" hidden>
+                        Mostrar todos os cursos <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </section>

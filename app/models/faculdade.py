@@ -42,7 +42,11 @@ class Faculdade:
                     f" OR {sql_norm(prefix + 'sigla')} LIKE ? ESCAPE '\\'"
                     f" OR {sql_norm(prefix + 'cidade')} LIKE ? ESCAPE '\\')")
             params.extend([like, like, like])
-        if filtros.get('curso'):
+        if filtros.get('curso') and filtros.get('curso_exato'):
+            sql += (f" AND {prefix}id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL"
+                    f" AND {sql_norm('nome')} = ?)")
+            params.append(' '.join(normalizar(filtros['curso']).split()))
+        elif filtros.get('curso'):
             sql += (f" AND {prefix}id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL"
                     f" AND {sql_norm('nome')} LIKE ? ESCAPE '\\')")
             params.append(_like_contem(filtros['curso']))

@@ -1,6 +1,7 @@
 """Páginas HTML (Jinja2)."""
 from flask import Blueprint, redirect, render_template, session, url_for
 
+from app.models.curso import Curso
 from app.models.faculdade import Faculdade
 from app.models.vestibular import Vestibular
 from app.security import admin_required, login_required
@@ -28,7 +29,7 @@ def login():
 
 @bp.route('/cursos')
 def cursos():
-    return render_template('cursos.html')
+    return render_template('cursos.html', areas=Curso().areas_distintas())
 
 
 @bp.route('/faculdades')

@@ -73,6 +73,7 @@ suafacul-main/
 │   └── database.py             # Conexão SQLite
 ├── database/
 │   └── init_db.py              # Cria tabelas, popula dados iniciais e migra bancos já existentes
+│   └── catalogo_dados.py       # Catálogo de cursos (com imagens) e instituições reais da home — sincronizado pelo init_db
 ├── app/
 │   ├── factory.py / settings.py / security.py / bootstrap.py / cli.py
 │   ├── api/v1/                 # API v1 (contrato do Mobile): rotas, DTOs, OpenAPI

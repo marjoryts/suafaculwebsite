@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, inserir, like_ci
+from config.database import get_connection, inserir, like_ci, normalizar
 
 class Curso:
     def _build_where(self, filtros):
@@ -143,6 +143,19 @@ class Curso:
             nomes = [r['nome'] for r in c.fetchall()]
             conn.close()
             return nomes
+        except Exception:
+            return []
+
+    def areas_distintas(self):
+        """Áreas de conhecimento que existem nos cursos cadastrados (filtro
+        "Área de conhecimento" da página /cursos), em ordem alfabética."""
+        try:
+            conn = get_connection()
+            c = conn.cursor()
+            c.execute("SELECT DISTINCT area FROM cursos WHERE area IS NOT NULL AND TRIM(area) <> ''")
+            areas = sorted((r['area'] for r in c.fetchall()), key=lambda a: normalizar(a))
+            conn.close()
+            return areas
         except Exception:
             return []
 

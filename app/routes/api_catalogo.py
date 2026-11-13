@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 
 from app.models.curso import Curso
+from app.models.curso_catalogo import CursoCatalogo
 from app.models.faculdade import Faculdade
 from app.security import admin_required
 from app.services import admin_service
@@ -30,6 +31,18 @@ def cursos_listar():
         filtros['busca'] = busca
     dados = paginar(Curso(), filtros, request.args.get('page'), request.args.get('limit'), 'cursos')
     return jsonify({'success': True, **dados})
+
+
+@bp.route('/cursos/catalogo', methods=['GET'])
+def cursos_catalogo():
+    """Formações da seção "Cursos" da página inicial: nome, área, grau,
+    duração, descrição, imagem do card e quantas instituições oferecem.
+    Parâmetro opcional: area."""
+    area = request.args.get('area', '').strip()
+    if area == 'Todas as áreas':
+        area = ''
+    catalogo = CursoCatalogo()
+    return jsonify({'success': True, 'cursos': catalogo.listar(area or None), 'areas': catalogo.areas()})
 
 
 @bp.route('/cursos/buscar', methods=['GET'])
@@ -91,6 +104,10 @@ def faculdades_listar():
     modalidade = [m for m in request.args.getlist('modalidade') if m]
     if modalidade:
         filtros['modalidade'] = modalidade
+    # curso_exato=1: o filtro de curso compara o nome inteiro (usado pelos
+    # cards de curso da home — "Física" não traz "Educação Física").
+    if filtros.get('curso') and request.args.get('curso_exato') in ('1', 'true'):
+        filtros['curso_exato'] = True
     dados = paginar(Faculdade(), filtros, request.args.get('page'), request.args.get('limit'), 'faculdades')
     return jsonify({'success': True, **dados})
 

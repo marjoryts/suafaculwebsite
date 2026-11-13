@@ -2,7 +2,7 @@
    Página Inicial
    Hero, busca, seções, cards de resultado, tags, paginação e modal vêm de
    components/ui.css. Aqui ficam só os carrosséis, os cards de destaque e
-   a lista de cursos da home.
+   a grade de cursos da home.
    ========================================================================== */
 
 /* ---- Carrosséis (Faculdades em destaque / Próximos vestibulares) ----
@@ -210,43 +210,224 @@
     box-shadow: none;
 }
 
-.cursos-lista {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.75rem;
-}
-
-.curso-item {
+/* Filtro por área (chips acima da grade) */
+.cursos-areas {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.9rem 1rem;
-    background: var(--surface-color);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.cursos-area-chip {
+    padding: 0.45rem 0.95rem;
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-strong);
-    font-weight: 500;
+    border-radius: var(--radius-pill);
+    background: var(--surface-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: border-color 0.2s ease, color 0.2s ease;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
-.curso-item::after {
-    content: '\203A';
-    color: var(--text-muted);
-    font-size: 1.25rem;
-    line-height: 1;
-}
-
-.curso-item:hover {
+.cursos-area-chip:hover {
     border-color: var(--primary-light);
     color: var(--primary-text);
 }
 
-.cursos-lista > .loading,
-.cursos-lista > .no-results,
-.cursos-lista > .error {
+.cursos-area-chip.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--second-color);
+    font-weight: 600;
+}
+
+.cursos-area-chip:focus-visible,
+.curso-card:focus-visible,
+.btn-ver-mais:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Grade de cursos: 4 colunas no desktop, 3 no tablet, 2 no celular */
+.cursos-grade {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+.curso-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-strong);
+    text-decoration: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.curso-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 8px 20px var(--focus-ring);
+    transform: translateY(-2px);
+}
+
+/* Foto do curso: proporção fixa 2:1 e recorte centralizado */
+.curso-card-media {
+    position: relative;
+    aspect-ratio: 2 / 1;
+    overflow: hidden;
+    background: var(--surface-hover);
+}
+
+.curso-card-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.35s ease;
+}
+
+.curso-card:hover .curso-card-media img {
+    transform: scale(1.04);
+}
+
+/* Ícone da área: aparece só se a foto não carregar */
+.curso-card-icone {
+    display: none;
+}
+
+.curso-card-media.sem-imagem {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+}
+
+.curso-card-media.sem-imagem .curso-card-icone {
+    display: block;
+    color: var(--second-color);
+    font-size: 2rem;
+    opacity: 0.9;
+}
+
+.curso-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: 5.5rem;
+    padding: 0.9rem 1rem 1rem;
+    text-align: center;
+}
+
+.curso-card-body h3 {
+    color: var(--text-strong);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.curso-card-meta {
+    color: var(--text-light);
+    font-size: var(--text-xs);
+}
+
+.curso-card:hover .curso-card-body h3 {
+    color: var(--primary-text);
+}
+
+/* Placeholder enquanto o catálogo carrega */
+.curso-card--carregando .curso-card-media,
+.curso-card--carregando .curso-card-linha {
+    background: linear-gradient(90deg, var(--surface-hover) 25%, var(--surface-muted) 50%, var(--surface-hover) 75%);
+    background-size: 200% 100%;
+    animation: curso-card-brilho 1.2s ease-in-out infinite;
+}
+
+.curso-card-linha {
+    display: block;
+    width: 60%;
+    height: 0.9rem;
+    border-radius: var(--radius-pill);
+}
+
+@keyframes curso-card-brilho {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .curso-card,
+    .curso-card-media img,
+    .curso-card--carregando .curso-card-media,
+    .curso-card--carregando .curso-card-linha {
+        transition: none;
+        animation: none;
+    }
+    .curso-card:hover,
+    .curso-card:hover .curso-card-media img {
+        transform: none;
+    }
+}
+
+.cursos-grade > .loading,
+.cursos-grade > .no-results,
+.cursos-grade > .error,
+.cursos-grade-vazio {
     grid-column: 1 / -1;
+}
+
+.cursos-grade-vazio {
+    padding: 2rem 1rem;
+    color: var(--text-light);
+    text-align: center;
+}
+
+.cursos-grade-vazio p {
+    margin-bottom: 0.75rem;
+}
+
+.cursos-grade-vazio button {
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.cursos-grade-acoes {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.75rem;
+}
+
+.btn-ver-mais {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-pill);
+    background: var(--surface-color);
+    color: var(--primary-text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-ver-mais:hover {
+    border-color: var(--primary-light);
+    background: var(--primary-soft);
+}
+
+.btn-ver-mais[hidden] {
+    display: none;
 }
 
 /* ---- Modal de busca de cursos (aberto pelos itens acima) ---- */
@@ -274,6 +455,11 @@
     .vestibulares-lista {
         grid-auto-columns: calc((100% - 2 * 1.25rem) / 3);
     }
+
+    .cursos-grade {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
 }
 
 @media (max-width: 768px) {
@@ -284,6 +470,28 @@
 
     .carousel-prev { left: -8px; }
     .carousel-next { right: -8px; }
+
+    .cursos-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    /* Chips em uma linha com rolagem lateral no celular/tablet */
+    .cursos-areas {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin-inline: -0.25rem;
+        padding: 0 0.25rem 0.25rem;
+    }
+
+    .cursos-areas::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cursos-area-chip {
+        flex: 0 0 auto;
+    }
 }
 
 @media (max-width: 520px) {
@@ -297,7 +505,16 @@
         display: none;
     }
 
-    .cursos-lista {
-        grid-template-columns: 1fr;
+    .cursos-grade {
+        gap: 0.75rem;
+    }
+
+    .curso-card-body {
+        min-height: 4.5rem;
+        padding: 0.7rem 0.6rem 0.8rem;
+    }
+
+    .curso-card-body h3 {
+        font-size: var(--text-sm);
     }
 }
