@@ -28,7 +28,7 @@ Services levantam `ErroDeNegocio`; cada camada de entrada traduz:
 ## Teste vocacional
 - Fonte única: `app/services/teste_vocacional_dados.py` (10 perguntas, 39 opções, 6 perfis).
   A transcrição foi conferida contra o HTML original (texto, ordem, opções e pesos: idêntica).
-- O template gera o formulário a partir do backend (`{% for secao in secoes %}`); o valor de cada opção
+- O template gera o formulário a partir do backend ({% raw %}`{% for secao in secoes %}`{% endraw %}); o valor de cada opção
   agora é um id (`a`, `b`, …) em vez das tags de perfil.
 - Novos endpoints: `GET /api/teste_vocacional/perguntas` e `POST /api/teste_vocacional/responder`
   (`{q1:'a',…}` → perfis, áreas, cursos sugeridos; salva o resultado). **O servidor calcula tudo**: pontuação
