@@ -1,11 +1,12 @@
-// Teste Vocacional - lógica de pontuação no frontend
+// Teste Vocacional - navegação do questionário e envio das respostas
 
 const API_BASE_URL = '/api';
 
 // Respostas em andamento ficam no sessionStorage (só as alternativas
 // marcadas — nada sensível) para não se perderem ao atualizar a página.
-// A pontuação e a compatibilidade com cursos são calculadas no servidor
-// (app/services/vocacional_service.py).
+// A pontuação é calculada no servidor por app/services/teste_vocacional_service.py
+// (a mesma regra da API v1/Mobile) e a compatibilidade com cursos por
+// app/services/vocacional_service.py.
 const STORAGE_RESPOSTAS = 'suafacul:teste-vocacional:respostas';
 
 function lerRespostasSalvas() {

@@ -25,7 +25,7 @@ import os
 import logging
 
 from app.models.curso import Curso
-from app.models.faculdade import Faculdade
+from app.models.faculdade import FONTES_EMEC, Faculdade
 
 logger = logging.getLogger('suafacul.seed')
 
@@ -54,7 +54,7 @@ def rodar_seed_automatico_se_necessario():
 def _seed_instituicoes_se_necessario():
     if not os.path.exists(CAMINHO_INSTITUICOES):
         return
-    if Faculdade().contar_por_fonte(('emec', 'emec_csv_upload')) > 0:
+    if Faculdade().contar_por_fonte(FONTES_EMEC) > 0:
         logger.info("[seed] Já existem instituições importadas do e-MEC/MEC — seed automático pulado.")
         return
 

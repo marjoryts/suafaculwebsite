@@ -1,6 +1,7 @@
 """API legada do teste vocacional (Web, sessão por cookie).
 
-Regras em services/teste_vocacional_service.py (questionário e pontuação) e
+Regras em services/teste_vocacional_service.py (questionário e a ÚNICA
+implementação da pontuação, usada por /responder, /salvar e pela API v1) e
 services/vocacional_service.py (compatibilidade com os cursos); as perguntas
 vêm de services/teste_vocacional_dados.py.
 """
@@ -10,7 +11,7 @@ from flask import Blueprint, current_app, jsonify, request, session, url_for
 
 from app.models.teste_vocacional import TesteVocacional
 from app.services import teste_vocacional_service, vocacional_service
-from app.services.erros import NaoEncontradoError
+from app.services.erros import NaoEncontradoError, ValidacaoError
 from app.services.teste_vocacional_dados import PERFIS
 
 bp = Blueprint('api_teste_vocacional', __name__, url_prefix='/api/teste_vocacional')
@@ -50,27 +51,50 @@ def _perfil_legado():
     return perfil_principal, perfis_json
 
 
+def _mensagem_validacao(erro):
+    """Mensagens que a página web já exibia para /salvar (contrato preservado):
+    o primeiro problema, na ordem das perguntas."""
+    detalhes = erro.details or {}
+    sem_resposta = set(detalhes.get('perguntas_sem_resposta') or [])
+    invalidas = set(detalhes.get('respostas_invalidas') or [])
+    if not (sem_resposta or invalidas):
+        return str(erro)
+    for p in teste_vocacional_service.perguntas_formulario():
+        if p['id'] in sem_resposta:
+            return 'Responda todas as perguntas do teste.'
+        if p['id'] in invalidas:
+            return f"Resposta inválida na pergunta {p['id'][1:]}."
+    return str(erro)
+
+
 @bp.route('/salvar', methods=['POST'])
 def salvar():
     """Fluxo atual da página: recebe as respostas brutas (respostas_json, com
-    os perfis de cada alternativa) e recalcula a pontuação no servidor — os
-    scores enviados pelo navegador são ignorados. Sem login, guarda o id do
+    os perfis de cada alternativa) e recalcula a pontuação no servidor com
+    teste_vocacional_service.calcular (a mesma de /responder e da API v1) —
+    os scores enviados pelo navegador são ignorados. Sem login, guarda o id do
     resultado no cookie de sessão até a pessoa entrar ou se cadastrar."""
     respostas_json = request.form.get('respostas_json')
     usuario_id = session.get('user_id')
 
     if respostas_json:
         try:
-            respostas = vocacional_service.validar_respostas(json.loads(respostas_json))
-        except (ValueError, TypeError) as e:
-            msg = str(e) if isinstance(e, vocacional_service.RespostasInvalidas) else 'Respostas em formato inválido.'
-            return jsonify({'success': False, 'message': msg}), 400
-        scores, melhores = vocacional_service.calcular_pontuacao(respostas)
+            respostas = json.loads(respostas_json)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Respostas em formato inválido.'}), 400
+        try:
+            # Mesma regra (e mesma função) de /responder e da API v1.
+            calculo = teste_vocacional_service.calcular(respostas, formato='valor')
+        except ValidacaoError as e:
+            return jsonify({'success': False, 'message': _mensagem_validacao(e)}), 400
+        melhores = calculo['perfis_principais']
         if not melhores:
             return jsonify({'success': False, 'message': 'Não foi possível identificar um perfil.'}), 400
         perfil_principal = melhores[0]
-        perfis_json = json.dumps({'scores': scores, 'bestProfiles': melhores})
-        respostas_json = json.dumps(respostas)
+        perfis_json = json.dumps({'scores': calculo['scores'], 'bestProfiles': melhores})
+        # Guarda as respostas como chegaram (formato 'valor'), só as perguntas conhecidas.
+        respostas_json = json.dumps({p['id']: str(respostas[p['id']])
+                                     for p in teste_vocacional_service.perguntas_formulario()})
     else:
         # Compatibilidade com clientes que enviam o perfil já calculado.
         perfil_principal, perfis_json = _perfil_legado()

@@ -3,6 +3,7 @@ com os cursos do banco, bloqueio da lista completa para quem não está
 logado e recuperação do resultado após login/cadastro."""
 import json
 
+from app.services import teste_vocacional_service as tvs
 from app.services import vocacional_service as vs
 
 # Respostas predominantemente "técnico" (alternativas reais do template)
@@ -47,9 +48,9 @@ def _limpar_cursos():
 # ── Regra de cálculo ──
 
 def test_pontuacao_no_servidor_igual_a_do_front():
-    scores, melhores = vs.calcular_pontuacao(RESPOSTAS_TECNICO)
-    assert scores['tecnico'] == 10
-    assert melhores == ['tecnico']
+    calculo = tvs.calcular(RESPOSTAS_TECNICO, formato='valor')
+    assert calculo['scores']['tecnico'] == 10
+    assert calculo['perfis_principais'] == ['tecnico']
 
 
 def test_respostas_invalidas_ou_incompletas_sao_rejeitadas(client):

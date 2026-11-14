@@ -1,13 +1,10 @@
-"""Cálculo do Teste Vocacional no servidor e compatibilidade com os cursos.
+"""Compatibilidade dos cursos com o resultado do Teste Vocacional.
 
-Antes, a pontuação era feita só no navegador (public/js/testevocacional.js)
-e o servidor apenas guardava o que recebia. Agora a mesma regra roda aqui,
-a partir das respostas brutas, para que o resultado que libera as
-recomendações não dependa de números enviados pelo cliente.
-
-Regra de pontuação (idêntica à do front-end):
-    cada alternativa marcada soma +1 em cada perfil listado no seu `value`
-    (ex.: "tecnico,cientifico" soma 1 em técnico e 1 em científico).
+A PONTUAÇÃO do teste não fica aqui: a regra única está em
+app/services/teste_vocacional_service.py (`pontuar`/`calcular`), usada por
+todos os fluxos (página web, /responder e API v1). Este módulo recebe os
+`scores` já calculados (ou lidos de `perfis_json`) e calcula afinidades e
+cursos recomendados.
 
 Regra de compatibilidade de um curso (0–100%):
     1. Afinidade do usuário com cada perfil:
@@ -41,8 +38,8 @@ PERFIS = tuple(ORDEM_PERFIS)
 # a mesma fonte usada pela página do teste (gerada a partir dela) e pela API do app.
 DESCRICOES = {chave: _DADOS_PERFIS[chave]['descricao'] for chave in PERFIS}
 
-# Alternativas válidas de cada pergunta, no formato dos `value` dos radios
-# da página ("tecnico,cientifico"). Respostas fora disso são rejeitadas.
+# Perfis de cada alternativa, por pergunta ("tecnico,cientifico") — usado
+# só para saber quantos pontos cada perfil pode somar (PONTOS_POSSIVEIS).
 QUESTOES = {
     p['id']: [','.join(o['perfis']) for o in p['opcoes']]
     for secao in SECOES for p in secao['perguntas']
@@ -107,37 +104,6 @@ AREAS_POR_PERFIL = {
     'saude e bem-estar': ['humano', 'cientifico'],
     'servicos': ['pratico'],
 }
-
-
-class RespostasInvalidas(ValueError):
-    pass
-
-
-def validar_respostas(respostas):
-    """Confere que todas as perguntas foram respondidas com alternativas
-    existentes. Devolve só as chaves conhecidas (descarta extras)."""
-    if not isinstance(respostas, dict):
-        raise RespostasInvalidas('Respostas em formato inválido.')
-    limpas = {}
-    for q, opcoes in QUESTOES.items():
-        valor = respostas.get(q)
-        if valor is None or str(valor) == '':
-            raise RespostasInvalidas('Responda todas as perguntas do teste.')
-        if str(valor) not in opcoes:
-            raise RespostasInvalidas(f'Resposta inválida na pergunta {q[1:]}.')
-        limpas[q] = str(valor)
-    return limpas
-
-
-def calcular_pontuacao(respostas):
-    """Mesma regra do front-end: +1 por perfil em cada alternativa."""
-    scores = {p: 0 for p in PERFIS}
-    for valor in respostas.values():
-        for t in _tags(valor):
-            scores[t] += 1
-    maximo = max(scores.values())
-    melhores = [p for p, s in scores.items() if s == maximo and s > 0]
-    return scores, melhores
 
 
 def afinidades(scores):
