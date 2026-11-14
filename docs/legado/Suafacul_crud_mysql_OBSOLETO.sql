@@ -1,3 +1,22 @@
+-- ============================================================================
+-- ARQUIVO OBSOLETO — APENAS REGISTRO HISTÓRICO. NÃO EXECUTAR.
+-- ----------------------------------------------------------------------------
+-- Script MySQL da primeira versão do SuaFacul (antes da migração para
+-- Flask + SQLite). Não é lido por nenhuma parte da aplicação, dos testes ou
+-- do deploy e NÃO representa o banco atual:
+--   * é MySQL (ENGINE=InnoDB, ENUM, DELIMITER, ON UPDATE...), o sistema usa SQLite;
+--   * a procedure inserir_candidato grava numa tabela `Candidato` que nunca
+--     existiu nem aqui nem no sistema atual;
+--   * faltam tabelas (faculdades, automacao_logs, refresh_tokens,
+--     cursos_catalogo) e várias colunas (usuarios.tipo, google_id, cursos.faculdade_id...);
+--   * a FK de teste_vocacional_resultados não tem a regra ON DELETE SET NULL atual.
+--
+-- Fonte da verdade do esquema: database/init_db.py (criação + migrações).
+-- Documentação: docs/banco-de-dados.md. Para ver o esquema real de um banco:
+--   sqlite3 database/suafacul.db ".schema"
+-- Movido de database/Suafacul_crud.sql em 2026-11 (auditoria técnica).
+-- ============================================================================
+
 CREATE DATABASE Suafacul_crud;
 
 DELIMITER //

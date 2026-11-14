@@ -121,7 +121,9 @@ outros usuários pela própria tela de Admin → Usuários.
   estão no futuro e se a instituição de cada vestibular já está cadastrada
   em Faculdades.
 - **Dashboard de estatísticas** — contagem de usuários, cursos, faculdades
-  e vestibulares em tempo real.
+  e vestibulares em tempo real. "Importadas do e-MEC" soma as duas origens
+  de importação (`fonte` = `emec` ou `emec_csv_upload`, ver `FONTES_EMEC` em
+  `app/models/faculdade.py`).
 
 > O e-MEC não tem API REST oficial — a importação usa o mesmo endpoint
 > interno de consulta que o próprio site do e-MEC utiliza. Por isso pode
@@ -140,7 +142,7 @@ outros usuários pela própria tela de Admin → Usuários.
 | Vestibulares | `GET /api/vestibulares/listar` (filtros: `tipo_instituicao`, `regiao`, `mes`, `busca`, `curso`), `buscar`, `validar`; `POST criar` |
 | Favoritos | `POST adicionar`/`remover`; `GET listar`, `verificar`, `listar-ids` |
 | Admin | `GET /api/admin/stats` |
-| Teste vocacional | `GET /api/teste_vocacional/perguntas`; `POST /api/teste_vocacional/responder` (pontuação no servidor). `salvar` está *deprecated* — ver `docs/etapa3-services.md` |
+| Teste vocacional | `GET /api/teste_vocacional/perguntas`; `POST /api/teste_vocacional/responder` e `salvar` (usado pela página). Pontuação no servidor, numa única implementação para Web e API (`teste_vocacional_service.calcular`) — ver `docs/etapa3-services.md` |
 | API v1 (Mobile / externa) | `/api/v1/*` — catálogo, busca, teste vocacional, favoritos, perfil e dashboard. Contrato: `GET /api/v1/openapi.json` · guias: `docs/etapa4-api-v1.md`, `docs/etapa5-auth-mobile.md` (login por e-mail, access 15 min + refresh rotativo 30 dias) |
 
 Endpoints marcados como administrativos exigem sessão de admin (retornam
@@ -151,8 +153,12 @@ Endpoints marcados como administrativos exigem sessão de admin (retornam
 `usuarios` (com `tipo`) · `faculdades` · `cursos` (linkado a `faculdades`
 por `faculdade_id`) · `vestibulares` (linkado a `faculdades`, com
 `status_validacao`/`cadastrado_ok` preenchidos pela automação de
-validação) · `favoritos` · `teste_vocacional_resultados` ·
-`vestibular_inscricoes`.
+validação) · `favoritos` · `teste_vocacional_resultados` (`usuario_id`
+anulado — `ON DELETE SET NULL` — quando o usuário é excluído, preservando o
+histórico estatístico) · `cursos_catalogo` · `refresh_tokens` ·
+`automacao_logs`. Esquema, regras de FK e migrações: `docs/banco-de-dados.md`;
+diagramas: `docs/diagramas.md`. O antigo script MySQL `Suafacul_crud.sql` é
+obsoleto e foi movido para `docs/legado/`.
 
 ## Design system
 

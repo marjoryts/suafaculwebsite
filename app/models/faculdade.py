@@ -11,6 +11,18 @@ def _like_contem(texto):
     return f"%{texto}%"
 
 
+# Valores de `faculdades.fonte` gravados pelas importações do MEC/e-MEC:
+#   'emec'            → app/services/emec_service.py (importação por código,
+#                       por UF e Brasil inteiro: download automático do CSV
+#                       de Dados Abertos ou scraping do e-MEC)
+#   'emec_csv_upload' → upload manual do CSV oficial no admin e seed
+#                       automático de data/seeds/instituicoes.csv
+# Cadastro manual (admin) e catálogo da home usam 'manual'. Fonte única
+# para tudo que precisa saber "quantas vieram do e-MEC" (estatísticas do
+# painel, seed automático).
+FONTES_EMEC = ('emec', 'emec_csv_upload')
+
+
 class Faculdade:
     CAMPOS = ['codigo_emec', 'nome', 'sigla', 'organizacao_academica', 'tipo_instituicao',
               'url', 'endereco', 'cidade', 'uf', 'telefone', 'email', 'situacao', 'fonte']

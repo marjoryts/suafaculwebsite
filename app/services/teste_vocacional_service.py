@@ -1,8 +1,13 @@
 """Regras do Teste Vocacional: questionário, pontuação, persistência e histórico.
 
-Compartilhado por Web e Mobile. O cliente só exibe as perguntas e envia
-{'q1': 'a', 'q2': 'c', ...}; a pontuação é sempre calculada aqui (o servidor
-não confia em resultado calculado pelo cliente).
+Compartilhado por Web e Mobile e FONTE ÚNICA da regra de pontuação
+(`pontuar`/`calcular`): a página web (/api/teste_vocacional/salvar), a rota
+/api/teste_vocacional/responder e a API v1 chamam todas `calcular()`. O
+cliente só exibe as perguntas e envia as alternativas escolhidas
+({'q1': 'a', ...} ou, na página web, {'q1': 'tecnico,cientifico', ...});
+a pontuação é sempre calculada aqui (o servidor não confia em resultado
+calculado pelo cliente). A compatibilidade com os cursos fica em
+vocacional_service.py.
 """
 import json
 
@@ -46,37 +51,87 @@ def perguntas_formulario():
     return perguntas
 
 
-def calcular(respostas):
-    """Pontua as respostas. Levanta ValidacaoError se faltar pergunta ou se
-    houver opção inexistente.
+# Formatos aceitos para identificar a alternativa escolhida em cada pergunta:
+#   'id'    → letra da opção ("a", "b"...): API v1 (Mobile) e /responder.
+#   'valor' → perfis da opção unidos por vírgula ("tecnico,cientifico"): o
+#             `value` dos radios da página web, enviado por /salvar.
+# Em cada pergunta os dois identificadores são únicos (um mapeia no outro),
+# então os dois formatos levam exatamente à mesma alternativa — e daí à
+# mesma pontuação, calculada por `pontuar()`.
+FORMATOS_RESPOSTA = ('id', 'valor')
 
-    Devolve {'scores': {perfil: pontos}, 'perfis_principais': [perfis com a
-    maior pontuação (>0), na ordem padrão]}."""
-    respostas = respostas or {}
-    faltando, invalidas = [], []
-    scores = {chave: 0 for chave in ORDEM_PERFIS}
 
+def valor_da_opcao(opcao):
+    """Identificador da opção no formato 'valor' ("tecnico,cientifico")."""
+    return ','.join(opcao['perfis'])
+
+
+def _localizar_opcao(pergunta, escolhida, formato):
+    escolhida = str(escolhida)
+    if formato == 'valor':
+        return next((o for o in pergunta['opcoes'] if valor_da_opcao(o) == escolhida), None)
+    return next((o for o in pergunta['opcoes'] if o['id'] == escolhida), None)
+
+
+def resolver_respostas(respostas, formato='id'):
+    """Converte as respostas recebidas (em qualquer formato aceito) nas
+    alternativas do questionário, na ordem das perguntas. Levanta
+    ValidacaoError se faltar pergunta ou se houver opção inexistente;
+    chaves desconhecidas são ignoradas.
+
+    Devolve [(pergunta, opcao), ...]."""
+    if formato not in FORMATOS_RESPOSTA:
+        raise ValueError(f'Formato de resposta desconhecido: {formato!r}')
+    if not isinstance(respostas, dict):
+        raise ValidacaoError('Respostas em formato inválido.')
+    escolhidas, faltando, invalidas = [], [], []
     for pergunta in _perguntas():
-        escolhida = respostas.get(pergunta['id'])
-        if escolhida in (None, ''):
+        valor = respostas.get(pergunta['id'])
+        if valor is None or str(valor) == '':
             faltando.append(pergunta['id'])
             continue
-        opcao = next((o for o in pergunta['opcoes'] if o['id'] == str(escolhida)), None)
+        opcao = _localizar_opcao(pergunta, valor, formato)
         if opcao is None:
             invalidas.append(pergunta['id'])
             continue
-        for perfil in opcao['perfis']:
-            scores[perfil] += 1
+        escolhidas.append((pergunta, opcao))
 
     if faltando or invalidas:
         raise ValidacaoError(
             'Responda todas as perguntas para ver seu resultado.',
             details={'perguntas_sem_resposta': faltando, 'respostas_invalidas': invalidas},
         )
+    return escolhidas
 
+
+def pontuar(opcoes):
+    """REGRA OFICIAL de pontuação do Teste Vocacional (única no sistema).
+
+    Cada alternativa escolhida soma +1 em cada perfil que ela lista
+    (ex.: "tecnico,cientifico" soma 1 em técnico e 1 em científico).
+    Perfis principais = os de maior pontuação (> 0), na ordem padrão
+    ORDEM_PERFIS (empates devolvem todos).
+
+    Devolve {'scores': {perfil: pontos}, 'perfis_principais': [...]}."""
+    scores = {chave: 0 for chave in ORDEM_PERFIS}
+    for opcao in opcoes:
+        for perfil in opcao['perfis']:
+            if perfil in scores:
+                scores[perfil] += 1
     maior = max(scores.values())
     principais = [chave for chave in ORDEM_PERFIS if scores[chave] == maior and maior > 0]
     return {'scores': scores, 'perfis_principais': principais}
+
+
+def calcular(respostas, formato='id'):
+    """Valida e pontua as respostas. Ponto de entrada usado por TODOS os
+    fluxos (Web /salvar, /responder e API v1). Levanta ValidacaoError se
+    faltar pergunta ou se houver opção inexistente.
+
+    Devolve {'scores': {perfil: pontos}, 'perfis_principais': [perfis com a
+    maior pontuação (>0), na ordem padrão]}."""
+    escolhidas = resolver_respostas(respostas, formato)
+    return pontuar(opcao for _pergunta, opcao in escolhidas)
 
 
 def _cursos_sugeridos(chave_perfil):

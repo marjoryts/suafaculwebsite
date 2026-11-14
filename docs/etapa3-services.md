@@ -28,12 +28,23 @@ Services levantam `ErroDeNegocio`; cada camada de entrada traduz:
 ## Teste vocacional
 - Fonte única: `app/services/teste_vocacional_dados.py` (10 perguntas, 39 opções, 6 perfis).
   A transcrição foi conferida contra o HTML original (texto, ordem, opções e pesos: idêntica).
-- O template gera o formulário a partir do backend ({% raw %}`{% for secao in secoes %}`{% endraw %}); o valor de cada opção
-  agora é um id (`a`, `b`, …) em vez das tags de perfil.
-- Novos endpoints: `GET /api/teste_vocacional/perguntas` e `POST /api/teste_vocacional/responder`
-  (`{q1:'a',…}` → perfis, áreas, cursos sugeridos; salva o resultado). **O servidor calcula tudo**: pontuação
-  enviada pelo cliente é ignorada.
-- `POST /api/teste_vocacional/salvar` está **deprecated** (mantido por compatibilidade) e agora valida o perfil e a pontuação.
+- O template gera o formulário a partir do backend (`teste_vocacional_service.perguntas_formulario()`); o
+  `value` de cada opção são os perfis que ela pontua (`"tecnico,cientifico"`), e a página envia as respostas
+  para `POST /api/teste_vocacional/salvar` (`respostas_json`).
+- `POST /api/teste_vocacional/responder` e `POST /api/v1/teste-vocacional/resultados` recebem o id da opção
+  (`{q1:'a',…}`) e devolvem perfis, áreas e cursos sugeridos.
+- **Pontuação com implementação única (auditoria 2026-11):** os três fluxos chamam
+  `teste_vocacional_service.calcular(respostas, formato='id'|'valor')`, que converte as respostas na
+  alternativa do questionário (`resolver_respostas`) e aplica a única regra (`pontuar`: +1 por perfil listado
+  na alternativa; perfis principais = maior pontuação > 0, na ordem `ORDEM_PERFIS`). Antes, `/salvar` usava
+  uma cópia da regra em `vocacional_service.calcular_pontuacao` (removida, junto com `validar_respostas`).
+  Em cada pergunta id e valor são únicos, então os dois formatos levam à mesma alternativa e à mesma
+  pontuação — conferido de forma exaustiva (384 000 combinações) em `tests/test_auditoria_integridade.py`.
+  `vocacional_service` ficou só com a compatibilidade com cursos (afinidades e recomendações).
+- Contratos preservados: `/salvar` continua respondendo 400 com as mesmas mensagens ("Responda todas as
+  perguntas do teste.", "Resposta inválida na pergunta N.") e gravando `respostas_json` no formato valor;
+  `/responder` e a API v1 mantêm seus formatos. O ramo legado de `/salvar` sem `respostas_json` (cliente que
+  envia `perfil_principal`/`perfis_json` prontos) segue aceito por compatibilidade, com a validação de antes.
 - `public/js/testevocacional.js` ficou só com apresentação (e passou a montar o resultado com `textContent`,
   não `innerHTML`, para não injetar nomes de cursos vindos do banco como HTML).
 

@@ -6,6 +6,102 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config.database import get_db_path, get_connection
 
+# DDL única da tabela de resultados do teste vocacional — usada tanto na
+# criação (banco novo) quanto na reconstrução (migração de banco antigo),
+# para que as duas nunca divirjam.
+# usuario_id é NULL em testes anônimos (feitos sem login) e passa a NULL
+# quando o usuário é excluído: o resultado continua contando nas
+# estatísticas, mas deixa de estar ligado a qualquer pessoa.
+_DDL_TESTE_VOCACIONAL = """
+    CREATE TABLE {se_nao_existir}{tabela} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NULL,
+        perfil_principal TEXT NOT NULL,
+        perfis_json TEXT NOT NULL,
+        respostas_json TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+    )"""
+
+
+def _fk_usuario_teste_vocacional(conn):
+    """Regra ON DELETE atual da FK usuario_id → usuarios (ou None se não houver FK)."""
+    for fk in conn.execute("PRAGMA foreign_key_list(teste_vocacional_resultados)").fetchall():
+        if fk[2] == 'usuarios' and fk[3] == 'usuario_id':
+            return (fk[6] or 'NO ACTION').upper()
+    return None
+
+
+def _migrar_fk_teste_vocacional(conn):
+    """Reconstrói teste_vocacional_resultados com ON DELETE SET NULL quando o
+    banco ainda tem a FK antiga. Idempotente: não faz nada se a regra já
+    estiver correta. Segue o procedimento oficial do SQLite para alterar
+    restrições (https://sqlite.org/lang_altertable.html#otheralter):
+    foreign_keys desligado, transação única, cópia, troca e
+    foreign_key_check antes do COMMIT. Preserva ids, datas e o contador
+    AUTOINCREMENT. Resultados que apontavam para um usuário que já não
+    existe (possível só em bancos que rodaram com foreign_keys desligado)
+    ficam com usuario_id NULL — é o mesmo estado que a nova regra produz.
+    Devolve True se migrou."""
+    if _fk_usuario_teste_vocacional(conn) == 'SET NULL':
+        return False
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")  # só tem efeito fora de transação
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        seq = conn.execute("SELECT seq FROM sqlite_sequence WHERE name='teste_vocacional_resultados'").fetchone()
+        conn.execute("DROP TABLE IF EXISTS teste_vocacional_resultados_nova")
+        conn.execute(_DDL_TESTE_VOCACIONAL.format(tabela='teste_vocacional_resultados_nova', se_nao_existir=''))
+        conn.execute("""
+            INSERT INTO teste_vocacional_resultados_nova
+                   (id, usuario_id, perfil_principal, perfis_json, respostas_json, created_at)
+            SELECT t.id,
+                   CASE WHEN EXISTS (SELECT 1 FROM usuarios u WHERE u.id = t.usuario_id) THEN t.usuario_id END,
+                   t.perfil_principal, t.perfis_json, t.respostas_json, t.created_at
+              FROM teste_vocacional_resultados t""")
+        orfaos = conn.execute("""
+            SELECT COUNT(*) FROM teste_vocacional_resultados t
+             WHERE t.usuario_id IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = t.usuario_id)""").fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM teste_vocacional_resultados").fetchone()[0]
+        conn.execute("DROP TABLE teste_vocacional_resultados")
+        conn.execute("ALTER TABLE teste_vocacional_resultados_nova RENAME TO teste_vocacional_resultados")
+        if seq is not None:
+            conn.execute("UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name='teste_vocacional_resultados'",
+                         (seq[0],))
+        problemas = conn.execute("PRAGMA foreign_key_check(teste_vocacional_resultados)").fetchall()
+        if problemas:
+            raise sqlite3.IntegrityError(f"foreign_key_check falhou após a migração: {problemas[:5]}")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+    print(f"[init_db] teste_vocacional_resultados migrada para ON DELETE SET NULL "
+          f"({total} resultado(s) preservado(s); {orfaos} vínculo(s) órfão(s) anulado(s)).")
+    return True
+
+
+def _remover_vestibular_inscricoes(conn):
+    """Apaga a tabela vestibular_inscricoes de bancos antigos. Ela nunca foi
+    usada pela aplicação (sem model/serviço/rota), então está sempre vazia;
+    se mesmo assim tiver linhas (inseridas fora do app), é mantida e só
+    registrada no log — nada de apagar dados sem confirmação."""
+    existe = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vestibular_inscricoes'").fetchone()
+    if not existe:
+        return False
+    linhas = conn.execute("SELECT COUNT(*) FROM vestibular_inscricoes").fetchone()[0]
+    if linhas:
+        print(f"[init_db] AVISO: vestibular_inscricoes (tabela obsoleta) tem {linhas} linha(s) "
+              "inserida(s) fora da aplicação — mantida. Exporte os dados e remova-a manualmente.")
+        return False
+    conn.execute("DROP TABLE vestibular_inscricoes")
+    conn.commit()
+    print("[init_db] Tabela obsoleta vestibular_inscricoes (vazia) removida.")
+    return True
+
+
 def init_db():
     """Cria tabelas e dados iniciais. Serializado por uma trava de arquivo:
     quando vários processos sobem juntos com o banco ainda vazio (vários
@@ -103,29 +199,6 @@ def _init_db_sem_trava():
         FOREIGN KEY (faculdade_id) REFERENCES faculdades(id) ON DELETE SET NULL
     );
 
-    CREATE TABLE IF NOT EXISTS vestibular_inscricoes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
-        vestibular_id INTEGER NOT NULL,
-        resultado TEXT NOT NULL DEFAULT 'pendente' CHECK(resultado IN ('pendente','aprovado','reprovado','lista_espera')),
-        observacao TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(usuario_id, vestibular_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (vestibular_id) REFERENCES vestibulares(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS teste_vocacional_resultados (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NULL,
-        perfil_principal TEXT NOT NULL,
-        perfis_json TEXT NOT NULL,
-        respostas_json TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-    );
-
     CREATE TABLE IF NOT EXISTS favoritos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         usuario_id INTEGER NOT NULL,
@@ -136,7 +209,20 @@ def _init_db_sem_trava():
         UNIQUE(usuario_id, tipo, item_id),
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
     );
-    """)
+    """ + _DDL_TESTE_VOCACIONAL.format(tabela='teste_vocacional_resultados', se_nao_existir='IF NOT EXISTS ') + ";")
+
+    # ── Teste vocacional: FK de usuario_id com ON DELETE SET NULL ──
+    # Bancos criados antes desta correção têm a FK sem ação de exclusão, o
+    # que impedia excluir pelo admin um usuário que já fez o teste. SQLite
+    # não altera FK com ALTER TABLE: a tabela é reconstruída preservando os
+    # dados (ver _migrar_fk_teste_vocacional).
+    _migrar_fk_teste_vocacional(conn)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_teste_vocacional_usuario "
+              "ON teste_vocacional_resultados(usuario_id)")
+
+    # ── Remoção da tabela órfã vestibular_inscricoes ──
+    # Criada por versões antigas, nunca teve model, serviço, rota ou tela.
+    _remover_vestibular_inscricoes(conn)
 
     # ── Migração segura para bancos já existentes (não apaga dados) ──
     def _add_column_if_missing(table, column, ddl):
@@ -401,7 +487,7 @@ def _init_db_sem_trava():
     # Vestibulares: catálogo pesquisado em fontes oficiais (ver
     # database/vestibulares_dados.py). Insere os que faltam e atualiza os
     # registros semeados em versões anteriores — sem duplicar e sem apagar
-    # nada (IDs, favoritos e inscrições são preservados).
+    # nada (IDs e favoritos são preservados).
     sincronizar_vestibulares(conn)
 
     # Catálogo ampliado de cursos e instituições (database/catalogo_dados.py).
