@@ -606,7 +606,7 @@ def sincronizar_catalogo(conn):
     o que o admin excluir depois não volta sozinho.
     Retorna {'catalogo': n, 'faculdades': n, 'cursos': n} (itens inseridos)."""
     from config.database import normalizar
-    from database.catalogo_dados import CATALOGO_VERSAO, CURSOS, INSTITUICOES
+    from database.catalogo_dados import CATALOGO_VERSAO, CURSOS, INSTITUICOES, NOMES_ANTIGOS
 
     conn.create_function('normalizar', 1, normalizar, deterministic=True)
     c = conn.cursor()
@@ -644,6 +644,20 @@ def sincronizar_catalogo(conn):
                       (nome, sigla, org, tipo, url, endereco, cidade, uf))
             row = (c.lastrowid, nome, tipo)
             resumo['faculdades'] += 1
+        else:
+            # Já cadastrada: completa só o que está vazio (não sobrescreve o
+            # que o admin editou) e aplica renomeações oficiais conhecidas.
+            nome, org, _tipo, _url, endereco, _cidade, _uf = dados
+            c.execute("UPDATE faculdades SET endereco = ?, updated_at = CURRENT_TIMESTAMP "
+                      "WHERE id = ? AND COALESCE(TRIM(endereco), '') = '' AND ? IS NOT NULL",
+                      (endereco, row[0], endereco))
+            c.execute("UPDATE faculdades SET organizacao_academica = ? "
+                      "WHERE id = ? AND COALESCE(TRIM(organizacao_academica), '') = '' AND ? IS NOT NULL",
+                      (org, row[0], org))
+            if row[1] in NOMES_ANTIGOS and NOMES_ANTIGOS[row[1]] == nome:
+                c.execute("UPDATE faculdades SET nome = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                          (nome, row[0]))
+                row = (row[0], nome, row[2])
         faculdades[sigla] = row
 
     # 3) Ofertas (uma linha em cursos por curso em cada instituição)

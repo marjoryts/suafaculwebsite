@@ -131,3 +131,31 @@ def test_cards_da_home_apontam_para_listagem_de_faculdades():
     js = open(os.path.join(RAIZ, 'public', 'js', 'home-cursos.js'), encoding='utf-8').read()
     assert '/faculdades?curso=${encodeURIComponent(curso.nome)}&exato=1' in js
     assert '/api/cursos/catalogo' in js
+
+
+def test_catalogo_completa_endereco_vazio_e_renomeia(app):
+    """Bancos que gravaram a v2 do catálogo (sem endereço e com nomes
+    antigos) recebem o endereço e o nome oficial — sem sobrescrever o que
+    o admin já preencheu."""
+    import database.catalogo_dados as dados
+    from database.init_db import sincronizar_catalogo
+    from config.database import get_connection
+
+    with _db() as conn:
+        conn.execute("UPDATE faculdades SET endereco = NULL, nome = 'FAAP - Fundação Armando Alvares Penteado' "
+                     "WHERE sigla = 'FAAP'")
+        conn.execute("UPDATE faculdades SET endereco = 'Endereço editado pelo admin' WHERE sigla = 'UFPA'")
+    versao = dados.CATALOGO_VERSAO
+    try:
+        dados.CATALOGO_VERSAO = versao + 1
+        conn = get_connection()
+        sincronizar_catalogo(conn)
+        conn.close()
+    finally:
+        dados.CATALOGO_VERSAO = versao
+    with _db() as conn:
+        nome, endereco = conn.execute("SELECT nome, endereco FROM faculdades WHERE sigla = 'FAAP'").fetchone()
+        assert nome == INSTITUICOES['FAAP'][0] and endereco == INSTITUICOES['FAAP'][4]
+        assert conn.execute("SELECT endereco FROM faculdades WHERE sigla = 'UFPA'").fetchone()[0] == \
+            'Endereço editado pelo admin'
+        assert conn.execute("SELECT COUNT(*) FROM faculdades WHERE sigla = 'FAAP'").fetchone()[0] == 1
