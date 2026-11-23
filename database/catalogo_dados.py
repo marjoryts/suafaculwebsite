@@ -23,7 +23,7 @@ arquivo e incremente CATALOGO_VERSAO: o init_db atualiza os registros do
 catálogo e insere as ofertas que faltarem, sem apagar nada.
 """
 
-CATALOGO_VERSAO = 3  # v2: +instituições; v3: endereços (Censo INEP 2024) e nomes oficiais
+CATALOGO_VERSAO = 4  # v2: +instituições; v3: endereços e nomes oficiais; v4: ofertas do Censo INEP 2024
 
 # Nomes gravados por versões anteriores do catálogo -> nome oficial atual.
 # O init_db renomeia o registro só se ele ainda tiver exatamente o nome antigo.
@@ -506,3 +506,12 @@ CURSOS = [
      'imagem': _img('photo-1514320291840-2e0a9bf2a9ae'),
      'ofertas': [('USP', P), ('UNICAMP', P), ('UFRJ', P), ('UNESP', P), ('UFMG', P)]},
 ]
+
+
+# Ofertas do Censo INEP 2024 (database/catalogo_ofertas_inep.py) somadas às
+# curadas acima — sem repetir instituição no mesmo curso.
+from database.catalogo_ofertas_inep import OFERTAS_INEP  # noqa: E402
+
+for _curso in CURSOS:
+    _ja = {_o[0] for _o in _curso['ofertas']}
+    _curso['ofertas'] = _curso['ofertas'] + [tuple(_o) for _o in OFERTAS_INEP.get(_curso['nome'], []) if _o[0] not in _ja]

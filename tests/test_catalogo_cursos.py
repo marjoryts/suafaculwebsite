@@ -98,15 +98,15 @@ def test_api_catalogo_filtra_por_area(client):
 def test_novos_cursos_entram_na_busca_e_nos_filtros(client):
     sug = client.get('/api/busca/sugestoes?q=agrono&tipos=curso').get_json()['resultados']['curso']
     assert [s['valor'] for s in sug] == ['Agronomia']
-    body = client.get('/api/cursos/listar?area=Ciências Exatas&limit=100').get_json()
+    body = client.get('/api/cursos/listar?area=Ciências Exatas&limit=1000').get_json()
     assert body['total'] > 0 and {c['nome'] for c in body['cursos']} >= {'Matemática', 'Física', 'Química'}
-    body = client.get('/api/cursos/listar?modalidade=ead&limit=100').get_json()
+    body = client.get('/api/cursos/listar?modalidade=ead&limit=5000').get_json()
     assert any(c['instituicao'].startswith('UNIVESP') for c in body['cursos'])
 
 
 def test_faculdades_por_curso_exato(client):
-    exato = client.get('/api/faculdades/listar?curso=Física&curso_exato=1&limit=50').get_json()
-    contem = client.get('/api/faculdades/listar?curso=Física&limit=50').get_json()
+    exato = client.get('/api/faculdades/listar?curso=Física&curso_exato=1&limit=500').get_json()
+    contem = client.get('/api/faculdades/listar?curso=Física&limit=500').get_json()
     oferta_fisica = {o[0] for o in next(c for c in CURSOS if c['nome'] == 'Física')['ofertas']}
     assert {f['sigla'] for f in exato['faculdades']} == oferta_fisica
     # sem o parâmetro, continua a busca por parte do nome (traz Educação Física)

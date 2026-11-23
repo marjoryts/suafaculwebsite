@@ -141,7 +141,10 @@ def test_novo_usuario_conclui_teste_cria_conta_e_ve_recomendacoes(client):
     rec = client.get('/api/teste_vocacional/recomendacoes').get_json()
     assert rec['success'] is True
     assert rec['perfil'] == 'humano'
-    assert rec['cursos'][0]['nome'] == 'Psicologia'
+    # Psicologia está entre os de maior compatibilidade (empates são
+    # desempatados pela quantidade de instituições que oferecem o curso)
+    topo = rec['cursos'][0]['compatibilidade']
+    assert 'Psicologia' in [c['nome'] for c in rec['cursos'] if c['compatibilidade'] == topo]
 
 
 def test_resultado_nao_vai_para_outra_conta(app, client):
