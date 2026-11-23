@@ -23,7 +23,15 @@ arquivo e incremente CATALOGO_VERSAO: o init_db atualiza os registros do
 catálogo e insere as ofertas que faltarem, sem apagar nada.
 """
 
-CATALOGO_VERSAO = 2  # v2: +instituições (todas são gravadas, mesmo sem oferta)
+CATALOGO_VERSAO = 3  # v2: +instituições; v3: endereços (Censo INEP 2024) e nomes oficiais
+
+# Nomes gravados por versões anteriores do catálogo -> nome oficial atual.
+# O init_db renomeia o registro só se ele ainda tiver exatamente o nome antigo.
+NOMES_ANTIGOS = {
+    'FAAP - Fundação Armando Alvares Penteado': 'FAAP - Centro Universitário Armando Alvares Penteado',
+    'UNG - Universidade Guarulhos': 'UNG - Universidade Universus Veritas Guarulhos',
+    'Braz Cubas - Universidade Braz Cubas': 'Braz Cubas - Centro Universitário Braz Cubas',
+}
 
 # Parâmetros da CDN do Unsplash: recorte padronizado 16:8 (cards da home),
 # formato automático (WebP/AVIF quando o navegador aceita) e qualidade média.
