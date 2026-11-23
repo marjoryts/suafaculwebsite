@@ -38,6 +38,9 @@ def test_init_popula_catalogo_sem_duplicar(app):
         dup_fac = conn.execute("SELECT LOWER(nome), COUNT(*) FROM faculdades GROUP BY LOWER(nome) "
                                "HAVING COUNT(*) > 1").fetchall()
         assert dup_fac == []
+        # Toda instituição do catálogo é gravada, mesmo sem oferta de curso
+        siglas = {s for (s,) in conn.execute("SELECT sigla FROM faculdades")}
+        assert set(INSTITUICOES) <= siglas
         dup_cursos = conn.execute("SELECT LOWER(nome), faculdade_id, COUNT(*) FROM cursos "
                                   "GROUP BY LOWER(nome), faculdade_id HAVING COUNT(*) > 1").fetchall()
         assert dup_cursos == []

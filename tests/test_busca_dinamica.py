@@ -118,7 +118,8 @@ def test_filtro_por_tipos_e_limite(app, client):
 def test_listagem_filtra_por_sigla_de_uf_e_regiao(app, client):
     _criar_faculdade(app, nome='Universidade Amapaense Teste', sigla='UAPT', cidade='Macapá', uf='AP')
     por_uf = client.get('/api/faculdades/listar?cidade=AP').get_json()['faculdades']
-    assert [f['nome'] for f in por_uf] == ['Universidade Amapaense Teste']
+    assert 'Universidade Amapaense Teste' in [f['nome'] for f in por_uf]
+    assert por_uf and all(f['uf'] == 'AP' for f in por_uf)
     por_regiao = [f['nome'] for f in client.get('/api/faculdades/listar?cidade=Norte&limit=100').get_json()['faculdades']]
     assert 'Universidade Amapaense Teste' in por_regiao
     assert all(f['uf'] in ('AC', 'AP', 'AM', 'PA', 'RO', 'RR', 'TO')
