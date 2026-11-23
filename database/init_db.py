@@ -596,7 +596,7 @@ def sincronizar_catalogo(conn):
 
     - cursos_catalogo: insere a formação que falta; atualiza a que veio de
       uma versão anterior do catálogo (seed_versao < CATALOGO_VERSAO).
-    - faculdades: reaproveita a instituição já cadastrada (manual ou e-MEC);
+    - faculdades: todas as de INSTITUICOES; reaproveita a já cadastrada (manual ou e-MEC);
       insere só as que não existem.
     - cursos: insere a oferta (curso + instituição) que ainda não existe —
       mesmo nome de curso (sem acento/caixa) na mesma faculdade.
@@ -630,10 +630,10 @@ def sincronizar_catalogo(conn):
                       "seed_versao=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
                       valores + (CATALOGO_VERSAO, row[0]))
 
-    # 2) Instituições usadas nas ofertas
+    # 2) Instituições do catálogo — todas, mesmo as que ainda não têm
+    #    oferta de curso (aparecem na busca/listagem de faculdades).
     faculdades = {}
-    siglas_usadas = {oferta[0] for curso in CURSOS for oferta in curso['ofertas']}
-    for sigla in sorted(siglas_usadas):
+    for sigla in INSTITUICOES:
         dados = INSTITUICOES[sigla]
         row = _localizar_faculdade(c, sigla, dados)
         if row is None:

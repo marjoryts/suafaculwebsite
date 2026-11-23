@@ -23,7 +23,7 @@ arquivo e incremente CATALOGO_VERSAO: o init_db atualiza os registros do
 catálogo e insere as ofertas que faltarem, sem apagar nada.
 """
 
-CATALOGO_VERSAO = 1
+CATALOGO_VERSAO = 2  # v2: +instituições (todas são gravadas, mesmo sem oferta)
 
 # Parâmetros da CDN do Unsplash: recorte padronizado 16:8 (cards da home),
 # formato automático (WebP/AVIF quando o navegador aceita) e qualidade média.
@@ -36,7 +36,8 @@ def _img(photo_id):
 
 # sigla: (nome, organizacao_academica, tipo, url, endereco, cidade, uf)
 # As 14 primeiras já existem no seed original de database/init_db.py (mesmo
-# nome) e são apenas reaproveitadas; as demais são inseridas se faltarem.
+# nome) e são apenas reaproveitadas; as demais são inseridas se faltarem —
+# inclusive as que ainda não têm nenhuma oferta de curso no catálogo.
 INSTITUICOES = {
     'USP': ('USP - Universidade de São Paulo', 'Universidade', 'Pública', 'https://www5.usp.br',
             'Rua da Reitoria, 374 - Cidade Universitária', 'São Paulo', 'SP'),
@@ -108,6 +109,140 @@ INSTITUICOES = {
              'Praça Mauá, 1 - Mauá', 'São Caetano do Sul', 'SP'),
     'UMC': ('UMC - Universidade de Mogi das Cruzes', 'Universidade', 'Privada', 'https://www.umc.br',
             'Av. Dr. Cândido Xavier de Almeida e Souza, 200 - Centro Cívico', 'Mogi das Cruzes', 'SP'),
+
+    # ── Ampliação (catálogo v2): principais IES do país ──
+    # Endereço fica em branco (None) para não inventar dado: pode ser
+    # completado pelo admin ou pela importação do e-MEC.
+
+    # Universidades federais
+    'UFPA': ('UFPA - Universidade Federal do Pará', 'Universidade', 'Pública', 'https://portal.ufpa.br', None, 'Belém', 'PA'),
+    'UFAM': ('UFAM - Universidade Federal do Amazonas', 'Universidade', 'Pública', 'https://ufam.edu.br', None, 'Manaus', 'AM'),
+    'UFRN': ('UFRN - Universidade Federal do Rio Grande do Norte', 'Universidade', 'Pública', 'https://www.ufrn.br', None, 'Natal', 'RN'),
+    'UFPB': ('UFPB - Universidade Federal da Paraíba', 'Universidade', 'Pública', 'https://www.ufpb.br', None, 'João Pessoa', 'PB'),
+    'UFCG': ('UFCG - Universidade Federal de Campina Grande', 'Universidade', 'Pública', 'https://portal.ufcg.edu.br', None, 'Campina Grande', 'PB'),
+    'UFAL': ('UFAL - Universidade Federal de Alagoas', 'Universidade', 'Pública', 'https://ufal.br', None, 'Maceió', 'AL'),
+    'UFS': ('UFS - Universidade Federal de Sergipe', 'Universidade', 'Pública', 'https://www.ufs.br', None, 'São Cristóvão', 'SE'),
+    'UFPI': ('UFPI - Universidade Federal do Piauí', 'Universidade', 'Pública', 'https://ufpi.edu.br', None, 'Teresina', 'PI'),
+    'UFMA': ('UFMA - Universidade Federal do Maranhão', 'Universidade', 'Pública', 'https://portalpadrao.ufma.br', None, 'São Luís', 'MA'),
+    'UFES': ('UFES - Universidade Federal do Espírito Santo', 'Universidade', 'Pública', 'https://www.ufes.br', None, 'Vitória', 'ES'),
+    'UFJF': ('UFJF - Universidade Federal de Juiz de Fora', 'Universidade', 'Pública', 'https://www2.ufjf.br', None, 'Juiz de Fora', 'MG'),
+    'UFU': ('UFU - Universidade Federal de Uberlândia', 'Universidade', 'Pública', 'https://ufu.br', None, 'Uberlândia', 'MG'),
+    'UFLA': ('UFLA - Universidade Federal de Lavras', 'Universidade', 'Pública', 'https://ufla.br', None, 'Lavras', 'MG'),
+    'UFOP': ('UFOP - Universidade Federal de Ouro Preto', 'Universidade', 'Pública', 'https://ufop.br', None, 'Ouro Preto', 'MG'),
+    'UNIFEI': ('UNIFEI - Universidade Federal de Itajubá', 'Universidade', 'Pública', 'https://unifei.edu.br', None, 'Itajubá', 'MG'),
+    'UFSJ': ('UFSJ - Universidade Federal de São João del-Rei', 'Universidade', 'Pública', 'https://www.ufsj.edu.br', None, 'São João del-Rei', 'MG'),
+    'UFTM': ('UFTM - Universidade Federal do Triângulo Mineiro', 'Universidade', 'Pública', 'https://www.uftm.edu.br', None, 'Uberaba', 'MG'),
+    'UNIFAL-MG': ('UNIFAL-MG - Universidade Federal de Alfenas', 'Universidade', 'Pública', 'https://www.unifal-mg.edu.br', None, 'Alfenas', 'MG'),
+    'UFVJM': ('UFVJM - Universidade Federal dos Vales do Jequitinhonha e Mucuri', 'Universidade', 'Pública', 'https://portal.ufvjm.edu.br', None, 'Diamantina', 'MG'),
+    'UFSM': ('UFSM - Universidade Federal de Santa Maria', 'Universidade', 'Pública', 'https://www.ufsm.br', None, 'Santa Maria', 'RS'),
+    'UFPel': ('UFPel - Universidade Federal de Pelotas', 'Universidade', 'Pública', 'https://portal.ufpel.edu.br', None, 'Pelotas', 'RS'),
+    'FURG': ('FURG - Universidade Federal do Rio Grande', 'Universidade', 'Pública', 'https://www.furg.br', None, 'Rio Grande', 'RS'),
+    'UFCSPA': ('UFCSPA - Universidade Federal de Ciências da Saúde de Porto Alegre', 'Universidade', 'Pública', 'https://ufcspa.edu.br', None, 'Porto Alegre', 'RS'),
+    'UNIPAMPA': ('UNIPAMPA - Universidade Federal do Pampa', 'Universidade', 'Pública', 'https://unipampa.edu.br', None, 'Bagé', 'RS'),
+    'UFFS': ('UFFS - Universidade Federal da Fronteira Sul', 'Universidade', 'Pública', 'https://www.uffs.edu.br', None, 'Chapecó', 'SC'),
+    'UNILA': ('UNILA - Universidade Federal da Integração Latino-Americana', 'Universidade', 'Pública', 'https://portal.unila.edu.br', None, 'Foz do Iguaçu', 'PR'),
+    'UFMT': ('UFMT - Universidade Federal de Mato Grosso', 'Universidade', 'Pública', 'https://www.ufmt.br', None, 'Cuiabá', 'MT'),
+    'UFMS': ('UFMS - Universidade Federal de Mato Grosso do Sul', 'Universidade', 'Pública', 'https://www.ufms.br', None, 'Campo Grande', 'MS'),
+    'UFGD': ('UFGD - Universidade Federal da Grande Dourados', 'Universidade', 'Pública', 'https://portal.ufgd.edu.br', None, 'Dourados', 'MS'),
+    'UFT': ('UFT - Universidade Federal do Tocantins', 'Universidade', 'Pública', 'https://www.uft.edu.br', None, 'Palmas', 'TO'),
+    'UNIR': ('UNIR - Universidade Federal de Rondônia', 'Universidade', 'Pública', 'https://www.unir.br', None, 'Porto Velho', 'RO'),
+    'UFAC': ('UFAC - Universidade Federal do Acre', 'Universidade', 'Pública', 'https://www.ufac.br', None, 'Rio Branco', 'AC'),
+    'UFRR': ('UFRR - Universidade Federal de Roraima', 'Universidade', 'Pública', 'https://ufrr.br', None, 'Boa Vista', 'RR'),
+    'UNIFAP': ('UNIFAP - Universidade Federal do Amapá', 'Universidade', 'Pública', 'https://www2.unifap.br', None, 'Macapá', 'AP'),
+    'UFRPE': ('UFRPE - Universidade Federal Rural de Pernambuco', 'Universidade', 'Pública', 'https://www.ufrpe.br', None, 'Recife', 'PE'),
+    'UFRRJ': ('UFRRJ - Universidade Federal Rural do Rio de Janeiro', 'Universidade', 'Pública', 'https://portal.ufrrj.br', None, 'Seropédica', 'RJ'),
+    'UNIRIO': ('UNIRIO - Universidade Federal do Estado do Rio de Janeiro', 'Universidade', 'Pública', 'https://www.unirio.br', None, 'Rio de Janeiro', 'RJ'),
+    'UFRB': ('UFRB - Universidade Federal do Recôncavo da Bahia', 'Universidade', 'Pública', 'https://www.ufrb.edu.br', None, 'Cruz das Almas', 'BA'),
+    'UFOB': ('UFOB - Universidade Federal do Oeste da Bahia', 'Universidade', 'Pública', 'https://ufob.edu.br', None, 'Barreiras', 'BA'),
+    'UFSB': ('UFSB - Universidade Federal do Sul da Bahia', 'Universidade', 'Pública', 'https://ufsb.edu.br', None, 'Itabuna', 'BA'),
+    'UNIVASF': ('UNIVASF - Universidade Federal do Vale do São Francisco', 'Universidade', 'Pública', 'https://portais.univasf.edu.br', None, 'Petrolina', 'PE'),
+    'UFERSA': ('UFERSA - Universidade Federal Rural do Semi-Árido', 'Universidade', 'Pública', 'https://ufersa.edu.br', None, 'Mossoró', 'RN'),
+    'UFCA': ('UFCA - Universidade Federal do Cariri', 'Universidade', 'Pública', 'https://www.ufca.edu.br', None, 'Juazeiro do Norte', 'CE'),
+    'UNILAB': ('UNILAB - Universidade da Integração Internacional da Lusofonia Afro-Brasileira', 'Universidade', 'Pública', 'https://unilab.edu.br', None, 'Redenção', 'CE'),
+    'UFOPA': ('UFOPA - Universidade Federal do Oeste do Pará', 'Universidade', 'Pública', 'https://www.ufopa.edu.br', None, 'Santarém', 'PA'),
+    'UFCAT': ('UFCAT - Universidade Federal de Catalão', 'Universidade', 'Pública', 'https://ufcat.edu.br', None, 'Catalão', 'GO'),
+
+    # CEFETs, institutos federais e militares
+    'CEFET-MG': ('CEFET-MG - Centro Federal de Educação Tecnológica de Minas Gerais', 'Centro Federal de Educação Tecnológica', 'Pública', 'https://www.cefetmg.br', None, 'Belo Horizonte', 'MG'),
+    'CEFET/RJ': ('CEFET/RJ - Centro Federal de Educação Tecnológica Celso Suckow da Fonseca', 'Centro Federal de Educação Tecnológica', 'Pública', 'https://www.cefet-rj.br', None, 'Rio de Janeiro', 'RJ'),
+    'IFSP': ('IFSP - Instituto Federal de São Paulo', 'Instituto Federal', 'Pública', 'https://www.ifsp.edu.br', None, 'São Paulo', 'SP'),
+    'IFMG': ('IFMG - Instituto Federal de Minas Gerais', 'Instituto Federal', 'Pública', 'https://www.ifmg.edu.br', None, 'Belo Horizonte', 'MG'),
+    'IFRS': ('IFRS - Instituto Federal do Rio Grande do Sul', 'Instituto Federal', 'Pública', 'https://ifrs.edu.br', None, 'Bento Gonçalves', 'RS'),
+    'IFSC': ('IFSC - Instituto Federal de Santa Catarina', 'Instituto Federal', 'Pública', 'https://www.ifsc.edu.br', None, 'Florianópolis', 'SC'),
+    'IFCE': ('IFCE - Instituto Federal do Ceará', 'Instituto Federal', 'Pública', 'https://ifce.edu.br', None, 'Fortaleza', 'CE'),
+    'IFBA': ('IFBA - Instituto Federal da Bahia', 'Instituto Federal', 'Pública', 'https://portal.ifba.edu.br', None, 'Salvador', 'BA'),
+    'IFG': ('IFG - Instituto Federal de Goiás', 'Instituto Federal', 'Pública', 'https://www.ifg.edu.br', None, 'Goiânia', 'GO'),
+    'IME': ('IME - Instituto Militar de Engenharia', None, 'Pública', 'https://www.ime.eb.mil.br', None, 'Rio de Janeiro', 'RJ'),
+
+    # Universidades e faculdades estaduais
+    'UEL': ('UEL - Universidade Estadual de Londrina', 'Universidade', 'Pública', 'https://portal.uel.br', None, 'Londrina', 'PR'),
+    'UEM': ('UEM - Universidade Estadual de Maringá', 'Universidade', 'Pública', 'https://www.uem.br', None, 'Maringá', 'PR'),
+    'UEPG': ('UEPG - Universidade Estadual de Ponta Grossa', 'Universidade', 'Pública', 'https://www.uepg.br', None, 'Ponta Grossa', 'PR'),
+    'UNIOESTE': ('UNIOESTE - Universidade Estadual do Oeste do Paraná', 'Universidade', 'Pública', 'https://www.unioeste.br', None, 'Cascavel', 'PR'),
+    'UDESC': ('UDESC - Universidade do Estado de Santa Catarina', 'Universidade', 'Pública', 'https://www.udesc.br', None, 'Florianópolis', 'SC'),
+    'UERGS': ('UERGS - Universidade Estadual do Rio Grande do Sul', 'Universidade', 'Pública', 'https://www.uergs.edu.br', None, 'Porto Alegre', 'RS'),
+    'UEMG': ('UEMG - Universidade do Estado de Minas Gerais', 'Universidade', 'Pública', 'https://www.uemg.br', None, 'Belo Horizonte', 'MG'),
+    'UNIMONTES': ('UNIMONTES - Universidade Estadual de Montes Claros', 'Universidade', 'Pública', 'https://unimontes.br', None, 'Montes Claros', 'MG'),
+    'UENF': ('UENF - Universidade Estadual do Norte Fluminense Darcy Ribeiro', 'Universidade', 'Pública', 'https://uenf.br', None, 'Campos dos Goytacazes', 'RJ'),
+    'UNEB': ('UNEB - Universidade do Estado da Bahia', 'Universidade', 'Pública', 'https://portal.uneb.br', None, 'Salvador', 'BA'),
+    'UEFS': ('UEFS - Universidade Estadual de Feira de Santana', 'Universidade', 'Pública', 'https://www.uefs.br', None, 'Feira de Santana', 'BA'),
+    'UESC': ('UESC - Universidade Estadual de Santa Cruz', 'Universidade', 'Pública', 'https://www.uesc.br', None, 'Ilhéus', 'BA'),
+    'UESB': ('UESB - Universidade Estadual do Sudoeste da Bahia', 'Universidade', 'Pública', 'https://www2.uesb.br', None, 'Vitória da Conquista', 'BA'),
+    'UECE': ('UECE - Universidade Estadual do Ceará', 'Universidade', 'Pública', 'https://www.uece.br', None, 'Fortaleza', 'CE'),
+    'UPE': ('UPE - Universidade de Pernambuco', 'Universidade', 'Pública', 'https://www.upe.br', None, 'Recife', 'PE'),
+    'UEPB': ('UEPB - Universidade Estadual da Paraíba', 'Universidade', 'Pública', 'https://uepb.edu.br', None, 'Campina Grande', 'PB'),
+    'UERN': ('UERN - Universidade do Estado do Rio Grande do Norte', 'Universidade', 'Pública', 'https://portal.uern.br', None, 'Mossoró', 'RN'),
+    'UEMA': ('UEMA - Universidade Estadual do Maranhão', 'Universidade', 'Pública', 'https://www.uema.br', None, 'São Luís', 'MA'),
+    'UESPI': ('UESPI - Universidade Estadual do Piauí', 'Universidade', 'Pública', 'https://www.uespi.br', None, 'Teresina', 'PI'),
+    'UEA': ('UEA - Universidade do Estado do Amazonas', 'Universidade', 'Pública', 'https://www.uea.edu.br', None, 'Manaus', 'AM'),
+    'UEPA': ('UEPA - Universidade do Estado do Pará', 'Universidade', 'Pública', 'https://www.uepa.br', None, 'Belém', 'PA'),
+    'UEG': ('UEG - Universidade Estadual de Goiás', 'Universidade', 'Pública', 'https://www.ueg.br', None, 'Anápolis', 'GO'),
+    'UEMS': ('UEMS - Universidade Estadual de Mato Grosso do Sul', 'Universidade', 'Pública', 'https://www.uems.br', None, 'Dourados', 'MS'),
+    'UNEMAT': ('UNEMAT - Universidade do Estado de Mato Grosso', 'Universidade', 'Pública', 'https://unemat.br', None, 'Cáceres', 'MT'),
+    'FAMERP': ('FAMERP - Faculdade de Medicina de São José do Rio Preto', 'Faculdade', 'Pública', 'https://www.famerp.br', None, 'São José do Rio Preto', 'SP'),
+
+    # Instituições privadas
+    'PUCPR': ('PUCPR - Pontifícia Universidade Católica do Paraná', 'Universidade', 'Privada', 'https://www.pucpr.br', None, 'Curitiba', 'PR'),
+    'PUC-Campinas': ('PUC-Campinas - Pontifícia Universidade Católica de Campinas', 'Universidade', 'Privada', 'https://www.puc-campinas.edu.br', None, 'Campinas', 'SP'),
+    'PUC Goiás': ('PUC Goiás - Pontifícia Universidade Católica de Goiás', 'Universidade', 'Privada', 'https://www.pucgoias.edu.br', None, 'Goiânia', 'GO'),
+    'UNISINOS': ('UNISINOS - Universidade do Vale do Rio dos Sinos', 'Universidade', 'Privada', 'https://www.unisinos.br', None, 'São Leopoldo', 'RS'),
+    'UCS': ('UCS - Universidade de Caxias do Sul', 'Universidade', 'Privada', 'https://www.ucs.br', None, 'Caxias do Sul', 'RS'),
+    'UPF': ('UPF - Universidade de Passo Fundo', 'Universidade', 'Privada', 'https://www.upf.br', None, 'Passo Fundo', 'RS'),
+    'UNIVALI': ('UNIVALI - Universidade do Vale do Itajaí', 'Universidade', 'Privada', 'https://www.univali.br', None, 'Itajaí', 'SC'),
+    'UNIFOR': ('UNIFOR - Universidade de Fortaleza', 'Universidade', 'Privada', 'https://www.unifor.br', None, 'Fortaleza', 'CE'),
+    'UNICAP': ('UNICAP - Universidade Católica de Pernambuco', 'Universidade', 'Privada', 'https://www.unicap.br', None, 'Recife', 'PE'),
+    'UCSal': ('UCSal - Universidade Católica do Salvador', 'Universidade', 'Privada', 'https://www.ucsal.br', None, 'Salvador', 'BA'),
+    'UCB': ('UCB - Universidade Católica de Brasília', 'Universidade', 'Privada', 'https://ucb.catolica.edu.br', None, 'Brasília', 'DF'),
+    'UniCEUB': ('UniCEUB - Centro Universitário de Brasília', 'Centro Universitário', 'Privada', 'https://www.uniceub.br', None, 'Brasília', 'DF'),
+    'FAAP': ('FAAP - Fundação Armando Alvares Penteado', 'Centro Universitário', 'Privada', 'https://www.faap.br', None, 'São Paulo', 'SP'),
+    'Einstein': ('Einstein - Faculdade Israelita de Ciências da Saúde Albert Einstein', 'Faculdade', 'Privada', 'https://ensino.einstein.br', None, 'São Paulo', 'SP'),
+    'FCMSCSP': ('FCMSCSP - Faculdade de Ciências Médicas da Santa Casa de São Paulo', 'Faculdade', 'Privada', 'https://fcmsantacasasp.edu.br', None, 'São Paulo', 'SP'),
+    'FMABC': ('FMABC - Centro Universitário FMABC', 'Centro Universitário', 'Privada', 'https://www.fmabc.br', None, 'Santo André', 'SP'),
+    'Belas Artes': ('Belas Artes - Centro Universitário Belas Artes de São Paulo', 'Centro Universitário', 'Privada', 'https://www.belasartes.br', None, 'São Paulo', 'SP'),
+    'FECAP': ('FECAP - Centro Universitário Álvares Penteado', 'Centro Universitário', 'Privada', 'https://www.fecap.br', None, 'São Paulo', 'SP'),
+    'Senac': ('Senac - Centro Universitário Senac', 'Centro Universitário', 'Privada', 'https://www.sp.senac.br', None, 'São Paulo', 'SP'),
+    'São Camilo': ('São Camilo - Centro Universitário São Camilo', 'Centro Universitário', 'Privada', 'https://saocamilo-sp.br', None, 'São Paulo', 'SP'),
+    'USJT': ('USJT - Universidade São Judas Tadeu', 'Universidade', 'Privada', 'https://www.usjt.br', None, 'São Paulo', 'SP'),
+    'Anhembi Morumbi': ('Anhembi Morumbi - Universidade Anhembi Morumbi', 'Universidade', 'Privada', 'https://portal.anhembi.br', None, 'São Paulo', 'SP'),
+    'UNINOVE': ('UNINOVE - Universidade Nove de Julho', 'Universidade', 'Privada', 'https://www.uninove.br', None, 'São Paulo', 'SP'),
+    'UNIP': ('UNIP - Universidade Paulista', 'Universidade', 'Privada', 'https://www.unip.br', None, 'São Paulo', 'SP'),
+    'Cruzeiro do Sul': ('Cruzeiro do Sul - Universidade Cruzeiro do Sul', 'Universidade', 'Privada', 'https://www.cruzeirodosul.edu.br', None, 'São Paulo', 'SP'),
+    'UNISA': ('UNISA - Universidade Santo Amaro', 'Universidade', 'Privada', 'https://www.unisa.br', None, 'São Paulo', 'SP'),
+    'Braz Cubas': ('Braz Cubas - Centro Universitário Braz Cubas', 'Centro Universitário', 'Privada', 'https://www.brazcubas.edu.br', None, 'Mogi das Cruzes', 'SP'),
+    'UNG': ('UNG - Universidade Guarulhos', 'Universidade', 'Privada', 'https://www.ung.br', None, 'Guarulhos', 'SP'),
+    'Metodista': ('Metodista - Universidade Metodista de São Paulo', 'Universidade', 'Privada', 'https://metodista.br', None, 'São Bernardo do Campo', 'SP'),
+    'UNISANTA': ('UNISANTA - Universidade Santa Cecília', 'Universidade', 'Privada', 'https://unisanta.br', None, 'Santos', 'SP'),
+    'UniSantos': ('UniSantos - Universidade Católica de Santos', 'Universidade', 'Privada', 'https://www.unisantos.br', None, 'Santos', 'SP'),
+    'Estácio': ('Estácio - Universidade Estácio de Sá', 'Universidade', 'Privada', 'https://estacio.br', None, 'Rio de Janeiro', 'RJ'),
+    'UVA': ('UVA - Universidade Veiga de Almeida', 'Universidade', 'Privada', 'https://www.uva.br', None, 'Rio de Janeiro', 'RJ'),
+    'UNIFACS': ('UNIFACS - Universidade Salvador', 'Universidade', 'Privada', 'https://www.unifacs.br', None, 'Salvador', 'BA'),
+    'UNIT': ('UNIT - Universidade Tiradentes', 'Universidade', 'Privada', 'https://www.unit.br', None, 'Aracaju', 'SE'),
+    'UnP': ('UnP - Universidade Potiguar', 'Universidade', 'Privada', 'https://www.unp.br', None, 'Natal', 'RN'),
+    'Positivo': ('Positivo - Universidade Positivo', 'Universidade', 'Privada', 'https://www.up.edu.br', None, 'Curitiba', 'PR'),
+    'UniCesumar': ('UniCesumar - Universidade Cesumar', 'Universidade', 'Privada', 'https://www.unicesumar.edu.br', None, 'Maringá', 'PR'),
+    'UNINTER': ('UNINTER - Centro Universitário Internacional', 'Centro Universitário', 'Privada', 'https://www.uninter.com', None, 'Curitiba', 'PR'),
+    'UNA': ('UNA - Centro Universitário UNA', 'Centro Universitário', 'Privada', 'https://www.una.br', None, 'Belo Horizonte', 'MG'),
+    'FUMEC': ('FUMEC - Universidade FUMEC', 'Universidade', 'Privada', 'https://www.fumec.br', None, 'Belo Horizonte', 'MG'),
 }
 
 P, EAD = 'presencial', 'ead'
