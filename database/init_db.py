@@ -660,17 +660,24 @@ def sincronizar_catalogo(conn):
                 row = (row[0], nome, row[2])
         faculdades[sigla] = row
 
-    # 3) Ofertas (uma linha em cursos por curso em cada instituição)
+    # 3) Ofertas (uma linha em cursos por curso em cada instituição).
+    #    Carrega as ofertas existentes de uma vez (são milhares no catálogo).
+    c.execute("SELECT nome, faculdade_id, instituicao FROM cursos")
+    existentes_id, existentes_inst = set(), set()
+    for nome_c, fac_c, inst_c in c.fetchall():
+        nn = _norm(nome_c)
+        if fac_c is not None:
+            existentes_id.add((nn, fac_c))
+        existentes_inst.add((nn, inst_c))
     for curso in CURSOS:
         nome_norm = _norm(curso['nome'])
         for oferta in curso['ofertas']:
             sigla, modalidade = oferta[0], oferta[1]
             grau = oferta[2] if len(oferta) > 2 else curso['grau']
             fac_id, fac_nome, fac_tipo = faculdades[sigla]
-            c.execute("SELECT 1 FROM cursos WHERE normalizar(nome) = ? AND (faculdade_id = ? OR instituicao = ?) LIMIT 1",
-                      (nome_norm, fac_id, fac_nome))
-            if c.fetchone():
+            if (nome_norm, fac_id) in existentes_id or (nome_norm, fac_nome) in existentes_inst:
                 continue
+            existentes_id.add((nome_norm, fac_id))
             c.execute("""INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao, duracao,
                                              grau, area, tipo_instituicao)
                          VALUES (?,?,?,?,?,?,?,?,?)""",

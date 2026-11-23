@@ -11,6 +11,7 @@ vocacional_service.py.
 """
 import json
 
+from config.database import normalizar
 from app.models.curso import Curso
 from app.models.teste_vocacional import TesteVocacional
 from app.services import vocacional_service
@@ -138,8 +139,18 @@ def _cursos_sugeridos(chave_perfil):
     areas = PERFIS[chave_perfil]['areas_cursos']
     if not areas:
         return []
-    cursos = Curso().listar({'area': areas[0], 'limit': LIMITE_CURSOS_SUGERIDOS, 'offset': 0})
-    return [{'id': c['id'], 'nome': c['nome'], 'instituicao': c['instituicao']} for c in cursos]
+    # Um curso por nome: com o catálogo do Censo, o mesmo curso aparece em
+    # dezenas de instituições e as primeiras linhas seriam todas iguais.
+    sugeridos, vistos = [], set()
+    for c in Curso().listar({'area': areas[0], 'limit': 2000, 'offset': 0}):
+        chave = normalizar(c['nome'])
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        sugeridos.append({'id': c['id'], 'nome': c['nome'], 'instituicao': c['instituicao']})
+        if len(sugeridos) == LIMITE_CURSOS_SUGERIDOS:
+            break
+    return sugeridos
 
 
 def submeter(respostas, usuario_id=None):
