@@ -1,6 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, hoje_iso, inserir, like_ci
+from config.database import contem_sem_acento, data_iso_sql, get_connection, hoje_iso, inserir, like_ci, padrao_contem
+
+_DATA = data_iso_sql('data_prova')
 
 class Vestibular:
     def _build_where(self, filtros):
@@ -20,12 +22,11 @@ class Vestibular:
                 sql += f" AND regiao IN ({','.join('?' * len(regioes))})"
                 params.extend(regioes)
         if filtros.get('busca'):
-            like = f"%{filtros['busca']}%"
-            # Ignora acentos/maiúsculas (like_ci) e procura também na descrição e
-            # na lista de cursos oferecidos pelo processo seletivo.
+            # Ignora acentos e maiúsculas e procura também na descrição e na
+            # lista de cursos oferecidos pelo processo seletivo.
             campos = ('nome', 'instituicao', 'cidade', 'descricao', 'cursos_oferecidos')
-            sql += " AND (" + " OR ".join(like_ci(campo) for campo in campos) + ")"
-            params.extend([like] * len(campos))
+            sql += " AND (" + " OR ".join(contem_sem_acento(campo) for campo in campos) + ")"
+            params.extend([padrao_contem(filtros['busca'])] * len(campos))
         if filtros.get('meses'):
             # data_prova é texto ISO 'AAAA-MM-DD': o mês são os caracteres 6-7
             # (SUBSTR é padrão SQL; evita strftime, exclusivo do SQLite).
@@ -39,7 +40,7 @@ class Vestibular:
             # Vestibulares da faculdade que oferece o curso OU que citam o
             # curso na lista de cursos oferecidos do processo seletivo.
             sql += (" AND (faculdade_id IN (SELECT faculdade_id FROM cursos WHERE faculdade_id IS NOT NULL AND nome=?)"
-                    " OR cursos_oferecidos LIKE ?)")
+                    f" OR {like_ci('cursos_oferecidos')})")
             params.extend([filtros['curso'], f"%{filtros['curso']}%"])
         return sql, params
 
@@ -52,8 +53,7 @@ class Vestibular:
             # depois as que já passaram e, por último, as sem data definida.
             # "Hoje" vem do Python (hoje_iso): a função de data atual do SQLite não é portável.
             sql = ("SELECT * FROM vestibulares" + where +
-                   " ORDER BY (data_prova IS NULL OR date(data_prova) IS NULL),"
-                   " (date(data_prova) < ?), data_prova ASC, nome ASC")
+                   f" ORDER BY ({_DATA} IS NULL), ({_DATA} < ?), data_prova ASC, nome ASC")
             params.append(hoje_iso())
             if 'limit' in filtros and 'offset' in filtros:
                 sql += " LIMIT ? OFFSET ?"
@@ -85,8 +85,8 @@ class Vestibular:
             conn = get_connection()
             c = conn.cursor()
             c.execute(
-                "SELECT * FROM vestibulares WHERE date(data_prova) >= ? "
-                "ORDER BY date(data_prova) ASC, nome ASC LIMIT ?", (hoje_iso(), limite)
+                f"SELECT * FROM vestibulares WHERE {_DATA} >= ? "
+                f"ORDER BY {_DATA} ASC, nome ASC LIMIT ?", (hoje_iso(), limite)
             )
             rows = [dict(r) for r in c.fetchall()]
             conn.close()

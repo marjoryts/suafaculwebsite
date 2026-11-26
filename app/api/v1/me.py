@@ -11,7 +11,7 @@ from app.services.erros import ValidacaoError
 
 # Somente estes campos podem ser alterados pelo próprio usuário. O tipo de
 # acesso (aluno/admin) NUNCA é editável por aqui.
-CAMPOS_EDITAVEIS = {'nome_usuario', 'email', 'password', 'password_confirm'}
+CAMPOS_EDITAVEIS = {'nome_usuario', 'email', 'password', 'password_confirm', 'senha_atual', 'telefone'}
 
 
 @bp.get('/me')
@@ -23,7 +23,9 @@ def me():
 @bp.patch('/me')
 @requer_usuario
 def me_atualizar():
-    """Corpo (todos opcionais): nome_usuario, email, password + password_confirm."""
+    """Corpo (todos opcionais): nome_usuario, email, telefone ('' apaga),
+    password + password_confirm e, opcionalmente, senha_atual — quando enviada,
+    a troca de senha só acontece se ela conferir."""
     dados = corpo_json()
     extras = sorted(set(dados) - CAMPOS_EDITAVEIS)
     if extras:
@@ -32,6 +34,11 @@ def me_atualizar():
         raise ValidacaoError('Informe ao menos um campo para atualizar.')
 
     atual = g.usuario
+    telefone = None
+    if 'telefone' in dados:
+        telefone = usuario_service.normalizar_telefone(campo_texto(dados, 'telefone'))
+    if 'senha_atual' in dados and campo_texto(dados, 'password'):
+        usuario_service.conferir_senha_atual(atual['id'], campo_texto(dados, 'senha_atual'))
     resultado = usuario_service.atualizar_perfil(
         atual['id'],
         campo_texto(dados, 'nome_usuario') if 'nome_usuario' in dados else atual['nome_usuario'],
@@ -44,6 +51,8 @@ def me_atualizar():
         # Falha de infraestrutura (não de validação): vira 500 genérico, sem vazar detalhe.
         raise RuntimeError(resultado.get('message', 'Falha ao atualizar perfil.'))
 
+    if 'telefone' in dados:
+        Usuario().atualizar_telefone(atual['id'], telefone)
     atualizado = Usuario().buscar_por_id(atual['id'])
     return jsonify({'data': usuario_dto(atualizado)})
 

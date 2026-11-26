@@ -67,7 +67,7 @@ SCHEMAS = {
                                                  'tipo_instituicao', 'url', 'endereco', 'cidade', 'uf',
                                                  'telefone', 'email', 'situacao')}),
     'Usuario': _obj(id=_INT, nome_usuario=_STR, email=_STR, tipo={'type': 'string', 'enum': ['aluno', 'admin']},
-                    avatar_url=_STR_N, auth_provider=_STR, created_at=_STR),
+                    avatar_url=_STR_N, auth_provider=_STR, telefone=_STR_N, created_at=_STR),
     'Questionario': _obj(secoes={'type': 'array', 'items': _obj(
         titulo=_STR, perguntas={'type': 'array', 'items': _obj(
             id={'type': 'string', 'example': 'q1'}, texto=_STR,
@@ -173,11 +173,18 @@ PATHS = {
         erros=(409, 415, 422), codigo='201',
         corpo=_obj(nome_usuario=_STR, email=_STR, password={'type': 'string', 'minLength': 6}),
         descricao='Conta criada como aluno. Senha com pelo menos 6 caracteres.')},
+    '/cursos/catalogo': {'get': _op(
+        'Catálogo de formações (home)', 'Catálogo', _ok(_data({'type': 'array', 'items': _obj(
+            id=_INT, nome=_STR, area=_STR_N, grau=_STR_N, duracao=_STR_N, descricao=_STR_N, imagem_url=_STR_N,
+            total_instituicoes=_INT, curso_id={'type': 'integer', 'nullable': True})})),
+        descricao='Uma formação por curso, como a grade da página inicial do site. `curso_id` é uma oferta '
+                  'real em /cursos/{id}. Filtro opcional: ?area=.')},
     '/auth/login': {'post': _op(
-        'Login por e-mail e senha', 'Autenticação', _ok(_data(_REF('Sessao'))), erros=(401, 415, 422),
-        corpo=_obj(email=_STR, password=_STR),
-        descricao='Abre uma sessão nova (um dispositivo = uma sessão). A mesma resposta 401 INVALID_CREDENTIALS '
-                  'vale para e-mail inexistente e senha errada.')},
+        'Login por e-mail (ou nome de usuário) e senha', 'Autenticação', _ok(_data(_REF('Sessao'))),
+        erros=(401, 415, 422), corpo=_obj(email=_STR, identificador=_STR, password=_STR),
+        descricao='Abre uma sessão nova (um dispositivo = uma sessão). Envie `email` OU `identificador` '
+                  '(nome de usuário ou e-mail). A mesma resposta 401 INVALID_CREDENTIALS vale para conta '
+                  'inexistente e senha errada.')},
     '/auth/google': {'post': _op(
         'Entra com Google (ID token)', 'Autenticação', _ok(_data(_REF('Sessao'))), erros=(403, 415, 422, 503),
         corpo=_obj(id_token={'type': 'string', 'description': 'ID token do Google Sign-In (audiência: um dos client IDs do projeto).'}),
@@ -261,7 +268,8 @@ PATHS = {
     '/me': {
         'get': _op('Perfil do usuário autenticado', 'Perfil', _ok(_data(_REF('Usuario'))), seguro=True),
         'patch': _op('Atualiza o próprio perfil', 'Perfil', _ok(_data(_REF('Usuario'))), erros=(415, 422),
-                     seguro=True, corpo=_obj(nome_usuario=_STR, email=_STR, password=_STR, password_confirm=_STR),
+                     seguro=True, corpo=_obj(nome_usuario=_STR, email=_STR, telefone=_STR, password=_STR,
+                                                password_confirm=_STR, senha_atual=_STR),
                      descricao='Só estes campos; o tipo de acesso nunca é editável. Trocar a senha encerra '
                                'as outras sessões do app (a atual continua válida).')},
     '/me/dashboard': {'get': _op('Resumo do painel do usuário', 'Perfil', _ok(_data(_REF('Dashboard'))),

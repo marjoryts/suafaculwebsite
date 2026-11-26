@@ -41,20 +41,21 @@ def test_todas_as_rotas_existentes_foram_preservadas(app):
     assert ROTAS_ESPERADAS <= atuais, sorted(ROTAS_ESPERADAS - atuais)
 
 
-def test_create_app_nao_toca_no_banco_nem_inicia_threads(monkeypatch, tmp_path):
-    db = tmp_path / "nao_deve_existir.db"
-    monkeypatch.setenv("SUAFACUL_DB_PATH", str(db))
+def test_create_app_nao_toca_no_banco_nem_inicia_threads(monkeypatch):
+    # Banco inalcançável: se create_app() tentasse conectar, falharia.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://ninguem@127.0.0.1:1/nao_existe")
+    import config.database as db
+    db.fechar_pool()
     ns = build_app(monkeypatch, inicializar_banco=False)
     assert ns.app is not None
-    assert not db.exists()
+    assert db._pool is None  # nenhum pool/conexão aberto pela factory
     assert not hasattr(ns, 'scheduler_service')  # sem agendador em processo (Vercel Cron)
 
 
 def test_importar_wsgi_nao_tem_efeitos_colaterais(tmp_path):
     """O entrypoint da Vercel (wsgi.py) pode ser importado sem escrever em
     disco e sem iniciar threads — pré-requisito de execução serverless."""
-    db = tmp_path / "wsgi_nao_deve_existir.db"
-    env = {**os.environ, "SUAFACUL_DB_PATH": str(db), "FLASK_SECRET_KEY": "x" * 32,
+    env = {**os.environ, "DATABASE_URL": "postgresql://ninguem@127.0.0.1:1/nao_existe", "FLASK_SECRET_KEY": "x" * 32,
            "FLASK_DEBUG": "0", "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": ""}
     codigo = ("import wsgi, threading; "
               "assert wsgi.app.name; "
@@ -64,7 +65,6 @@ def test_importar_wsgi_nao_tem_efeitos_colaterais(tmp_path):
                        capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
     assert 'ok' in r.stdout
-    assert not db.exists()
 
 
 def test_configuracao_vem_do_ambiente_e_aceita_override(app):

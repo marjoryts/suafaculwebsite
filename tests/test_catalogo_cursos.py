@@ -1,15 +1,15 @@
 """Catálogo ampliado de cursos/instituições (database/catalogo_dados.py) e a
 grade de cursos com imagens da página inicial."""
 import os
-import sqlite3
 
+from config.database import get_connection
 from database.catalogo_dados import CURSOS, INSTITUICOES
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _db():
-    return sqlite3.connect(os.environ['SUAFACUL_DB_PATH'])
+    return get_connection()
 
 
 # ── Dados ──

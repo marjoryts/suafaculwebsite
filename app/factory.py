@@ -57,9 +57,9 @@ def create_app(config=None, load_env=True):
 def _registrar_blueprints(app):
     from app.api.v1 import bp as api_v1
     from app.routes import (api_admin, api_catalogo, api_favoritos, api_teste_vocacional,
-                            api_usuario, api_vestibulares, auth_google, cron, pages)
+                            api_usuario, api_vestibulares, auth_google, cron, health, pages)
     for modulo in (pages, auth_google, api_usuario, api_catalogo, api_vestibulares,
-                   api_admin, api_favoritos, api_teste_vocacional, cron):
+                   api_admin, api_favoritos, api_teste_vocacional, cron, health):
         app.register_blueprint(modulo.bp)
     app.register_blueprint(api_v1)  # contrato oficial do Mobile: /api/v1
 

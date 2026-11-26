@@ -9,6 +9,7 @@
 """
 import itertools
 import json
+import os
 import random
 import sqlite3
 
@@ -139,32 +140,47 @@ def test_dashboard_e_historico_continuam_funcionando_apos_exclusao(app, client):
 
 # ── 3/4. Integridade das FKs e estrutura após init e migração ─────────────
 
+_SQL_FKS = """
+    SELECT con.conrelid::regclass::text AS tabela, con.confrelid::regclass::text AS alvo,
+           CASE con.confdeltype WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL' WHEN 'a' THEN 'NO ACTION'
+                                WHEN 'r' THEN 'RESTRICT' WHEN 'd' THEN 'SET DEFAULT' END AS regra
+      FROM pg_constraint con
+     WHERE con.contype = 'f' AND con.connamespace = 'public'::regnamespace"""
+
+
 def _fks_para_usuarios(conn):
-    tabelas = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
-    fks = {}
-    for t in tabelas:
-        for fk in conn.execute(f"PRAGMA foreign_key_list({t})").fetchall():
-            if fk[2] == 'usuarios':
-                fks[t] = fk[6].upper()
-    return fks
+    return {r['tabela']: r['regra'] for r in conn.execute(_SQL_FKS).fetchall() if r['alvo'] == 'usuarios'}
+
+
+def _tabelas(conn):
+    return {r[0] for r in conn.execute("SELECT tablename FROM pg_tables WHERE schemaname='public'")}
 
 
 def test_banco_novo_tem_estrutura_e_fks_corretas(app):
     conn = get_connection()
     try:
-        tabelas = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        tabelas = _tabelas(conn)
         assert 'vestibular_inscricoes' not in tabelas
         assert {'usuarios', 'faculdades', 'cursos', 'vestibulares', 'favoritos', 'teste_vocacional_resultados',
                 'automacao_logs', 'refresh_tokens', 'cursos_catalogo'} <= tabelas
         # Toda FK para usuarios tem regra de exclusão explícita (nenhuma bloqueia o DELETE).
         assert _fks_para_usuarios(conn) == {'favoritos': 'CASCADE', 'refresh_tokens': 'CASCADE',
                                             'teste_vocacional_resultados': 'SET NULL'}
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-        colunas = [r[1] for r in conn.execute("PRAGMA table_info(teste_vocacional_resultados)")]
+        # Favoritos (item polimórfico) e cursos/vestibulares→faculdades completam as FKs.
+        fks = {(r['tabela'], r['alvo']): r['regra'] for r in conn.execute(_SQL_FKS).fetchall()}
+        assert fks[('cursos', 'faculdades')] == 'SET NULL' and fks[('vestibulares', 'faculdades')] == 'SET NULL'
+        colunas = [r[0] for r in conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema='public' "
+            "AND table_name='teste_vocacional_resultados' ORDER BY ordinal_position")]
         assert colunas == ['id', 'usuario_id', 'perfil_principal', 'perfis_json', 'respostas_json', 'created_at']
-        indices = {r[1] for r in conn.execute("PRAGMA index_list(teste_vocacional_resultados)")}
+        indices = {r[0] for r in conn.execute(
+            "SELECT indexname FROM pg_indexes WHERE tablename='teste_vocacional_resultados'")}
         assert 'idx_teste_vocacional_usuario' in indices
+        # RLS ligado em todas as tabelas do app (Data API do Supabase fechada).
+        sem_rls = [r[0] for r in conn.execute(
+            "SELECT relname FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r' "
+            "AND NOT relrowsecurity")]
+        assert sem_rls == []
     finally:
         conn.close()
 
@@ -223,22 +239,27 @@ def _criar_banco_antigo(caminho, inscricoes=0):
 
 
 @pytest.fixture()
-def app_banco_antigo(tmp_path, monkeypatch):
+def app_banco_antigo(tmp_path, monkeypatch, novo_banco):
+    """SQLite antigo (FK sem regra, vínculo órfão, ids apagados) migrado para
+    um PostgreSQL novo pelo script oficial; depois o app sobe normalmente."""
+    from database.migracao_sqlite import migrar
     from tests.conftest import build_app
     caminho = tmp_path / 'antigo.db'
     _criar_banco_antigo(str(caminho))
-    monkeypatch.setenv('SUAFACUL_DB_PATH', str(caminho))
-    return build_app(monkeypatch)
+    url = novo_banco()
+    relatorio = migrar(str(caminho), url, saida=lambda *_: None)
+    app = build_app(monkeypatch)
+    app.relatorio = relatorio
+    app.caminho_sqlite = caminho
+    return app
 
 
 def test_migracao_de_banco_existente_aplica_set_null_e_preserva_dados(app_banco_antigo):
     conn = get_connection()
     try:
         assert _fks_para_usuarios(conn)['teste_vocacional_resultados'] == 'SET NULL'
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        tabelas = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        assert 'vestibular_inscricoes' not in tabelas  # vazia → removida
-        assert 'teste_vocacional_resultados_nova' not in tabelas
+        tabelas = _tabelas(conn)
+        assert 'vestibular_inscricoes' not in tabelas  # obsoleta: não existe no esquema novo
         linhas = [dict(r) for r in conn.execute(
             "SELECT id, usuario_id, perfil_principal, respostas_json, created_at "
             "FROM teste_vocacional_resultados ORDER BY id")]
@@ -252,35 +273,50 @@ def test_migracao_de_banco_existente_aplica_set_null_e_preserva_dados(app_banco_
         {'id': 3, 'usuario_id': None, 'perfil_principal': 'gestao', 'respostas_json': '{"q1": "a"}',
          'created_at': '2025-01-03 10:00:00'},  # vínculo órfão anulado
     ]
+    assert any('usuario_id=99 inexistente' in a for a in app_banco_antigo.relatorio['avisos'])
     # AUTOINCREMENT preservado: ids 4 e 5 (já usados e apagados) não são reutilizados.
     novo = tvs.submeter({p['id']: 'a' for p in PERGUNTAS}, usuario_id=None)
     assert novo['resultado_id'] == 6
+    # Usuários migrados com id, senha (hash) e papel.
+    assert _sql("SELECT id, nome_usuario, tipo FROM usuarios WHERE id IN (1, 2) ORDER BY id") == [
+        {'id': 1, 'nome_usuario': 'ana', 'tipo': 'aluno'}, {'id': 2, 'nome_usuario': 'bia', 'tipo': 'aluno'}]
     # Depois da migração a exclusão funciona e preserva o resultado.
     _escrever("DELETE FROM usuarios WHERE id=1")
     assert _sql("SELECT usuario_id FROM teste_vocacional_resultados WHERE id=1") == [{'usuario_id': None}]
 
 
-def test_migracao_e_idempotente(app_banco_antigo):
-    from database.init_db import _migrar_fk_teste_vocacional, init_db
-    antes = _sql("SELECT * FROM teste_vocacional_resultados ORDER BY id")
-    init_db()
-    init_db()
-    conn = get_connection()
-    try:
-        assert _migrar_fk_teste_vocacional(conn) is False
-    finally:
-        conn.close()
-    assert _sql("SELECT * FROM teste_vocacional_resultados ORDER BY id") == antes
+def test_migracao_nao_altera_o_sqlite_e_recusa_destino_com_dados(app_banco_antigo):
+    """O banco antigo é só lido; migrar de novo para um destino com usuários é recusado."""
+    import hashlib
+    from database.migracao_sqlite import MigracaoRecusada, migrar
+    caminho = app_banco_antigo.caminho_sqlite
+    antes = hashlib.sha256(caminho.read_bytes()).hexdigest()
+    with pytest.raises(MigracaoRecusada, match='já tem dados'):
+        migrar(str(caminho), os.environ['DATABASE_URL'], saida=lambda *_: None)
+    assert hashlib.sha256(caminho.read_bytes()).hexdigest() == antes
+    assert len(sqlite3.connect(caminho).execute("SELECT * FROM teste_vocacional_resultados").fetchall()) == 3
 
 
-def test_vestibular_inscricoes_com_dados_nao_e_apagada(tmp_path, monkeypatch, capsys):
-    from tests.conftest import build_app
+def test_migracao_simulada_nao_grava_nada(tmp_path, novo_banco):
+    from database.migracao_sqlite import migrar
+    caminho = tmp_path / 'antigo.db'
+    _criar_banco_antigo(str(caminho))
+    url = novo_banco()
+    relatorio = migrar(str(caminho), url, simular=True, saida=lambda *_: None)
+    assert relatorio['tabelas']['usuarios']['migradas'] == 2
+    assert _sql("SELECT COUNT(*) AS n FROM usuarios") == [{'n': 0}]
+
+
+def test_vestibular_inscricoes_com_dados_e_avisada_e_mantida_no_sqlite(tmp_path, novo_banco):
+    from database.migracao_sqlite import migrar
     caminho = tmp_path / 'com_inscricoes.db'
     _criar_banco_antigo(str(caminho), inscricoes=2)
-    monkeypatch.setenv('SUAFACUL_DB_PATH', str(caminho))
-    build_app(monkeypatch)
-    assert _sql("SELECT COUNT(*) AS n FROM vestibular_inscricoes")[0]['n'] == 2
-    assert 'vestibular_inscricoes (tabela obsoleta) tem 2 linha(s)' in capsys.readouterr().out
+    saida = []
+    relatorio = migrar(str(caminho), novo_banco(), saida=saida.append)
+    assert any('vestibular_inscricoes (tabela obsoleta, sem uso no app) tem 2 linha(s)' in a
+               for a in relatorio['avisos'])
+    assert any('NÃO migrada' in linha for linha in saida)
+    assert sqlite3.connect(caminho).execute("SELECT COUNT(*) FROM vestibular_inscricoes").fetchone()[0] == 2
 
 
 # ── 5/6. Estatísticas: faculdades importadas do e-MEC ─────────────────────

@@ -1,6 +1,6 @@
 """Servidor de DESENVOLVIMENTO local: `python run.py`.
 
-Inicializa o banco (SQLite) e roda o seed — o que o import do app deixou de fazer
+Aplica as migrations pendentes e os dados de referência (PostgreSQL/Supabase) — o que o import do app deixou de fazer
 sozinho. Automações rodam via Vercel Cron (produção) ou `flask --app wsgi executar-automacao
 NOME` (local). Não use em produção.
 """

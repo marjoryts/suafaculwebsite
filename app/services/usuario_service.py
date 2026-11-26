@@ -66,6 +66,39 @@ def autenticar_por_email(email, senha):
     return usuario
 
 
+def autenticar_por_identificador(identificador, senha):
+    """Login por nome de usuário OU e-mail + senha (API do Mobile, como no
+    site). Mesmas garantias de autenticar_por_email."""
+    identificador, senha = (identificador or '').strip(), (senha or '').strip()
+    if not identificador or not senha:
+        raise ValidacaoError('Informe usuário ou e-mail e a senha.')
+    usuario = Usuario().autenticar_por_identificador(identificador, senha)
+    if usuario is None:
+        raise NaoAutenticadoError('Usuário, e-mail ou senha inválidos.', code='INVALID_CREDENTIALS')
+    return usuario
+
+
+_TELEFONE_RE = re.compile(r'^[0-9 ()+-]{8,20}$')
+
+
+def normalizar_telefone(telefone):
+    """'' -> None (apaga). Formato livre de pontuação, com 8 a 15 dígitos."""
+    telefone = ' '.join((telefone or '').split())
+    if not telefone:
+        return None
+    digitos = sum(ch.isdigit() for ch in telefone)
+    if not _TELEFONE_RE.match(telefone) or not 8 <= digitos <= 15:
+        raise ValidacaoError('Telefone inválido. Use apenas números, espaços, +, - e parênteses.',
+                             details={'campo': 'telefone'})
+    return telefone
+
+
+def conferir_senha_atual(usuario_id, senha_atual):
+    """Troca de senha com confirmação da senha atual (quando o cliente a envia)."""
+    if not Usuario().senha_confere(usuario_id, senha_atual):
+        raise ValidacaoError('A senha atual está incorreta.', details={'campo': 'senha_atual'})
+
+
 def atualizar_perfil(usuario_id, username, email, password='', confirmacao='', manter_sessao_api=None):
     """O usuário altera os PRÓPRIOS dados (nunca o tipo de acesso).
 
@@ -86,7 +119,7 @@ def atualizar_perfil(usuario_id, username, email, password='', confirmacao='', m
         resultado['message'] = 'Perfil atualizado com sucesso!'
         if password:
             token_service.revogar_sessoes_do_usuario(usuario_id, manter_familia=manter_sessao_api)
-    elif 'UNIQUE' in resultado.get('message', ''):  # corrida entre a checagem e o UPDATE
+    elif 'UNIQUE' in resultado.get('message', '').upper():  # corrida entre a checagem e o UPDATE
         resultado['message'] = 'Esse nome de usuário ou e-mail já está em uso.'
     return resultado
 

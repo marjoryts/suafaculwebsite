@@ -43,7 +43,8 @@ def load_config(overrides=None):
         'SECRET_KEY_EFEMERA': chave_efemera,
         'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
         # Tokens da API v1 (Mobile). Prazos definidos pelo proprietário do projeto.
-        'ACCESS_TOKEN_TTL_SECONDS': 15 * 60,
+        # ACCESS_TOKEN_TTL_SECONDS no ambiente só para testes de expiração (ex.: e2e do Mobile).
+        'ACCESS_TOKEN_TTL_SECONDS': int(os.environ.get('ACCESS_TOKEN_TTL_SECONDS', '') or 15 * 60),
         'REFRESH_TOKEN_TTL_DAYS': 30,
         # Cookie de sessão: inacessível ao JS, não enviado em requisições
         # cross-site (mitiga CSRF) e, fora do debug, só trafega por HTTPS.

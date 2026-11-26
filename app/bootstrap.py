@@ -7,7 +7,8 @@ dificulta testes). Quem precisa deles chama estas funções explicitamente.
 
 
 def init_database(app=None):
-    """Cria/migra o esquema SQLite e roda o seed automático (idempotente)."""
+    """Aplica migrations pendentes, dados de referência e o seed automático
+    (idempotente). Ver database/init_db.py."""
     from database.init_db import init_db
     from app.services import seed_service
     init_db()

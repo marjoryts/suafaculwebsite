@@ -3,7 +3,6 @@ tipo de instituição dos cursos, senha do admin criado automaticamente,
 escape de HTML nos cards e aviso no lugar do alert()."""
 import os
 import re
-import sqlite3
 import importlib
 
 import pytest
@@ -64,10 +63,10 @@ def test_migracao_corrige_banco_antigo(app, monkeypatch):
     ({'VERCEL': '1', 'SUAFACUL_ADMIN_PASSWORD': 'Senha-Forte-123'}, 'Senha-Forte-123'),
     ({'SUAFACUL_ADMIN_PASSWORD': 'Outra-Senha-456'}, 'Outra-Senha-456'),
 ])
-def test_senha_do_admin_inicial(tmp_path, monkeypatch, ambiente, senha_esperada):
+def test_senha_do_admin_inicial(novo_banco, monkeypatch, ambiente, senha_esperada):
     from werkzeug.security import check_password_hash
-    db = tmp_path / 'admin.db'
-    monkeypatch.setenv('SUAFACUL_DB_PATH', str(db))
+    from config.database import get_connection
+    novo_banco()
     monkeypatch.delenv('VERCEL', raising=False)
     monkeypatch.delenv('SUAFACUL_ADMIN_PASSWORD', raising=False)
     monkeypatch.delenv('SUAFACUL_ADMIN_USER', raising=False)
@@ -77,7 +76,9 @@ def test_senha_do_admin_inicial(tmp_path, monkeypatch, ambiente, senha_esperada)
     import database.init_db as init_db
     importlib.reload(init_db).init_db()
 
-    admins = sqlite3.connect(db).execute("SELECT senha FROM usuarios WHERE tipo='admin'").fetchall()
+    conn = get_connection()
+    admins = [tuple(r) for r in conn.execute("SELECT senha FROM usuarios WHERE tipo='admin'").fetchall()]
+    conn.close()
     if senha_esperada is None:
         assert admins == []                      # sem variável: nenhum admin (nem 'admin123')
     else:
