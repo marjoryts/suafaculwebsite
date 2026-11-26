@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, hoje_iso, inserir
+from config.database import data_iso_sql, get_connection, hoje_iso, inserir
 
 class Favorito:
     def adicionar(self, usuario_id, tipo, item_id, nome_item):
@@ -94,8 +94,8 @@ class Favorito:
             c.execute(
                 "SELECT v.id, v.nome, v.instituicao, v.cidade, v.regiao, v.data_prova, v.periodo_inscricao, v.link_edital "
                 "FROM favoritos f JOIN vestibulares v ON v.id = f.item_id "
-                "WHERE f.usuario_id=? AND f.tipo='vestibular' AND v.data_prova IS NOT NULL "
-                "AND v.data_prova >= ? "
+                "WHERE f.usuario_id=? AND f.tipo='vestibular' "
+                f"AND {data_iso_sql('v.data_prova')} >= ? "
                 "ORDER BY v.data_prova ASC LIMIT ?",
                 (usuario_id, hoje_iso(), limite)
             )

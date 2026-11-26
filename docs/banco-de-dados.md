@@ -1,27 +1,27 @@
 # Banco de dados e camada de acesso
 
-**Decisão vigente:** SQLite é o banco oficial (`database/suafacul.db`). Não há
-migração para PostgreSQL em andamento. A aplicação foi organizada para que
-essa troca, quando necessária, não exija reescrever regras de negócio.
+**Decisão vigente:** o banco oficial é o **PostgreSQL do Supabase** (único banco do
+site e do app Mobile). Diagnóstico, decisões, RLS e o passo a passo de implantação:
+[`migracao-supabase.md`](migracao-supabase.md). O SQLite (`database/suafacul.db`)
+não é mais usado pela aplicação; só é lido pelo comando `flask --app wsgi migrar-sqlite`.
 
 ## Camadas
 
 ```
-rotas (app/routes) ─► services (app/services) ─► models/repositórios (app/models) ─► config/database.py ─► SQLite
+rotas (app/routes) ─► services (app/services) ─► models/repositórios (app/models) ─► config/database.py ─► PostgreSQL (Supabase)
        HTTP               regras de negócio         ÚNICO lugar com SQL              ÚNICO ponto de conexão
 ```
 
 - `tests/test_camada_dados.py` **falha** se alguma rota/service voltar a abrir
-  conexão ou escrever SQL, ou se surgir construção exclusiva do SQLite fora
-  do ponto único (`config/database.py`) e de `database/init_db.py`.
+  conexão ou escrever SQL, ou se surgir construção exclusiva do SQLite no código.
 - Não há ORM nem abstração de repositório genérica de propósito: os models
   atuais já são os repositórios.
 
 ## Esquema atual e regras de integridade
 
-Fonte da verdade: `database/init_db.py` (cria as tabelas num banco novo e migra
-bancos existentes a cada inicialização, sem apagar dados). Diagramas: BD-00 e
-BD-03 em [`diagramas.md`](diagramas.md). `PRAGMA foreign_keys=ON` em toda conexão.
+Fonte da verdade: `supabase/migrations/*.sql` (aplicadas pelo Supabase CLI, pelo
+SQL Editor ou por `flask --app wsgi init-db`). Diagramas: BD-00 e BD-03 em
+[`diagramas.md`](diagramas.md).
 
 | Tabela | Chaves estrangeiras | Regra ao excluir o pai |
 |---|---|---|
@@ -53,30 +53,22 @@ por isso **não** tem FK — validado no serviço.
   assinado (`teste_pendente_id`), que é apagado no login. Um resultado de usuário
   excluído nunca esteve nesse cookie, então não pode ser "adotado" por outra conta
   (coberto por teste).
-- **Migração** (`_migrar_fk_teste_vocacional`): SQLite não altera FK com `ALTER TABLE`,
-  então a tabela é reconstruída pelo procedimento oficial (foreign_keys desligado,
-  transação única, cópia, `DROP`/`RENAME`, `foreign_key_check` antes do `COMMIT`).
-  Preserva ids, datas e o contador `AUTOINCREMENT`; é idempotente (só roda se a regra
-  ainda não for `SET NULL`). Vínculos órfãos (usuário inexistente — só possíveis se o
-  banco já rodou com FK desligada) viram NULL, que é o estado que a nova regra produz.
-  Também cria `idx_teste_vocacional_usuario`.
-- A DDL da tabela existe uma única vez (`_DDL_TESTE_VOCACIONAL`), usada na criação e na
-  reconstrução.
+- **Migração de bancos SQLite antigos:** `database/migracao_sqlite.py` aplica a mesma regra
+  (vínculos órfãos viram NULL, listados no relatório) e preserva ids e o contador de ids.
 
 ### Tabela removida: `vestibular_inscricoes`
 
 Criada por versões antigas do `init_db.py`, nunca teve model, serviço, rota, tela ou
-uso no app Mobile (acompanhar inscrições é feito pelos favoritos de vestibular). Foi
-retirada do esquema; em bancos existentes `_remover_vestibular_inscricoes` a apaga
-**somente se estiver vazia** — se alguém tiver inserido linhas fora do app, a tabela
-é mantida e o log avisa para exportar e remover manualmente.
+uso no app Mobile (acompanhar inscrições é feito pelos favoritos de vestibular). Não
+existe no esquema PostgreSQL; se um SQLite antigo tiver linhas nela, a migração de
+dados avisa e as mantém no arquivo de origem.
 
 ### Script legado
 
 `database/Suafacul_crud.sql` (MySQL, tabela `Candidato` e procedure inexistentes,
 colunas faltando) não era usado por nada e contradizia o `init_db.py`. Foi movido
 para `docs/legado/Suafacul_crud_mysql_OBSOLETO.sql`, marcado como obsoleto. Para ver
-o esquema real de um banco: `sqlite3 database/suafacul.db ".schema"`.
+o esquema real: `supabase/migrations/` ou *Database → Tables* no painel do Supabase.
 
 ### `faculdades.fonte`
 
@@ -87,48 +79,17 @@ usada pela estatística "importadas do e-MEC" e pelo seed. Cada faculdade tem um
 única `fonte` (o upsert por `codigo_emec` não duplica), então a contagem não repete
 registros.
 
-## O que ficou isolado em `config/database.py` (troca em um só lugar)
+## Ponto único de acesso (`config/database.py`)
 
-| Helper | Papel hoje (SQLite) | Equivalente PostgreSQL |
-|---|---|---|
-| `get_connection()` | `sqlite3` + PRAGMAs (WAL, foreign_keys) + `row_factory` | psycopg + pool (em serverless, endpoint *pooled*) |
-| `inserir()` | `cursor.lastrowid` | `INSERT … RETURNING id` |
-| `sql_norm(col)` | função Python `normalizar()` registrada na conexão | `unaccent(lower(col))` ou coluna normalizada persistida |
-| `like_ci(col)` | `col LIKE ?` (SQLite ignora caixa em ASCII) | `col ILIKE ?` |
-| `agora_utc_str()`, `hoje_iso()` | datas calculadas em Python | idem (portável) |
+| Helper | Papel |
+|---|---|
+| `get_connection()` | conexão do pool psycopg 3 (compatível com o pooler do Supabase: sem prepared statements no servidor) |
+| `inserir()` | `INSERT … RETURNING id` |
+| `sql_norm(col)` / `contem_sem_acento(col)` | `public.normalizar(col)` (unaccent + lower), indexada por trigram |
+| `like_ci(col)` | `ILIKE` |
+| `data_iso_sql(col)` | `public.data_iso(col)`: texto ISO → DATE, NULL se inválido |
+| `agora_utc_str()`, `hoje_iso()` | datas calculadas em Python |
 
-Removido do código da aplicação nesta etapa: `date('now')`, `datetime('now', …)`,
-`strftime('%m', …)`, `COLLATE NOCASE`, `lastrowid`, `INSERT OR IGNORE` (agora
-`ON CONFLICT DO NOTHING`, aceito também pelo PostgreSQL) e todo SQL fora de
-`app/models/`.
-
-## Dependências de SQLite que AINDA existem (documentadas, não abstraídas)
-
-| # | Onde | Detalhe | Ação futura |
-|---|---|---|---|
-| 1 | Todos os models | Placeholders `?` e nomeados `:x` (psycopg usa `%s` / `%(x)s`) | Um wrapper `execute()` em `config/database.py` |
-| 2 | Todos os models | `sqlite3.Row` / `dict(row)` | `dict_row` do psycopg |
-| 3 | `database/init_db.py` | DDL com `AUTOINCREMENT`, `PRAGMA table_info`/`foreign_key_list` (migração por `ALTER` e reconstrução de tabela), `TIMESTAMP` como texto, `INTEGER` como booleano | Substituir por migrations (Alembic) na migração |
-| 4 | Schema | `idx_cursos_nome … COLLATE NOCASE` | Índice em `lower(nome)` / trigram |
-| 5 | `vestibulares.data_prova` | Texto; filtro de mês e "próximos" assumem formato ISO `AAAA-MM-DD` (SUBSTR e comparação de texto) | Converter para `DATE` após normalizar dados; o validador aceita também `DD/MM/AAAA` |
-| 6 | `models/busca.py`, `faculdade.py` | `LIKE '%x%'` sobre `normalizar()` = varredura completa | `pg_trgm` + `unaccent` (GIN) |
-| 7 | Todos | Uma conexão por chamada; alguns models antigos não fecham a conexão em `finally` se ocorrer exceção | Context manager de transação ao migrar |
-| 8 | Transações | Cada método faz `commit`; atômicos: `Curso.upsert_por_codigo_inep_lote`, `Vestibular.aplicar_validacoes` | Manter |
-| 9 | Locking | WAL = 1 escritor por vez; importações longas seguram o lock (padrão `timeout=5s` para os demais) | Importar em janela de manutenção ou via CLI; PostgreSQL elimina o problema |
-
-## RISCO de infraestrutura (Vercel)
-
-O sistema de arquivos das Vercel Functions não é persistente: **um arquivo
-SQLite gravável não sobrevive em produção na Vercel** (cadastros, favoritos,
-testes vocacionais e logs se perderiam). SQLite serve para desenvolvimento,
-testes e para um servidor com disco persistente. Para produção na Vercel será
-necessário um banco externo — decisão adiada a pedido do proprietário; o código
-foi preparado para isso (ver acima) sem instalar nada.
-
-## Roteiro de migração (quando for decidido — nada disto foi executado)
-1. Escolher o serviço e criar uma instância de **teste**.
-2. Gerar a *baseline* do schema (Alembic) a partir do `init_db.py`.
-3. Implementar o wrapper `execute()` e os helpers da tabela acima para PostgreSQL.
-4. Rodar a suíte contra PostgreSQL (job de CI extra).
-5. Migrar uma **cópia** dos dados; comparar contagem por tabela e integridade referencial.
-6. Manter `suafacul.db` intacto como backup até a validação.
+Os models continuam escrevendo `?`/`:nome` e lendo `linha['coluna']`: a tradução para o
+psycopg e a conversão de datas para o formato de sempre (`AAAA-MM-DD HH:MM:SS`, UTC) ficam
+nesse arquivo. Conexões esquecidas abertas voltam ao pool sozinhas.

@@ -36,8 +36,13 @@ def auth_registrar():
 
 @bp.post('/auth/login')
 def auth_login():
+    """Corpo: {"email", "password"} ou {"identificador" (usuário ou e-mail), "password"}."""
     dados = corpo_json()
-    usuario = usuario_service.autenticar_por_email(campo_texto(dados, 'email'), campo_texto(dados, 'password'))
+    if 'identificador' in dados:
+        usuario = usuario_service.autenticar_por_identificador(campo_texto(dados, 'identificador'),
+                                                               campo_texto(dados, 'password'))
+    else:
+        usuario = usuario_service.autenticar_por_email(campo_texto(dados, 'email'), campo_texto(dados, 'password'))
     return jsonify({'data': _sessao(usuario['id'])})
 
 

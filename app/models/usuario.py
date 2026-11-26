@@ -156,6 +156,49 @@ class Usuario:
         usuario.pop('senha', None)
         return usuario
 
+    def autenticar_por_identificador(self, identificador, senha):
+        """Valida (nome de usuário OU e-mail) + senha — o mesmo critério do login
+        do site. Devolve o usuário (sem a senha) ou None, com tempo de resposta
+        igual para conta inexistente e senha errada. Se o texto casar com o
+        e-mail de uma conta e o nome de usuário de outra, vale o e-mail."""
+        try:
+            conn = get_connection()
+            try:
+                c = conn.cursor()
+                c.execute("SELECT id, nome_usuario, email, senha, tipo, avatar_url FROM usuarios "
+                          "WHERE LOWER(email)=LOWER(?) OR nome_usuario=? "
+                          "ORDER BY (LOWER(email)=LOWER(?)) DESC, id LIMIT 1",
+                          (identificador, identificador, identificador))
+                row = c.fetchone()
+            finally:
+                conn.close()
+        except Exception:
+            return None
+        if row is None:
+            check_password_hash(_hash_falso(), senha)
+            return None
+        if not check_password_hash(row['senha'], senha):
+            return None
+        usuario = dict(row)
+        usuario.pop('senha', None)
+        return usuario
+
+    def senha_confere(self, id, senha):
+        conn = get_connection()
+        try:
+            row = conn.execute("SELECT senha FROM usuarios WHERE id=?", (id,)).fetchone()
+        finally:
+            conn.close()
+        return bool(row) and check_password_hash(row['senha'], senha or '')
+
+    def atualizar_telefone(self, id, telefone):
+        conn = get_connection()
+        try:
+            conn.execute("UPDATE usuarios SET telefone=? WHERE id=?", (telefone, id))
+            conn.commit()
+        finally:
+            conn.close()
+
     def listar(self):
         try:
             conn = get_connection()
@@ -171,7 +214,7 @@ class Usuario:
         try:
             conn = get_connection()
             c = conn.cursor()
-            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url, auth_provider, created_at "
+            c.execute("SELECT id, nome_usuario, email, tipo, avatar_url, auth_provider, telefone, created_at "
                       "FROM usuarios WHERE id=?", (id,))
             row = c.fetchone()
             conn.close()

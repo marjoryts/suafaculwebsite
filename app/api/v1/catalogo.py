@@ -5,6 +5,7 @@ from app.api.v1 import bp
 from app.api.v1.http import cache_publico, lista_arg, responder_pagina, texto_arg
 from app.api.v1.serializers import (curso_dto, faculdade_detalhe_dto, faculdade_dto, vestibular_dto)
 from app.models.curso import Curso
+from app.models.curso_catalogo import CursoCatalogo
 from app.models.faculdade import Faculdade
 from app.models.vestibular import Vestibular
 from app.services import busca_service
@@ -37,6 +38,19 @@ def cursos_listar():
     return responder_pagina(Curso(), filtros, 'cursos', curso_dto)
 
 
+@bp.get('/cursos/catalogo')
+@cache_publico
+def cursos_catalogo():
+    """Formações da página inicial do site (uma por curso, com imagem), com
+    quantas instituições oferecem e `curso_id` (uma oferta real, para o
+    detalhe e o favorito). Filtro opcional: ?area=."""
+    catalogo = CursoCatalogo()
+    itens = catalogo.listar(texto_arg('area') or None)
+    campos = ('id', 'nome', 'area', 'grau', 'duracao', 'descricao', 'imagem_url', 'total_instituicoes', 'curso_id')
+    return jsonify({'data': [{c: i.get(c) for c in campos} for i in itens],
+                    'meta': {'total': len(itens), 'areas': catalogo.areas()}})
+
+
 @bp.get('/cursos/<int:curso_id>')
 @cache_publico
 def curso_detalhe(curso_id):
@@ -52,6 +66,8 @@ def curso_detalhe(curso_id):
 @cache_publico
 def faculdades_listar():
     filtros = _filtros(tipo_instituicao=str, uf=str.upper, cidade=str, curso=str, busca=str)
+    if filtros.get('curso') and request.args.get('exato') == 'true':
+        filtros['curso_exato'] = True  # mesmo nome de curso (sem acento/caixa), como no site
     modalidade = lista_arg('modalidade')
     if modalidade:
         filtros['modalidade'] = modalidade

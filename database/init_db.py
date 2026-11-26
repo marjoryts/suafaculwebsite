@@ -1,336 +1,108 @@
-"""Initialize SQLite database with tables and seed data."""
-import sqlite3
+"""Inicialização do banco PostgreSQL (Supabase): esquema + dados de referência.
+
+1. Esquema: aplica as migrations de `supabase/migrations/` que ainda não
+   constam em `public.suafacul_migracoes`. Precisa de um papel com DDL
+   (o `postgres` do Supabase, ou o CLI `supabase db push`). Com o papel da
+   aplicação (`suafacul_backend`, sem DDL) as migrations já devem ter sido
+   aplicadas — se faltar alguma, o erro diz o que fazer.
+2. Dados de referência reais e documentados (catálogo de cursos e
+   instituições, vestibulares de fontes oficiais), sem duplicar nem
+   sobrescrever o que o admin editou; e o primeiro admin a partir de
+   SUAFACUL_ADMIN_PASSWORD (nunca há credencial padrão no código).
+
+Tudo numa única transação protegida por `pg_advisory_xact_lock`: várias
+instâncias subindo juntas (Vercel, gunicorn) esperam a primeira terminar
+e encontram o seed pronto. Idempotente: rodar de novo não duplica nada.
+
+Bancos SQLite antigos são copiados por scripts/migrar_sqlite_para_postgres.py.
+"""
+import glob
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config.database import get_db_path, get_connection
+import psycopg  # noqa: E402
 
-# DDL única da tabela de resultados do teste vocacional — usada tanto na
-# criação (banco novo) quanto na reconstrução (migração de banco antigo),
-# para que as duas nunca divirjam.
-# usuario_id é NULL em testes anônimos (feitos sem login) e passa a NULL
-# quando o usuário é excluído: o resultado continua contando nas
-# estatísticas, mas deixa de estar ligado a qualquer pessoa.
-_DDL_TESTE_VOCACIONAL = """
-    CREATE TABLE {se_nao_existir}{tabela} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NULL,
-        perfil_principal TEXT NOT NULL,
-        perfis_json TEXT NOT NULL,
-        respostas_json TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
-    )"""
+from config.database import conexao_direta, descrever_destino, get_connection, inserir, sql_norm  # noqa: E402
+
+PASTA_MIGRACOES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                               'supabase', 'migrations')
+# Chave arbitrária e fixa da trava de inicialização (pg_advisory_xact_lock).
+_CHAVE_TRAVA_INIT = 7_402_196_001
 
 
-def _fk_usuario_teste_vocacional(conn):
-    """Regra ON DELETE atual da FK usuario_id → usuarios (ou None se não houver FK)."""
-    for fk in conn.execute("PRAGMA foreign_key_list(teste_vocacional_resultados)").fetchall():
-        if fk[2] == 'usuarios' and fk[3] == 'usuario_id':
-            return (fk[6] or 'NO ACTION').upper()
-    return None
+def arquivos_de_migracao():
+    """[(versao, caminho)] em ordem. A versão é o prefixo numérico do nome."""
+    arquivos = sorted(glob.glob(os.path.join(PASTA_MIGRACOES, '*.sql')))
+    return [(os.path.basename(a).split('_', 1)[0], a) for a in arquivos]
 
 
-def _migrar_fk_teste_vocacional(conn):
-    """Reconstrói teste_vocacional_resultados com ON DELETE SET NULL quando o
-    banco ainda tem a FK antiga. Idempotente: não faz nada se a regra já
-    estiver correta. Segue o procedimento oficial do SQLite para alterar
-    restrições (https://sqlite.org/lang_altertable.html#otheralter):
-    foreign_keys desligado, transação única, cópia, troca e
-    foreign_key_check antes do COMMIT. Preserva ids, datas e o contador
-    AUTOINCREMENT. Resultados que apontavam para um usuário que já não
-    existe (possível só em bancos que rodaram com foreign_keys desligado)
-    ficam com usuario_id NULL — é o mesmo estado que a nova regra produz.
-    Devolve True se migrou."""
-    if _fk_usuario_teste_vocacional(conn) == 'SET NULL':
-        return False
-    conn.commit()
-    conn.execute("PRAGMA foreign_keys=OFF")  # só tem efeito fora de transação
+def migracoes_pendentes(conn):
+    c = conn.cursor()
+    c.execute("SELECT to_regclass('public.suafacul_migracoes') IS NOT NULL")
+    aplicadas = set()
+    if c.fetchone()[0]:
+        c.execute("SELECT versao FROM public.suafacul_migracoes")
+        aplicadas = {r[0] for r in c.fetchall()}
+    return [(v, a) for v, a in arquivos_de_migracao() if v not in aplicadas]
+
+
+def aplicar_migracoes(conn):
+    """Aplica as migrations pendentes (na transação de `conn`). Devolve as versões."""
+    aplicadas = []
+    for versao, caminho in migracoes_pendentes(conn):
+        with open(caminho, encoding='utf-8') as f:
+            sql = f.read()
+        try:
+            conn.executar_script(sql)
+        except psycopg.errors.InsufficientPrivilege as e:
+            raise RuntimeError(
+                f"A migration {os.path.basename(caminho)} ainda não foi aplicada e o usuário da "
+                f"DATABASE_URL não tem permissão de DDL ({e.diag.message_primary}). Aplique as "
+                "migrations de supabase/migrations/ com o papel postgres (SQL Editor do Supabase "
+                "ou `supabase db push`) e rode o init-db de novo.") from e
+        aplicadas.append(versao)
+        print(f"[init_db] Migration {os.path.basename(caminho)} aplicada.")
+    return aplicadas
+
+
+class _SemCommit:
+    """Encaminha tudo para a conexão, exceto commit(): os passos do seed
+    rodam dentro da transação (e da trava) de init_db."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def commit(self):
+        pass
+
+    def __getattr__(self, nome):
+        return getattr(self._conn, nome)
+
+
+def init_db():
+    """Cria o esquema (se faltar) e os dados de referência. Idempotente.
+
+    Com DATABASE_URL_ADMIN definida (papel postgres; só em máquina de
+    desenvolvimento/CI, nunca no deploy) usa essa conexão, que pode aplicar
+    migrations. Sem ela, usa a DATABASE_URL da aplicação."""
+    url_admin = os.environ.get('DATABASE_URL_ADMIN', '').strip()
+    conn = conexao_direta(url_admin) if url_admin else get_connection()
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        seq = conn.execute("SELECT seq FROM sqlite_sequence WHERE name='teste_vocacional_resultados'").fetchone()
-        conn.execute("DROP TABLE IF EXISTS teste_vocacional_resultados_nova")
-        conn.execute(_DDL_TESTE_VOCACIONAL.format(tabela='teste_vocacional_resultados_nova', se_nao_existir=''))
-        conn.execute("""
-            INSERT INTO teste_vocacional_resultados_nova
-                   (id, usuario_id, perfil_principal, perfis_json, respostas_json, created_at)
-            SELECT t.id,
-                   CASE WHEN EXISTS (SELECT 1 FROM usuarios u WHERE u.id = t.usuario_id) THEN t.usuario_id END,
-                   t.perfil_principal, t.perfis_json, t.respostas_json, t.created_at
-              FROM teste_vocacional_resultados t""")
-        orfaos = conn.execute("""
-            SELECT COUNT(*) FROM teste_vocacional_resultados t
-             WHERE t.usuario_id IS NOT NULL
-               AND NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = t.usuario_id)""").fetchone()[0]
-        total = conn.execute("SELECT COUNT(*) FROM teste_vocacional_resultados").fetchone()[0]
-        conn.execute("DROP TABLE teste_vocacional_resultados")
-        conn.execute("ALTER TABLE teste_vocacional_resultados_nova RENAME TO teste_vocacional_resultados")
-        if seq is not None:
-            conn.execute("UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name='teste_vocacional_resultados'",
-                         (seq[0],))
-        problemas = conn.execute("PRAGMA foreign_key_check(teste_vocacional_resultados)").fetchall()
-        if problemas:
-            raise sqlite3.IntegrityError(f"foreign_key_check falhou após a migração: {problemas[:5]}")
+        conn.execute("SELECT pg_advisory_xact_lock(?)", (_CHAVE_TRAVA_INIT,))
+        aplicar_migracoes(conn)
+        _semear(_SemCommit(conn))
         conn.commit()
     except Exception:
         conn.rollback()
         raise
     finally:
-        conn.execute("PRAGMA foreign_keys=ON")
-    print(f"[init_db] teste_vocacional_resultados migrada para ON DELETE SET NULL "
-          f"({total} resultado(s) preservado(s); {orfaos} vínculo(s) órfão(s) anulado(s)).")
-    return True
+        conn.close()
+    print(f"Banco de dados inicializado em: {descrever_destino()}")
 
 
-def _remover_vestibular_inscricoes(conn):
-    """Apaga a tabela vestibular_inscricoes de bancos antigos. Ela nunca foi
-    usada pela aplicação (sem model/serviço/rota), então está sempre vazia;
-    se mesmo assim tiver linhas (inseridas fora do app), é mantida e só
-    registrada no log — nada de apagar dados sem confirmação."""
-    existe = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vestibular_inscricoes'").fetchone()
-    if not existe:
-        return False
-    linhas = conn.execute("SELECT COUNT(*) FROM vestibular_inscricoes").fetchone()[0]
-    if linhas:
-        print(f"[init_db] AVISO: vestibular_inscricoes (tabela obsoleta) tem {linhas} linha(s) "
-              "inserida(s) fora da aplicação — mantida. Exporte os dados e remova-a manualmente.")
-        return False
-    conn.execute("DROP TABLE vestibular_inscricoes")
-    conn.commit()
-    print("[init_db] Tabela obsoleta vestibular_inscricoes (vazia) removida.")
-    return True
-
-
-def init_db():
-    """Cria tabelas e dados iniciais. Serializado por uma trava de arquivo:
-    quando vários processos sobem juntos com o banco ainda vazio (vários
-    workers do gunicorn, instâncias concorrentes na Vercel), o padrão
-    "conferir e depois inserir" do seed abaixo fazia dois processos
-    criarem o admin padrão ao mesmo tempo — um deles quebrava com
-    "UNIQUE constraint failed: usuarios.email" e o worker não subia.
-    Com a trava, o segundo processo espera e encontra o seed já feito."""
-    caminho_db = get_db_path()
-    os.makedirs(os.path.dirname(caminho_db), exist_ok=True)
-    try:
-        import fcntl  # Linux/macOS (Vercel, gunicorn)
-    except ImportError:  # Windows: sem fcntl; dev local roda 1 processo só
-        return _init_db_sem_trava()
-    with open(caminho_db + '.init.lock', 'w') as trava:
-        fcntl.flock(trava, fcntl.LOCK_EX)
-        try:
-            return _init_db_sem_trava()
-        finally:
-            fcntl.flock(trava, fcntl.LOCK_UN)
-
-
-def _init_db_sem_trava():
-    conn = get_connection()
+def _semear(conn):
     c = conn.cursor()
-
-    c.executescript("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome_usuario TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        senha TEXT NOT NULL,
-        tipo TEXT NOT NULL DEFAULT 'aluno' CHECK(tipo IN ('aluno','admin')),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS faculdades (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo_emec TEXT UNIQUE,
-        nome TEXT NOT NULL,
-        sigla TEXT,
-        organizacao_academica TEXT,
-        tipo_instituicao TEXT NOT NULL DEFAULT 'Pública' CHECK(tipo_instituicao IN ('Pública','Privada')),
-        url TEXT,
-        endereco TEXT,
-        cidade TEXT,
-        uf TEXT,
-        telefone TEXT,
-        email TEXT,
-        situacao TEXT DEFAULT 'ativa',
-        fonte TEXT DEFAULT 'manual',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS cursos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        instituicao TEXT NOT NULL DEFAULT 'Instituição não informada',
-        faculdade_id INTEGER,
-        modalidade TEXT NOT NULL DEFAULT 'presencial',
-        descricao TEXT,
-        duracao TEXT,
-        grau TEXT,
-        area TEXT,
-        tipo_instituicao TEXT NOT NULL DEFAULT 'Pública',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (faculdade_id) REFERENCES faculdades(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS vestibulares (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        instituicao TEXT,
-        faculdade_id INTEGER,
-        tipo_instituicao TEXT NOT NULL DEFAULT 'Pública',
-        cidade TEXT,
-        regiao TEXT,
-        periodo_inscricao TEXT,
-        data_prova TEXT,
-        descricao TEXT,
-        link_edital TEXT,
-        taxa_inscricao TEXT,
-        cursos_oferecidos TEXT,
-        requisitos TEXT,
-        fonte TEXT,
-        seed_versao INTEGER DEFAULT 0,
-        status_validacao TEXT DEFAULT 'nao_validado',
-        cadastrado_ok INTEGER DEFAULT 0,
-        ultima_validacao TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (faculdade_id) REFERENCES faculdades(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS favoritos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
-        tipo TEXT NOT NULL CHECK(tipo IN ('curso','vestibular','faculdade')),
-        item_id INTEGER NOT NULL,
-        nome_item TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(usuario_id, tipo, item_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-    """ + _DDL_TESTE_VOCACIONAL.format(tabela='teste_vocacional_resultados', se_nao_existir='IF NOT EXISTS ') + ";")
-
-    # ── Teste vocacional: FK de usuario_id com ON DELETE SET NULL ──
-    # Bancos criados antes desta correção têm a FK sem ação de exclusão, o
-    # que impedia excluir pelo admin um usuário que já fez o teste. SQLite
-    # não altera FK com ALTER TABLE: a tabela é reconstruída preservando os
-    # dados (ver _migrar_fk_teste_vocacional).
-    _migrar_fk_teste_vocacional(conn)
-    c.execute("CREATE INDEX IF NOT EXISTS idx_teste_vocacional_usuario "
-              "ON teste_vocacional_resultados(usuario_id)")
-
-    # ── Remoção da tabela órfã vestibular_inscricoes ──
-    # Criada por versões antigas, nunca teve model, serviço, rota ou tela.
-    _remover_vestibular_inscricoes(conn)
-
-    # ── Migração segura para bancos já existentes (não apaga dados) ──
-    def _add_column_if_missing(table, column, ddl):
-        c.execute(f"PRAGMA table_info({table})")
-        cols = [row[1] for row in c.fetchall()]
-        if column not in cols:
-            c.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
-
-    _add_column_if_missing('usuarios', 'tipo', "tipo TEXT NOT NULL DEFAULT 'aluno'")
-    _add_column_if_missing('cursos', 'faculdade_id', "faculdade_id INTEGER")
-    _add_column_if_missing('vestibulares', 'faculdade_id', "faculdade_id INTEGER")
-    _add_column_if_missing('vestibulares', 'status_validacao', "status_validacao TEXT DEFAULT 'nao_validado'")
-    _add_column_if_missing('vestibulares', 'cadastrado_ok', "cadastrado_ok INTEGER DEFAULT 0")
-    _add_column_if_missing('vestibulares', 'ultima_validacao', "ultima_validacao TIMESTAMP")
-    # Detalhes do processo seletivo (taxa, cursos, requisitos e fonte da informação)
-    _add_column_if_missing('vestibulares', 'taxa_inscricao', "taxa_inscricao TEXT")
-    _add_column_if_missing('vestibulares', 'cursos_oferecidos', "cursos_oferecidos TEXT")
-    _add_column_if_missing('vestibulares', 'requisitos', "requisitos TEXT")
-    _add_column_if_missing('vestibulares', 'fonte', "fonte TEXT")
-    # Versão do catálogo que gerou/atualizou o registro (0 = cadastrado pelo admin)
-    _add_column_if_missing('vestibulares', 'seed_versao', "seed_versao INTEGER DEFAULT 0")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_vestibulares_nome ON vestibulares(nome COLLATE NOCASE)")
-
-    # ── Importação de cursos via Censo da Educação Superior (INEP) ──
-    _add_column_if_missing('cursos', 'codigo_inep_curso', "codigo_inep_curso TEXT")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_cursos_codigo_inep ON cursos(codigo_inep_curso) WHERE codigo_inep_curso IS NOT NULL")
-
-    # ── Autocomplete de nomes de curso (busca por prefixo) ──
-    c.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome COLLATE NOCASE)")
-
-    # ── Login com Google (OIDC) ──
-    # google_id fica NULL para contas locais; auth_provider indica a origem.
-    # senha continua NOT NULL na tabela (não alteramos a constraint em SQLite
-    # para não exigir reconstrução da tabela) — contas criadas via Google
-    # recebem um hash aleatório inutilizável em vez de senha real.
-    _add_column_if_missing('usuarios', 'google_id', "google_id TEXT")
-    _add_column_if_missing('usuarios', 'auth_provider', "auth_provider TEXT NOT NULL DEFAULT 'local'")
-    _add_column_if_missing('usuarios', 'avatar_url', "avatar_url TEXT")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_google_id ON usuarios(google_id) WHERE google_id IS NOT NULL")
-
-    # ── Logs da automação diária (vestibulares, importação e-MEC, etc.) ──
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS automacao_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo TEXT NOT NULL,
-        executado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        sucesso INTEGER NOT NULL DEFAULT 1,
-        resumo TEXT,
-        erro TEXT
-    )
-    """)
-    # ── Execuções de automações (Cron/CLI): identificação, estado e trava ──
-    # status: executando | sucesso | falha | ignorada. O índice único parcial abaixo
-    # garante NO MÁXIMO uma execução 'executando' por tipo (trava contra execução
-    # concorrente/duplicada, sem precisar de Redis).
-    for coluna, ddl in (('execucao_id', 'execucao_id TEXT'), ('status', 'status TEXT'),
-                        ('origem', 'origem TEXT'), ('iniciado_em', 'iniciado_em TIMESTAMP'),
-                        ('finalizado_em', 'finalizado_em TIMESTAMP'), ('duracao_ms', 'duracao_ms INTEGER')):
-        _add_column_if_missing('automacao_logs', coluna, ddl)
-    c.execute("UPDATE automacao_logs SET status = CASE WHEN sucesso=1 THEN 'sucesso' ELSE 'falha' END "
-              "WHERE status IS NULL")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_automacao_em_execucao ON automacao_logs(tipo) "
-              "WHERE status='executando'")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_automacao_tipo_status ON automacao_logs(tipo, status, finalizado_em)")
-
-    # ── Refresh tokens da API v1 (Mobile) ──
-    # Uma "família" = uma sessão de dispositivo. Cada uso do refresh token gera
-    # outro da mesma família (rotação); reapresentar um já usado revoga a
-    # família inteira. Só o hash SHA-256 do token é guardado — nunca o token.
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS refresh_tokens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        familia_id TEXT NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        token_hash TEXT NOT NULL UNIQUE,
-        dispositivo TEXT,
-        expira_em TIMESTAMP NOT NULL,
-        usado_em TIMESTAMP,
-        revogado_em TIMESTAMP,
-        motivo_revogacao TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    )
-    """)
-    c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_familia ON refresh_tokens(familia_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_usuario ON refresh_tokens(usuario_id)")
-
-    # ── Catálogo de cursos da página inicial (um registro por formação) ──
-    # Guarda o que não muda de instituição para instituição: área, grau e
-    # duração típicos, descrição e a imagem do card. As ofertas continuam
-    # na tabela cursos (uma linha por curso em cada instituição).
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS cursos_catalogo (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL UNIQUE COLLATE NOCASE,
-        area TEXT,
-        grau TEXT,
-        duracao TEXT,
-        descricao TEXT,
-        imagem_url TEXT,
-        ordem INTEGER DEFAULT 0,
-        seed_versao INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-    c.execute("CREATE INDEX IF NOT EXISTS idx_cursos_faculdade ON cursos(faculdade_id)")
-    conn.commit()
 
     # Bootstrap do primeiro admin: só acontece se NENHUM admin existir E a senha
     # for fornecida explicitamente via SUAFACUL_ADMIN_PASSWORD (nunca há
@@ -508,9 +280,7 @@ def _init_db_sem_trava():
         print(f"[init_db] Tipo de instituição corrigido em {c.rowcount} curso(s).")
     conn.commit()
 
-    conn.commit()
-    conn.close()
-    print(f"Banco de dados inicializado em: {get_db_path()}")
+
 
 _CAMPOS_VESTIBULAR = ('nome', 'instituicao', 'tipo_instituicao', 'cidade', 'regiao',
                       'periodo_inscricao', 'data_prova', 'descricao', 'link_edital',
@@ -585,7 +355,7 @@ def _localizar_faculdade(c, sigla, dados):
     if row:
         return row
     nomes = {_norm(nome), _norm(nome.split(' - ', 1)[-1])}
-    c.execute("SELECT id, nome, tipo_instituicao FROM faculdades WHERE normalizar(nome) IN (?, ?) ORDER BY id LIMIT 1",
+    c.execute(f"SELECT id, nome, tipo_instituicao FROM faculdades WHERE {sql_norm('nome')} IN (?, ?) ORDER BY id LIMIT 1",
               tuple(nomes) if len(nomes) == 2 else (next(iter(nomes)),) * 2)
     return c.fetchone()
 
@@ -608,7 +378,6 @@ def sincronizar_catalogo(conn):
     from config.database import normalizar
     from database.catalogo_dados import CATALOGO_VERSAO, CURSOS, INSTITUICOES, NOMES_ANTIGOS
 
-    conn.create_function('normalizar', 1, normalizar, deterministic=True)
     c = conn.cursor()
     resumo = {'catalogo': 0, 'faculdades': 0, 'cursos': 0}
 
@@ -638,21 +407,21 @@ def sincronizar_catalogo(conn):
         row = _localizar_faculdade(c, sigla, dados)
         if row is None:
             nome, org, tipo, url, endereco, cidade, uf = dados
-            c.execute("""INSERT INTO faculdades
+            novo_id = inserir(c, """INSERT INTO faculdades
                          (nome, sigla, organizacao_academica, tipo_instituicao, url, endereco, cidade, uf, situacao, fonte)
                          VALUES (?,?,?,?,?,?,?,?, 'ativa', 'manual')""",
-                      (nome, sigla, org, tipo, url, endereco, cidade, uf))
-            row = (c.lastrowid, nome, tipo)
+                              (nome, sigla, org, tipo, url, endereco, cidade, uf))
+            row = (novo_id, nome, tipo)
             resumo['faculdades'] += 1
         else:
             # Já cadastrada: completa só o que está vazio (não sobrescreve o
             # que o admin editou) e aplica renomeações oficiais conhecidas.
             nome, org, _tipo, _url, endereco, _cidade, _uf = dados
             c.execute("UPDATE faculdades SET endereco = ?, updated_at = CURRENT_TIMESTAMP "
-                      "WHERE id = ? AND COALESCE(TRIM(endereco), '') = '' AND ? IS NOT NULL",
+                      "WHERE id = ? AND COALESCE(TRIM(endereco), '') = '' AND CAST(? AS TEXT) IS NOT NULL",
                       (endereco, row[0], endereco))
             c.execute("UPDATE faculdades SET organizacao_academica = ? "
-                      "WHERE id = ? AND COALESCE(TRIM(organizacao_academica), '') = '' AND ? IS NOT NULL",
+                      "WHERE id = ? AND COALESCE(TRIM(organizacao_academica), '') = '' AND CAST(? AS TEXT) IS NOT NULL",
                       (org, row[0], org))
             if row[1] in NOMES_ANTIGOS and NOMES_ANTIGOS[row[1]] == nome:
                 c.execute("UPDATE faculdades SET nome = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -664,6 +433,7 @@ def sincronizar_catalogo(conn):
     #    Carrega as ofertas existentes de uma vez (são milhares no catálogo).
     c.execute("SELECT nome, faculdade_id, instituicao FROM cursos")
     existentes_id, existentes_inst = set(), set()
+    novas_ofertas = []
     for nome_c, fac_c, inst_c in c.fetchall():
         nn = _norm(nome_c)
         if fac_c is not None:
@@ -678,12 +448,14 @@ def sincronizar_catalogo(conn):
             if (nome_norm, fac_id) in existentes_id or (nome_norm, fac_nome) in existentes_inst:
                 continue
             existentes_id.add((nome_norm, fac_id))
-            c.execute("""INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao, duracao,
+            novas_ofertas.append((curso['nome'], fac_nome, fac_id, modalidade, curso['descricao'], curso['duracao'],
+                                  grau, curso['area'], fac_tipo))
+    if novas_ofertas:
+        # Em lote: o psycopg envia tudo em pipeline (milhares de linhas, uma ida ao banco).
+        c.executemany("""INSERT INTO cursos (nome, instituicao, faculdade_id, modalidade, descricao, duracao,
                                              grau, area, tipo_instituicao)
-                         VALUES (?,?,?,?,?,?,?,?,?)""",
-                      (curso['nome'], fac_nome, fac_id, modalidade, curso['descricao'], curso['duracao'],
-                       grau, curso['area'], fac_tipo))
-            resumo['cursos'] += 1
+                         VALUES (?,?,?,?,?,?,?,?,?)""", novas_ofertas)
+        resumo['cursos'] = len(novas_ofertas)
 
     conn.commit()
     if any(resumo.values()):

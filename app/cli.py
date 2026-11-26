@@ -35,6 +35,25 @@ def register_cli(app):
         init_database(app)
         click.echo('Banco inicializado.')
 
+    @app.cli.command('migrar-sqlite')
+    @click.argument('arquivo', type=click.Path(exists=True, dir_okay=False))
+    @click.option('--simular', is_flag=True, help='Faz tudo e desfaz no fim: só mostra o relatório.')
+    @click.option('--substituir', is_flag=True, help='Apaga os dados do app que já existirem no destino.')
+    def migrar_sqlite(arquivo, simular, substituir):
+        """Copia os dados de um banco SQLite antigo para o PostgreSQL (Supabase).
+
+        Destino: DATABASE_URL_ADMIN (papel postgres, com DDL) ou, sem ela,
+        DATABASE_URL. O arquivo SQLite é aberto somente para leitura."""
+        import os
+        from database.migracao_sqlite import MigracaoRecusada, migrar
+        destino = os.environ.get('DATABASE_URL_ADMIN', '').strip() or os.environ.get('DATABASE_URL', '').strip()
+        if not destino:
+            raise click.ClickException('Defina DATABASE_URL_ADMIN (ou DATABASE_URL) com o banco de destino.')
+        try:
+            migrar(arquivo, destino, simular=simular, substituir=substituir, saida=click.echo)
+        except MigracaoRecusada as e:
+            raise click.ClickException(str(e))
+
     @app.cli.command('importar-instituicoes')
     @click.argument('arquivo', type=click.Path(exists=True, dir_okay=False))
     def importar_instituicoes(arquivo):

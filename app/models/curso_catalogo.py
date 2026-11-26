@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, normalizar
+from config.database import get_connection, normalizar, sql_norm
 
 
 class CursoCatalogo:
@@ -25,13 +25,18 @@ class CursoCatalogo:
 
             nomes = {normalizar(i['nome']) for i in itens}
             c.execute(
-                "SELECT normalizar(nome) AS n, COUNT(DISTINCT COALESCE(CAST(faculdade_id AS TEXT), instituicao)) AS total "
-                "FROM cursos WHERE normalizar(nome) IN (" + ','.join('?' * len(nomes)) + ") GROUP BY normalizar(nome)",
+                f"SELECT {sql_norm('nome')} AS n, COUNT(DISTINCT COALESCE(CAST(faculdade_id AS TEXT), instituicao)) AS total, "
+                "MIN(id) AS curso_id "
+                f"FROM cursos WHERE {sql_norm('nome')} IN (" + ','.join('?' * len(nomes)) + f") GROUP BY {sql_norm('nome')}",
                 list(nomes)
             )
-            totais = {r['n']: r['total'] for r in c.fetchall()}
+            totais = {r['n']: (r['total'], r['curso_id']) for r in c.fetchall()}
             for item in itens:
-                item['total_instituicoes'] = totais.get(normalizar(item['nome']), 0)
+                total, curso_id = totais.get(normalizar(item['nome']), (0, None))
+                item['total_instituicoes'] = total
+                # Uma oferta real desse curso (tabela cursos): o app usa para
+                # abrir o detalhe e para favoritar, como os cards do site.
+                item['curso_id'] = curso_id
             return itens
         finally:
             conn.close()

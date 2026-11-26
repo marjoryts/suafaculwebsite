@@ -304,7 +304,7 @@ def test_apscheduler_foi_removido():
     assert not os.path.exists(os.path.join(PROJECT_ROOT, 'app', 'services', 'scheduler_service.py'))
 
 
-def test_migracao_de_banco_antigo_preserva_logs_e_preenche_status(tmp_path, monkeypatch):
+def test_migracao_de_banco_antigo_preserva_logs_e_preenche_status(tmp_path, monkeypatch, novo_banco):
     """Um banco criado antes desta etapa (automacao_logs sem as colunas novas) é migrado sem perder dados."""
     caminho = tmp_path / 'antigo.db'
     conn = sqlite3.connect(caminho)
@@ -316,9 +316,10 @@ def test_migracao_de_banco_antigo_preserva_logs_e_preenche_status(tmp_path, monk
     conn.commit()
     conn.close()
 
-    monkeypatch.setenv('SUAFACUL_DB_PATH', str(caminho))
     monkeypatch.setenv('SUAFACUL_ADMIN_PASSWORD', '')
     from database.init_db import init_db
+    from database.migracao_sqlite import migrar
+    migrar(str(caminho), novo_banco(), saida=lambda *_: None)
     init_db()
     init_db()  # idempotente
 
@@ -326,6 +327,6 @@ def test_migracao_de_banco_antigo_preserva_logs_e_preenche_status(tmp_path, monk
     assert [(l['status'], l['sucesso'], l['execucao_id']) for l in linhas] == [('sucesso', 1, None), ('falha', 0, None)]
     assert json.loads(linhas[0]['resumo']) == {'total': 3} and linhas[1]['erro'] == 'boom'
     conn = get_connection()
-    indices = {r['name'] for r in conn.execute("PRAGMA index_list(automacao_logs)")}
+    indices = {r['indexname'] for r in conn.execute("SELECT indexname FROM pg_indexes WHERE tablename='automacao_logs'")}
     conn.close()
     assert 'idx_automacao_em_execucao' in indices

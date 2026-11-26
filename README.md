@@ -4,8 +4,10 @@ Plataforma web para ajudar estudantes a encontrar faculdades, cursos e
 vestibulares — com um painel administrativo para gerenciar esses dados,
 incluindo importação automatizada de instituições a partir do e-MEC.
 
-Backend em **Flask + SQLite**, frontend em **HTML/CSS/JS puro** (sem
-framework de frontend), servido pelo próprio Flask via Jinja2.
+Backend em **Flask**, banco **PostgreSQL no Supabase** (único banco do site e do
+app Mobile), frontend em **HTML/CSS/JS puro** (sem framework de frontend), servido
+pelo próprio Flask via Jinja2. Migração, segurança (RLS) e implantação:
+[`docs/migracao-supabase.md`](docs/migracao-supabase.md).
 
 ## Requisitos
 
@@ -30,10 +32,16 @@ O import do app não tem efeitos colaterais (`create_app()` em
 
 Acesse em: **http://localhost:5000**
 
-O banco SQLite (`database/suafacul.db`) é criado e populado automaticamente
-na primeira execução — não precisa rodar nenhum script à parte. Isso vale
-tanto para uma instalação nova quanto para atualizar um banco já existente
-(as migrações rodam de forma segura a cada start, sem apagar dados).
+Antes de rodar, configure o banco (ver `.env.example`):
+
+```bash
+cp .env.example .env      # preencha DATABASE_URL (Supabase) e FLASK_SECRET_KEY
+flask --app wsgi init-db  # aplica as migrations pendentes e os dados de referência (idempotente)
+```
+
+`init-db` precisa de permissão de DDL para aplicar migrations: rode-o com
+`DATABASE_URL_ADMIN` (papel `postgres`) ou aplique antes `supabase/migrations/`.
+Dados de um SQLite antigo: `flask --app wsgi migrar-sqlite database/suafacul.db --simular`.
 
 ### Primeiro administrador
 
@@ -49,10 +57,8 @@ O admin é criado uma única vez; sem `SUAFACUL_ADMIN_PASSWORD` nenhum admin é
 criado (o log avisa). Se um admin antigo ainda usar a senha `admin123`, o app
 avisa no log a cada início — troque-a em Dashboard → Editar Perfil.
 
-**Na Vercel, defina `SUAFACUL_ADMIN_PASSWORD`** em Project Settings →
-Environment Variables. Lá o banco SQLite fica em `/tmp` e é recriado a cada
-inicialização, então trocar a senha pelo painel não persiste — a senha que
-vale é sempre a da variável.
+O banco fica no Supabase (persistente): a senha trocada pelo painel vale
+normalmente, e `SUAFACUL_ADMIN_PASSWORD` só é usada para criar o primeiro admin.
 
 ### Desenvolvimento local
 
@@ -70,9 +76,11 @@ suafacul-main/
 ├── run.py                      # Servidor de desenvolvimento (init do banco + seed + agendador)
 ├── requirements.txt / requirements-dev.txt
 ├── config/
-│   └── database.py             # Conexão SQLite
+│   └── database.py             # Conexão PostgreSQL (Supabase): pool, tradução de SQL, helpers
+├── supabase/migrations/        # Esquema, RLS e permissões (fonte da verdade do banco)
 ├── database/
-│   └── init_db.py              # Cria tabelas, popula dados iniciais e migra bancos já existentes
+│   └── init_db.py              # Aplica migrations pendentes e os dados de referência (idempotente)
+│   └── migracao_sqlite.py      # Copia um banco SQLite antigo para o PostgreSQL (somente leitura na origem)
 │   └── catalogo_dados.py       # Catálogo de cursos (com imagens) e instituições reais da home — sincronizado pelo init_db
 ├── app/
 │   ├── factory.py / settings.py / security.py / bootstrap.py / cli.py
@@ -295,8 +303,12 @@ sugestão preenche o campo e dispara a busca automaticamente.
 pytest tests/
 ```
 
-Cada teste roda contra um banco SQLite temporário isolado (não usa nem
-mexe no `database/suafacul.db` de desenvolvimento). Cobre autenticação
+Os testes rodam contra um **PostgreSQL real** (o mesmo motor do Supabase): cada
+teste recebe um banco novo, clonado de um template com as migrations aplicadas.
+Defina `TEST_DATABASE_URL` (usuário que pode criar bancos — ex.: o Postgres do
+`supabase start`) e, para rodar a aplicação com o papel restrito de produção
+(sujeito a RLS), `TEST_DATABASE_APP_USER`/`TEST_DATABASE_APP_PASSWORD`. Nunca usa o
+banco de produção. Cobre autenticação
 (local e Google, com mocks — sem chamar o Google de verdade), busca de
 faculdades/cursos, autocomplete, footer, a automação diária de
 vestibulares, importação e-MEC/Censo e o seed automático.
@@ -319,7 +331,7 @@ encontrado.
 
 ## Deploy na Vercel
 
-- Entrypoint: `wsgi.py` (configurado em `pyproject.toml` → `[tool.vercel] entrypoint`), que cria o app por `app/factory.py` e, na Vercel, inicializa o banco. Localmente: `python run.py`.
-- Banco: na Vercel o código fica em disco somente leitura; o SQLite é criado em `/tmp/suafacul.db` (detectado pela variável `VERCEL`). **Esse arquivo é temporário**: some quando a instância é reciclada e não é compartilhado entre instâncias. Para dados permanentes (usuários, favoritos) em produção é preciso um banco externo.
+- Entrypoint: `wsgi.py` (configurado em `pyproject.toml` → `[tool.vercel] entrypoint`), que só cria o app por `app/factory.py` (sem tocar no banco no cold start). Localmente: `python run.py`.
+- Banco: PostgreSQL do Supabase, persistente e compartilhado por todas as instâncias. `DATABASE_URL` = *Transaction pooler* (porta 6543) com o papel `suafacul_backend` — ver `docs/migracao-supabase.md`. Migrations e dados de referência: `flask --app wsgi init-db` (passo de deploy, não de cada requisição).
 - Automações diárias: na Vercel rodam via Vercel Cron (`vercel.json` → `/api/cron/validacao-vestibulares` às 06:00 UTC = 03:00 em São Paulo e `/api/cron/limpeza-refresh-tokens`), protegidas por `CRON_SECRET` (detalhes em `docs/etapa6-cron.md`).
-- Variáveis em *Settings → Environment Variables*: `FLASK_SECRET_KEY`, `CRON_SECRET` e, para login com Google, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` (https do domínio da Vercel).
+- Variáveis em *Settings → Environment Variables*: `DATABASE_URL`, `FLASK_SECRET_KEY`, `CRON_SECRET` e, para login com Google, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` (https do domínio da Vercel).

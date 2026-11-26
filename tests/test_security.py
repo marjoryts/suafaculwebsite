@@ -5,13 +5,23 @@ import pytest
 
 from config.database import get_connection
 
+_estado = {}
+
+
+@pytest.fixture(autouse=True)
+def _banco_por_teste(request):
+    """_importar_app cria um banco novo (vazio) na primeira chamada do teste."""
+    _estado.clear()
+    _estado['banco_criado'] = False
+    _estado['criar_banco'] = lambda: request.getfixturevalue('novo_banco')()
+    yield
+
 
 def _importar_app(monkeypatch, tmp_path, **env):
     """Cria o app via factory com um ambiente controlado e inicializa o banco.
     Valores '' (em vez de ausentes) impedem que o load_dotenv() traga o .env
     real do desenvolvedor."""
     base = {
-        "SUAFACUL_DB_PATH": str(tmp_path / "sec.db"),
         "FLASK_SECRET_KEY": "x" * 32,
         "FLASK_DEBUG": "0",
         "SESSION_COOKIE_SECURE": "",
@@ -27,6 +37,9 @@ def _importar_app(monkeypatch, tmp_path, **env):
             monkeypatch.setenv(chave, valor)
     from app.bootstrap import init_database
     from app.factory import create_app
+    if not _estado['banco_criado']:
+        _estado['criar_banco']()  # banco PostgreSQL novo para este teste
+        _estado['banco_criado'] = True
     flask_app = create_app()
     init_database(flask_app)
     return SimpleNamespace(app=flask_app)

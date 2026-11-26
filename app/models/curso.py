@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from config.database import get_connection, inserir, like_ci, normalizar
+from config.database import contem_sem_acento, get_connection, inserir, normalizar, padrao_contem
 
 class Curso:
     def _build_where(self, filtros):
@@ -20,10 +20,10 @@ class Curso:
                 sql += f" AND tipo_instituicao IN ({','.join('?'*len(tipos))})"
                 params.extend(tipos)
         if filtros.get('busca'):
-            like = f"%{filtros['busca']}%"
-            sql += (f" AND ({like_ci('nome')} OR {like_ci('instituicao')}"
-                    f" OR {like_ci('descricao')} OR {like_ci('area')})")
-            params.extend([like, like, like, like])
+            # Sem diferenciar acentos nem maiúsculas ('administracao' acha 'Administração').
+            campos = ('nome', 'instituicao', 'descricao', 'area')
+            sql += " AND (" + " OR ".join(contem_sem_acento(c) for c in campos) + ")"
+            params.extend([padrao_contem(filtros['busca'])] * len(campos))
         return sql, params
 
     def listar(self, filtros={}):

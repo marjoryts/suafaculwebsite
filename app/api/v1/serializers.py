@@ -84,7 +84,7 @@ def usuario_dto(u):
     return {
         'id': u['id'], 'nome_usuario': u['nome_usuario'], 'email': u['email'], 'tipo': u['tipo'],
         'avatar_url': u.get('avatar_url'), 'auth_provider': u.get('auth_provider'),
-        'created_at': u.get('created_at'),
+        'telefone': u.get('telefone'), 'created_at': u.get('created_at'),
     }
 
 
